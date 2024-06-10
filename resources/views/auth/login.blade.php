@@ -31,7 +31,7 @@
 
       <!-- Password -->
       <div class="mt-4">
-        <x-label for="password" :value="__('Password')" />
+        <x-label for="password" :value="__('Mot de passe')" />
 
         <x-input id="password" type="password" name="password" required autocomplete="current-password" />
       </div>
@@ -40,19 +40,19 @@
       <div class="mt-4">
         <label for="remember_me" class="d-inline-flex">
           <input id="remember_me" type="checkbox" class="form-check-input" name="remember">
-          <span class="ms-2">{{ __('Remember me') }}</span>
+          <span class="ms-2">{{ __('Se souvenir de moi') }}</span>
         </label>
       </div>
 
       <div class="d-flex align-items-center justify-content-between mt-4">
         @if (Route::has('password.request'))
         <a class="underline text-sm text-gray-600 hover:text-gray-900" href="{{ route('password.request') }}">
-          {{ __('Forgot your password?') }}
+          {{ __('Mot de passe oublié?') }}
         </a>
         @endif
 
         <x-button>
-          {{ __('Log in') }}
+          {{ __('Connexion') }}
         </x-button>
       </div>
 

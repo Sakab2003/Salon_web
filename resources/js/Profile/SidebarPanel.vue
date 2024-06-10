@@ -3,8 +3,8 @@
     <div class="card">
       <div class="card-body">
         <div class="list-group list-group-flush">
-          <div class="mb-3" @click="toggle()"><router-link :to="{name: 'profile.info'}" class="btn btn-border"><i class="fa-solid fa-user"></i>Personal Information</router-link></div>
-          <div class="mb-3" @click="toggle()"><router-link :to="{name: 'profile.change.password'}" class="btn btn-border"><i class="fa-solid fa-key"></i>Change Password</router-link></div>
+          <div class="mb-3" @click="toggle()"><router-link :to="{name: 'profile.info'}" class="btn btn-border"><i class="fa-solid fa-user"></i>Information Personelle</router-link></div>
+          <div class="mb-3" @click="toggle()"><router-link :to="{name: 'profile.change.password'}" class="btn btn-border"><i class="fa-solid fa-key"></i>Changer Mot de passe</router-link></div>
           <div class="mb-3" v-if="ROLES.includes('manager')" @click="toggle()"><router-link :to="{name: 'profile.branchSetting'}" class="btn btn-border"><i class="fa-solid fa-code-branch"></i>Branch Setting</router-link></div>
         </div>
       </div>
