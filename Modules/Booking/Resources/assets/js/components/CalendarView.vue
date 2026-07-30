@@ -234,7 +234,7 @@ body {
 .ec-line:not(:first-child):after {
   border-color: var(--bs-border-color);
 }
-.ec-header,.ec-all-day,.ec-body,.ec-days,.ec-day{
+.ec-header,.ec-a-day,.ec-body,.ec-days,.ec-day{
   border-color: var(--bs-border-color);
 }
 .ec-button, .ec-button:not(:disabled) {

@@ -37,7 +37,7 @@ return [
     'variations' => 'تباين المنتج',
     'supply' => 'الإمداد',
     'logistics' => 'اللوجستيات',
-    'logistic_zone' => 'مناطق الشحن',
+    'logistic_zone' => ' الشحن',
     'stoke' => 'المخزون',
     'add_stoke' => 'إضافة مخزون',
     'location' => 'الموقع',
