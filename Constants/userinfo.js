@@ -1,125 +1,92 @@
-//PLEASE FOLLOW THE FORMAT OF THIS FILE.
-
 import { faGithubAlt, faLinkedinIn, faMediumM, faFacebook, faTwitter, faInstagram, faYoutube, faBehance } from "@fortawesome/free-brands-svg-icons"
 
 export const userinfo = {
-    logoText: "Michael Scott", //This text is visible on your navbar and footer like your logo.
+    logoText: "Kaboré Samuel", // Nom affiché sur la navbar et le footer
     contact: {
-        email: 'michaelscott@email.com', //It is always a good idea to mention your email on your website. Good platform to communicate.
-        phone: '1234567890', //Phone number is optional, if you dont want it, consider leaving it blank .
-        countrycode: '+91' //It is advisable to add the country code incase you mention your contact number.
+        email: 'kabores622@gmail.com', 
+        phone: '05 53 11 99', 
+        countrycode: '+226' 
     },
     socials: [
-        //For aesthetics, it is advisable for you to mention upto 4 social media links only. Fill in the links.
-        //more icons are imported above, use as you like them.
         { type: 'github', link: '', icon: faGithubAlt },
         { type: 'linkedin', link: '', icon: faLinkedinIn },
-        { type: 'medium', link: '', icon: faMediumM },
     ],
     greeting: {
-        //this text goes on your landing page
-        title: "Hey there, I am Michael.",
-        subtitle: "Michael Gary Scott is a fictional character in NBC's The Office, portrayed by Steve Carell. Michael is the protagonist of the series, serving as the Regional Manager of the Scranton branch of a paper distribution company, Dunder Mifflin Inc. Also, that's what she said!"
+        title: "Bonjour, je suis Kaboré Samuel",
+        subtitle: "Jeune diplômé en génie informatique, spécialisé en technologies high-tech, passionné par le développement web et les nouvelles technologies."
     },
     capabilities: [
-        //this text goes on your home page in table format.
-        //For aesthetics, it is advisable for you to mention upto 4 catgeories links only.
-        //For aesthetics, it is advisable for you to keep similar number of skills in each category
         {
-            category: "Category", // eg.frontend, backend, devops etc
-            skills: ["Skillset1", "Skillset1", "Skillset1"] //eg. react, html, python etc.
+            category: "Développement Web",
+            skills: ["PHP", "Laravel", "JavaScript"]
         },
         {
-            category: "Category",
-            skills: ["Skillset2", "Skillset2", "Skillset2"]
+            category: "Frontend & UI",
+            skills: ["HTML", "CSS", "Bootstrap"]
         },
         {
-            category: "Category",
-            skills: ["Skillset3", "Skillset3", "Skillset3"]
+            category: "Bases de données & Outils",
+            skills: ["MySQL", "WampServer", "Git"]
         },
         {
-            category: "Category",
-            skills: ["Skillset4", "Skillset4", "Skillset4"]
+            category: "Bureautique & Autre",
+            skills: ["Word", "PowerPoint", "Excel"]
         },
     ],
     about: {
-        //this text goes at the bottom of your home page.
-        content: "'Do I need to be liked? Absolutely not. I like to be liked. I enjoy being liked. I have to be liked. But it’s not like this compulsive need like my need to be praised.' Whatever the situation or conflict might be, it can almost always be traced back to this need. His conference room characters, fun runs, and copious amounts of office parties are all aimed at his need to be praised.",
-        resume: "/" //link your resume here. it can be drive link or any other link
+        content: "Jeune diplômé en génie informatique, spécialisé en technologies high-tech, avec une solide formation académique et une soutenance validée avec une moyenne de 17/20[cite: 1]. Passionné par le développement et les nouvelles technologies, je suis à la recherche d'une première opportunité professionnelle afin de mettre en pratique mes compétences et contribuer à des projets innovants[cite: 1].",
+        resume: "/" // Remplace par le lien de ton CV si hébergé en ligne
     },
     education: {
-        visible: true, //set this to false if you want to omit this section
+        visible: true, 
         educationList: [
             {
-                time: 'May - Oct 2020', //timespan
-                title: 'Degree name', //eg. BTech in Compuster Engineering
-                organization: 'School Name', //eg. VJTI, Mumbai
-                description: 'Lorem ipsum dolor sit amet consectetur' //eg. secured a cgpa of 9.25 in all sems appeared in so far
+                time: '2026', 
+                title: 'Licence Informatique', 
+                organization: 'Université Aube Nouvelle', 
+                description: 'Soutenance validée avec une moyenne de 17/20[cite: 1].'
             },
             {
-                time: 'May - Oct 2020',
-                title: 'Degree name',
-                organization: 'School Name',
-                description: 'Lorem ipsum dolor sit amet consectetur'
-            },
-            {
-                time: 'May - Oct 2020',
-                title: 'Degree name',
-                organization: 'School Name',
-                description: 'Lorem ipsum dolor sit amet consectetur'
+                time: '2022',
+                title: 'Baccalauréat (TleD)',
+                organization: 'Établissement Gabriel Tabourin',
+                description: 'Études secondaires et obtention du baccalauréat.'
             },
         ],
     },
     experience: {
-        visible: true, //set this to false if you want to omit this section
+        visible: true, 
         experienceList: [
             {
-                company: 'Dunder Mifflin', //company name eg.Microsoft
-                companylogo: 'https://hips.hearstapps.com/hmg-prod.s3.amazonaws.com/images/why-did-steve-carell-leave-the-office-1585597666.jpg?crop=0.563xw:0.844xh;0.287xw,0.128xh&resize=480:*', //companylogo
-                position: 'Regional Manager', //post you held eg.Senior SDE
-                time: 'March 2020 - May 2020', //timespan
-                description: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Maxime mollitia, molestiae quas vel sint commodi repudiandae consequuntur voluptatum laborum' //eg. spearheaded the graphics team in designing SASS product UIs
-            },
-            {
-                company: 'Dunder Mifflin',
-                companylogo: 'https://hips.hearstapps.com/hmg-prod.s3.amazonaws.com/images/why-did-steve-carell-leave-the-office-1585597666.jpg?crop=0.563xw:0.844xh;0.287xw,0.128xh&resize=480:*',
-                position: 'Regional Manager',
-                time: 'March 2020 - May 2020',
-                description: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Maxime mollitia, molestiae quas vel sint commodi repudiandae consequuntur voluptatum laborum'
-            },
-            {
-                company: 'Dunder Mifflin',
-                companylogo: 'https://hips.hearstapps.com/hmg-prod.s3.amazonaws.com/images/why-did-steve-carell-leave-the-office-1585597666.jpg?crop=0.563xw:0.844xh;0.287xw,0.128xh&resize=480:*',
-                position: 'Regional Manager',
-                time: 'March 2020 - May 2020',
-                description: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Maxime mollitia, molestiae quas vel sint commodi repudiandae consequuntur voluptatum laborum'
+                company: 'DSI du MEBAPLN', 
+                companylogo: '', 
+                position: 'Stagiaire Développeur Web', 
+                time: 'Mars 2025 - Janvier 2026', 
+                description: 'Conception et développement d’une plateforme éducative interactive pour le suivi scolaire[cite: 1]. Analyse des besoins et modélisation UML[cite: 1]. Développement avec Laravel (PHP), Bootstrap, HTML, CSS, JavaScript et base de données MySQL sur WampServer[cite: 1].'
             },
         ],
     },
     blogs: {
-        //set this to false if you want to omit this section
-        visible: true
+        visible: false
     },
 }
 
 export const headings = {
-    //you can customise all the headings here.
-    workHomePage: 'Work',
-    workMainPage: 'Projects',
-    capabilities: 'Capabilities',
-    about: 'About Me',
-    education: 'Education',
-    experience: 'Experiences',
-    blogs: 'I write!',
-    contact: 'Contact Me',
+    workHomePage: 'Projets Récents',
+    workMainPage: 'Mes Projets',
+    capabilities: 'Compétences',
+    about: 'À Propos de Moi',
+    education: 'Formation',
+    experience: 'Expériences',
+    blogs: 'Articles',
+    contact: 'Contactez-moi',
 }
 
 export const ctaTexts = {
-    //you can customise all the cta texts here.
-    landingCTA: 'My work',
-    workCTA: 'View All',
-    capabCTA: 'Get in Touch',
-    educationCTA: 'About Me',
-    resumeCTA: 'Resume',
-    submitBTN: 'Submit'
+    landingCTA: 'Voir mes projets',
+    workCTA: 'Tout afficher',
+    capabCTA: 'Me contacter',
+    educationCTA: 'En savoir plus',
+    resumeCTA: 'Mon CV',
+    submitBTN: 'Envoyer'
 }
