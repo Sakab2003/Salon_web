@@ -105,6 +105,11 @@ const IS_LOADER = ref(true)
 // Mounted
 onMounted(() => {
     getBranch()
+    const urlParams = new URLSearchParams(window.location.search);
+    const bId = urlParams.get('branch_id');
+    if (bId) {
+        branch_id.value = parseInt(bId);
+    }
 })
 
 // Functions

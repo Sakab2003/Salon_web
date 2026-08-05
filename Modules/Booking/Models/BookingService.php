@@ -11,7 +11,7 @@ class BookingService extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['sequance', 'booking_id', 'service_id', 'employee_id', 'service_price', 'duration_min', 'status', 'start_date_time'];
+    protected $fillable = ['sequance', 'booking_id', 'service_id', 'service_name', 'employee_id', 'service_price', 'duration_min', 'status', 'start_date_time'];
 
     protected $casts = [
 
@@ -23,6 +23,17 @@ class BookingService extends Model
         'duration_min' => 'integer',
 
     ];
+
+    public function getServiceNameAttribute($value)
+    {
+        if (!empty($value)) {
+            return $value;
+        }
+        if ($this->service && !empty($this->service->name)) {
+            return $this->service->name;
+        }
+        return 'Service Saisi Librement';
+    }
 
     public function booking()
     {

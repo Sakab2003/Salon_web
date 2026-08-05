@@ -33,6 +33,22 @@ class AppServiceProvider extends ServiceProvider
     {
         Schema::defaultStringLength(191);
 
+        if (!$this->app->runningInConsole() && request()->getHost()) {
+            if (request()->hasHeader('X-Forwarded-Host')) {
+                $proto = request()->header('X-Forwarded-Proto', 'https');
+                $host = request()->header('X-Forwarded-Host');
+                \URL::forceRootUrl("{$proto}://{$host}");
+                if ($proto === 'https') {
+                    \URL::forceScheme('https');
+                }
+            } else {
+                \URL::forceRootUrl(request()->getSchemeAndHttpHost());
+                if (request()->isSecure()) {
+                    \URL::forceScheme('https');
+                }
+            }
+        }
+
         Paginator::useBootstrap();
 
         Blade::directive('hasPermission', function ($permissions) {

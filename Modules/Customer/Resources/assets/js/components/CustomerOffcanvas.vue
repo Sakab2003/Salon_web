@@ -18,12 +18,13 @@
             <InputField :is-required="true" :label="$t('customer.lbl_first_name')" placeholder="" v-model="first_name" :error-message="errors.first_name" :error-messages="errorMessages['first_name']"></InputField>
             <InputField :is-required="true" :label="$t('customer.lbl_last_name')" placeholder="" v-model="last_name" :error-message="errors['last_name']" :error-messages="errorMessages['last_name']"></InputField>
 
-            <InputField :is-required="true" :label="$t('customer.lbl_Email')" placeholder="" v-model="email" :error-message="errors['email']" :error-messages="errorMessages['email']"></InputField>
             <div class="form-group">
               <label class="form-label">{{ $t('customer.lbl_phone_number') }}<span class="text-danger">*</span> </label>
               <vue-tel-input :value="mobile" @input="handleInput" v-bind="{ mode: 'international', maxLen: 15 }"></vue-tel-input>
               <span class="text-danger">{{ errors['mobile'] }}</span>
             </div>
+
+            <InputField :is-required="false" :label="$t('customer.lbl_Email') + ' (Facultatif)'" placeholder="client@exemple.com (facultatif)" v-model="email" :error-message="errors['email']" :error-messages="errorMessages['email']"></InputField>
 
             <div class="row" v-if="currentId === 0">
               <InputField type="password" class="col-md-12" :is-required="true" :autocomplete="newpassword" :label="$t('employee.lbl_password')"
@@ -196,7 +197,7 @@ const reset_datatable_close_offcanvas = (res) => {
       const specialCharsRegex = /[!@#$%^&*(),.?":{}|<>\-_;'\/+=\[\]\\]/
       return !specialCharsRegex.test(value) && !numberRegex.test(value)
     }),
-    email: yup.string().required('Email is a required field').matches(EMAIL_REGX, 'Must be a valid email'),
+    email: yup.string().nullable().notRequired(),
     mobile: yup.string()
     .required('Phone Number is a required field').matches(/^(\+?\d+)?(\s?\d+)*$/, 'Phone Number must contain only digits'),
     password : yup.string().test('password','Password is required' , function(value) {

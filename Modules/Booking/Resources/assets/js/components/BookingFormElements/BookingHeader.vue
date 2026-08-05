@@ -7,6 +7,9 @@
     <small class="badge bg-success" v-if="is_paid">{{ $t('booking.lbl_is_paid') }}</small>
   </div>
   <div class="d-flex align-items-center gap-2">
+    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm" @click="$emit('openShareModal')" title="Partager ce salon">
+      <i class="fa-solid fa-share-nodes me-1"></i> Partager
+    </button>
     <div v-if="booking_id > 0 && status !== 'cancelled' && status !== 'check_in'">
         <strong><button data-bs-toggle="tooltip" title="Cancel Booking" type="button" @click="changeBookingStatus('cancelled','Are You Sure You want to Cancel?')" class="btn btn-sm text-danger"><i data-v-f9741b98="" class="fa-regular fa-trash-can"></i></button></strong>
     </div>
@@ -22,7 +25,7 @@ const props = defineProps({
   status: {type: String, default: 'pending'},
   is_paid: {type: Number, default: 0},
 })
-const emit = defineEmits(['statusUpdate'])
+const emit = defineEmits(['statusUpdate', 'openShareModal'])
 
 const { updateRequest } = useRequest()
 

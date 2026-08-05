@@ -12,22 +12,28 @@ trait BookingTrait
     public function updateBookingService($data, $booking_id)
     {
         $serviceData = collect($data);
-        $serviceId = $serviceData->pluck('service_id')->toArray();
         $bookingService = BookingService::where('booking_id', $booking_id);
-        if (count($serviceId) > 0) {
-            $bookingService = $bookingService->whereNotIn('service_id', $serviceId);
-        }
         $bookingService->delete();
         foreach ($serviceData as $key => $value) {
-            BookingService::updateOrCreate(['booking_id' => $booking_id, 'service_id' => $value['service_id'], 'employee_id' => $value['employee_id']], [
+            $rawServiceId = $value['service_id'] ?? null;
+            $serviceId = is_numeric($rawServiceId) ? (int)$rawServiceId : 0;
+            $serviceName = $value['service_name'] ?? null;
+            
+            $insertData = [
                 'sequance' => $key,
-                'start_date_time' => $value['start_date_time'],
+                'start_date_time' => $value['start_date_time'] ?? now()->toDateTimeString(),
                 'booking_id' => $booking_id,
-                'service_id' => $value['service_id'],
-                'employee_id' => $value['employee_id'],
+                'service_id' => $serviceId,
+                'employee_id' => $value['employee_id'] ?? null,
                 'service_price' => $value['service_price'] ?? 0,
                 'duration_min' => $value['duration_min'] ?? 30,
-            ]);
+            ];
+
+            if ($serviceName) {
+                $insertData['service_name'] = $serviceName;
+            }
+
+            BookingService::create($insertData);
         }
     }
 

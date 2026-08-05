@@ -212,6 +212,13 @@ class CustomersController extends Controller
     {
         $data = $request->all();
 
+        if (empty($data['email'])) {
+            $mobileClean = preg_replace('/[^0-9]/', '', $data['mobile'] ?? Str::random(8));
+            $data['email'] = ($mobileClean ?: time()) . '@salon.bf';
+        }
+
+        $data['email_verified_at'] = now();
+
         $data = User::create($data);
 
         $data->syncRoles(['user']);

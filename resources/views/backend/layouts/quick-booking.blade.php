@@ -18,18 +18,18 @@
 
     <title>@yield('title') | {{ app_name() }}</title>
 
-    <!-- <link rel="stylesheet" href="{{ mix('css/icon.min.css') }}"> -->
+    <!-- <link rel="stylesheet" href="/css/icon.min.css"> -->
     @stack('before-styles')
-    <!-- <link rel="stylesheet" href="{{ mix('css/libs.min.css') }}"> -->
-    <link rel="stylesheet" href="{{asset('vendor/flatpickr/flatpickr.min.css')}}">
-    <link rel="stylesheet" href="{{ mix('css/backend.css') }}">
-    <!-- <link rel="stylesheet" href="{{ mix('css/dark.css') }}"> -->
+    <!-- <link rel="stylesheet" href="/css/libs.min.css"> -->
+    <link rel="stylesheet" href="/vendor/flatpickr/flatpickr.min.css">
+    <link rel="stylesheet" href="/css/backend.css">
+    <!-- <link rel="stylesheet" href="/css/dark.css"> -->
 
     @if(language_direction() == 'rtl')
-      <link rel="stylesheet" href="{{ asset('css/rtl.css') }}">
+      <link rel="stylesheet" href="/css/rtl.css">
     @endif
 
-    <link rel="stylesheet" href="{{ asset('css/customizer.css') }}">
+    <link rel="stylesheet" href="/css/customizer.css">
 
 
     <style>

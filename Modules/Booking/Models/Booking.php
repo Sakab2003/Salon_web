@@ -109,6 +109,9 @@ class Booking extends BaseModel
     public function scopeBranch($query)
     {
         $branch_id = request()->selected_session_branch_id;
+        if (!isset($branch_id) && auth()->check() && !auth()->user()->hasRole('super-admin') && auth()->user()->branch_id) {
+            $branch_id = auth()->user()->branch_id;
+        }
         if (isset($branch_id)) {
             return $query->where('branch_id', $branch_id);
         } else {

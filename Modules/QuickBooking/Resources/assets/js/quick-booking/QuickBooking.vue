@@ -44,8 +44,21 @@
 </template>
 
 <script setup>
-import { ref, reactive } from "vue";
+import { ref, reactive, onMounted } from "vue";
 import TabPanel from "./TabPanel.vue";
+import { useQuickBooking } from "../store/quick-booking";
+
+const store = useQuickBooking();
+
+onMounted(() => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const bId = urlParams.get('branch_id');
+  if (bId) {
+    store.updateBookingValues({ key: 'branch_id', value: parseInt(bId) });
+    setupArray[0].done = true;
+    currentindex.value = 2;
+  }
+});
 
 // Setup Array
 const setupArray = reactive([

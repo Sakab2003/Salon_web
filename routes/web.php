@@ -29,6 +29,22 @@ use Illuminate\Support\Facades\Route;
 
 // Auth Routes
 require __DIR__.'/auth.php';
+
+Route::get('sync-manager-permissions', function () {
+    $manager = \App\Models\Role::firstOrCreate(['name' => 'manager', 'title' => 'manager']);
+    $permissions = \App\Models\Permission::whereNotIn('name', [
+        'setting_system', 'setting_payment', 'setting_mail', 'view_role', 'add_role', 'edit_role', 'delete_role'
+    ])->get();
+    $manager->syncPermissions($permissions);
+
+    $users = \App\Models\User::role('manager')->get();
+    foreach ($users as $user) {
+        $user->syncPermissions($permissions);
+    }
+
+    return "Permissions Manager et Utilisateurs Gérants synchronisés avec succès ! (" . count($permissions) . " permissions attribuées)";
+});
+
 Route::get('storage-link', function () {
     return Artisan::call('storage:link');
 });

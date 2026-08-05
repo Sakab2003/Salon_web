@@ -6,7 +6,7 @@
       </template>
       <template v-else-if="SINLGE_STEP == 'MAIN' && status != 'checkout'">
         <div class="offcanvas-header">
-          <BookingHeader :booking_id="id" :status="status" :is_paid="is_paid" @statusUpdate="updateStatus"></BookingHeader>
+          <BookingHeader :booking_id="id" :status="status" :is_paid="is_paid" @statusUpdate="updateStatus" @openShareModal="handleOpenShareModal"></BookingHeader>
         </div>
         <BookingStatus v-if="id" :status="status" :booking_id="id" :status-list="statusList" :employee_id="employee_id" @statusUpdate="updateStatus"></BookingStatus>
         <div>
@@ -63,12 +63,12 @@
                 <button type="button" v-if="status !== 'check_in' && !is_paid" @click="removeCustomer()" class="btn btn-sm text-danger"><i class="fa-regular fa-trash-can"></i></button>
               </div>
               <div class="row">
-                <label class="col-3"><i>{{ $t('booking.lbl_phone') }}</i></label>
-                <strong class="col">{{ selectedCustomer.mobile }}</strong>
+                <label class="col-4"><i>{{ $t('booking.lbl_phone') }}</i></label>
+                <strong class="col text-primary">{{ selectedCustomer.mobile }}</strong>
               </div>
-              <div class="row mb-3" >
-                <label class="col-3"><i>{{ $t('booking.lbl_e-mail') }}</i></label>
-                <strong class="col">{{ selectedCustomer.email }}</strong>
+              <div class="row mb-3" v-if="selectedCustomer.email">
+                <label class="col-4"><i>{{ $t('booking.lbl_e-mail') }}</i></label>
+                <strong class="col text-muted">{{ selectedCustomer.email }}</strong>
               </div>
             </div>
             <div v-else>
@@ -79,13 +79,13 @@
 
           <!-- Liste des Services Sélectionnés -->
           <ul class="form-group list-group list-group-flush">
-          <div class="alert alert-warning m-3" v-if="service.options.length === 0 && employee_id">
-  <i class="fa-solid fa-triangle-exclamation"></i> La base de données ne trouve aucun service actif pour {{ selectedEmployee?.name }} dans ce salon. Vérifiez l'assignation des services, des salons et le statut des catégories.
-</div>
+            <div class="alert alert-warning m-3" v-if="service.options.length === 0 && employee_id && selectedService.length === 0">
+              <i class="fa-solid fa-circle-info me-1"></i> Aucun service pré-enregistré dans la base de données. Vous pouvez ajouter directement un service personnalisé ci-dessous.
+            </div>
             <li v-for="(service, index) in selectedService" :key="index" class="list-group-item py-3 px-1">
               <div class="d-flex flex-column gap-2">
                 <div class="d-flex align-items-center justify-content-between">
-                  <h6>{{ service.service_name }} ({{ formatCurrencyVue(service.service_price) }})</h6>
+                  <h6>{{ service.service_name }} ({{ formatCurrencyVue(service.service_price) }}) <span v-if="service.is_custom" class="badge bg-soft-info ms-1">Saisie libre</span></h6>
                   <button type="button" v-if="status !== 'check_in' && !is_paid" @click="removeService(service.service_id)" class="btn btn-sm text-danger"><i class="fa-regular fa-trash-can"></i></button>
                 </div>
                 <p class="m-0">
@@ -98,17 +98,43 @@
             </li>
           </ul>
 
-          <!-- Ajout d'un nouveau Service -->
-          <div v-if="services_id.length < service.options.length && selectedCustomer && employee_id" class="text-center">
+          <!-- Formulaire de Saisie Libre de Service -->
+          <div v-if="showCustomServiceInput" class="card card-body bg-light my-2 border-dashed">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <strong class="text-primary small"><i class="fa-solid fa-pen-to-square me-1"></i> Nouveau Service Personnalisé</strong>
+              <button type="button" class="btn-close btn-sm" @click="showCustomServiceInput = false"></button>
+            </div>
+            <div class="form-group mb-2">
+              <label class="form-label small">Nom du service *</label>
+              <input type="text" v-model="custom_service_title" class="form-control form-control-sm" placeholder="ex: Coiffure VIP / Tresses" />
+            </div>
+            <div class="row g-2">
+              <div class="col-7">
+                <label class="form-label small">Prix *</label>
+                <input type="number" v-model="custom_service_amount" class="form-control form-control-sm" placeholder="ex: 5000" />
+              </div>
+              <div class="col-5">
+                <label class="form-label small">Durée (Min)</label>
+                <input type="number" v-model="custom_service_duration" class="form-control form-control-sm" placeholder="30" />
+              </div>
+            </div>
+            <button type="button" class="btn btn-sm btn-success mt-2" @click="addCustomService">
+              <i class="fa-solid fa-plus me-1"></i> Ajouter ce service
+            </button>
+          </div>
+
+          <!-- Ajout de Service (Bases de données & Saisie libre) -->
+          <div v-if="selectedCustomer && employee_id" class="text-center d-flex flex-column gap-2 mt-2">
             <Multiselect v-if="newService" :canClear="false" placeholder="Selectionner un service" ref="serviceInput" class="" v-model="services_id" :value="services_id" v-bind="multipleSelectOption" :options="service.options" @select="serviceSelect" id="service_ids">
               <template v-slot:multiplelabel="{ values }">
                 <div class="multiselect-multiple-label">Selectionner un service</div>
               </template>
             </Multiselect>
-            <template v-else>
-              <a v-if="!filterStatus(status).is_disabled && !is_paid && start_date_time" href="javascript:void(0)" @click="addNewService" class="btnw-100"><i class="fa-solid fa-circle-plus"></i>  {{ $t('booking.lbl_add_service') }}</a>
-            </template>
-            <span class="text-danger small d-block mt-2" v-if="errors.services_id">{{ errors.services_id }}</span>
+            <div v-else class="d-flex justify-content-center gap-2">
+              <a v-if="!filterStatus(status).is_disabled && !is_paid && start_date_time && service.options.length > 0" href="javascript:void(0)" @click="addNewService" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-circle-plus"></i> Liste des services</a>
+              <a v-if="!filterStatus(status).is_disabled && !is_paid" href="javascript:void(0)" @click="showCustomServiceInput = true" class="btn btn-sm btn-primary"><i class="fa-solid fa-pen"></i> Saisie libre de service</a>
+            </div>
+            <span class="text-danger small d-block mt-1" v-if="errors.services_id && selectedService.length === 0">{{ errors.services_id }}</span>
           </div>
         </div>
 
@@ -124,16 +150,16 @@
 
           <!-- Alertes de Validation avant soumission -->
           <div class="px-3">
-            <div class="alert alert-danger py-2 mb-2" v-if="Object.keys(errors).length > 0">
+            <div class="alert alert-danger py-2 mb-2" v-if="Object.keys(errors).length > 0 && selectedService.length === 0">
               <small><i class="fa-solid fa-circle-exclamation me-2"></i>Veuillez remplir tous les champs obligatoires mis en évidence ci-dessus.</small>
             </div>
-            <small class="text-danger d-block text-center mb-2 fw-bold" v-if="services_id.length === 0">
+            <small class="text-danger d-block text-center mb-2 fw-bold" v-if="selectedService.length === 0">
               * Veuillez ajouter au moins un service pour pouvoir enregistrer.
             </small>
           </div>
 
           <div class="d-grid gap-3 px-3 pb-3" v-if="status !== 'check_in' && !is_paid">
-            <button type="button" :disabled="services_id.length > 0 && status !== 'cancelled' ? false : true" :class="`btn ${services_id.length > 0 && status !== 'cancelled' ? 'btn-primary' : 'disabled btn-gray'} btn-lg rounded-0 d-block`" @click="formSubmit">
+            <button type="button" :disabled="selectedService.length > 0 && status !== 'cancelled' ? false : true" :class="`btn ${selectedService.length > 0 && status !== 'cancelled' ? 'btn-primary' : 'disabled btn-gray'} btn-lg rounded-0 d-block`" @click="formSubmit">
               <template v-if="IS_SUBMITED">
                 <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                 Loading...
@@ -292,6 +318,7 @@
   </form>
 
   <CustomerCreate :data="newCustomerData" @submit="externalFormCreation"></CustomerCreate>
+  <BookingShareModal :branch-id="branch_id" :branch-name="selectedBranchName"></BookingShareModal>
 </template>
 <script setup>
 import { ref, reactive, watch, onMounted, computed } from 'vue'
@@ -316,10 +343,60 @@ import BookingHeader from './BookingFormElements/BookingHeader.vue'
 import BookingStatus from './BookingFormElements/BookingStatus.vue'
 import PaymentForm from './Forms/PaymentForm.vue'
 import InvoiceComponent from './Forms/InvoiceComponent.vue'
+import BookingShareModal from './BookingFormElements/BookingShareModal.vue'
 
 import QtyButton from '@/vue/components/form-elements/QtyButton.vue'
 import { useSelect } from '@/helpers/hooks/useSelect'
 import moment from 'moment'
+
+// Custom Service State
+const showCustomServiceInput = ref(false)
+const custom_service_title = ref('')
+const custom_service_amount = ref('')
+const custom_service_duration = ref(30)
+
+const addCustomService = () => {
+  if (!custom_service_title.value || !custom_service_amount.value) {
+    if (window.errorSnackbar) {
+      window.errorSnackbar('Veuillez renseigner le nom et le prix du service.')
+    }
+    return
+  }
+  const customId = 'custom_' + Date.now()
+  const bookingService = {
+    id: null,
+    start_date_time: moment(start_date_time.value || new Date()).format('YYYY-MM-DD HH:mm:ss'),
+    service_name: custom_service_title.value,
+    employee_id: employee_id.value || null,
+    booking_id: id.value || null,
+    service_id: customId,
+    branch_id: branch_id.value,
+    service_price: parseFloat(custom_service_amount.value),
+    duration_min: parseInt(custom_service_duration.value || 30),
+    is_custom: true
+  }
+  selectedService.value.push(bookingService)
+  if (!services_id.value.includes(customId)) {
+    services_id.value.push(customId)
+  }
+  resetServiceTime()
+  custom_service_title.value = ''
+  custom_service_amount.value = ''
+  showCustomServiceInput.value = false
+}
+
+const selectedBranchName = computed(() => {
+  const b = branch.value.list.find((item) => item.id == branch_id.value)
+  return b ? b.name : ''
+})
+
+const handleOpenShareModal = () => {
+  const modalElem = document.getElementById('shareBookingModal')
+  if (modalElem) {
+    const modal = bootstrap.Modal.getOrCreateInstance(modalElem)
+    modal.show()
+  }
+}
 
 const { getRequest, storeRequest, updateRequest, listingRequest } = useRequest()
 // Event Emits
@@ -406,7 +483,7 @@ const validationSchema = yup.object({
   start_date_time: yup.string().required('L\'heure et la date sont requises'),
   branch_id: yup.string().required('Le salon est requis'),
   employee_id: yup.string().required('L\'employé est requis'),
-  services_id: yup.array().required('Les services sont requis'),
+  services_id: yup.array().nullable(),
   user_id: yup.string().required('Le client est requis')
 })
 

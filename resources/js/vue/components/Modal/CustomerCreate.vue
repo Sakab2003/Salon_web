@@ -19,12 +19,13 @@
                                 <input type="text" class="form-control" v-model="last_name" />
                             </div>
                             <div class="form-group col-md-12">
-                                <label for="e-mail">E-mail</label>
-                                <input type="text" class="form-control" v-model="email" />
+                                <label for="phone">{{ $t ? $t('customer.lbl_phone_number') : 'Phone Number' }} *</label>
+                                <input type="text" class="form-control" v-model="mobile" placeholder="+226 XX XX XX XX" />
+                                <span class="text-danger small" v-if="errors.mobile">{{ errors.mobile }}</span>
                             </div>
                             <div class="form-group col-md-12">
-                                <label for="e-mail">Phone Number</label>
-                                <input type="text" class="form-control" v-model="mobile" />
+                                <label for="e-mail">E-mail <small class="text-muted">(Optionnel)</small></label>
+                                <input type="text" class="form-control" v-model="email" placeholder="client@exemple.com (facultatif)" />
                             </div>
                             <div class="form-group col-md-12">
                               <label for="" class="w-100">Gender</label>
@@ -113,10 +114,10 @@ const setFormData = (data) => {
 
 // Validations
 const validationSchema = yup.object({
-    first_name: yup.string().required(),
-    last_name: yup.string().required(),
-    email: yup.string().required(),
-    mobile: yup.string().required(),
+    first_name: yup.string().required('Le prénom est requis'),
+    last_name: yup.string().required('Le nom de famille est requis'),
+    mobile: yup.string().required('Le numéro de téléphone est requis'),
+    email: yup.string().nullable().email('Format email invalide')
 })
 
 const { handleSubmit, errors, resetForm } = useForm({

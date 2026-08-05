@@ -3,7 +3,7 @@
 @section('title') Quick Booking @endsection
 
 @push('after-styles')
-    <link rel="stylesheet" href='{{ mix("modules/quickbooking/style.css") }}'>
+    <link rel="stylesheet" href="/modules/quickbooking/style.css">
 @endpush
 
 @section('content')
@@ -17,5 +17,5 @@
 @endsection
 
 @push ('after-scripts')
-<script src="{{ mix("modules/quickbooking/script.js") }}"></script>
+<script src="/modules/quickbooking/script.js"></script>
 @endpush

@@ -19,9 +19,9 @@ class customerRequest extends FormRequest
                 return [
                     'first_name' => 'required|string|max:255',
                     'last_name' => 'required|string',
-                    'email' => 'required|string|unique:users,email',
+                    'email' => 'nullable|string|email|unique:users,email',
                     'mobile' => 'required|string',
-                    'gender' => 'string',
+                    'gender' => 'nullable|string',
                 ];
                 break;
             case 'put':
@@ -29,9 +29,9 @@ class customerRequest extends FormRequest
                 return [
                     'first_name' => 'required|string|max:255',
                     'last_name' => 'required|string',
-                    'email' => ['required', 'string', Rule::unique('users', 'email')->ignore($this->id)->whereNull('deleted_at')],
+                    'email' => ['nullable', 'string', 'email', Rule::unique('users', 'email')->ignore($this->id)->whereNull('deleted_at')],
                     'mobile' => 'required|string',
-                    'gender' => 'string',
+                    'gender' => 'nullable|string',
                 ];
                 break;
             default:
