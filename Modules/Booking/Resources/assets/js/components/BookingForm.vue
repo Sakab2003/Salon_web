@@ -22,12 +22,19 @@
           </div>
         </div>
         <div class="offcanvas-body border-top">
+          <!-- Sélection du Salon -->
           <div class="form-group" v-if="bookingType !== 'CALENDER_BOOKING' && branch.options.length > 1">
-            <Multiselect id="branch_id" placeholder="Selectionner un salon" v-model="branch_id" :disabled="is_paid || filterStatus(status).is_disabled" :value="branch_id" v-bind="singleSelectOption" :options="branch.options" @select="branchSelect" @change="removeBranch" class="form-group"></Multiselect>
+            <Multiselect id="branch_id" placeholder="Selectionner un salon" v-model="branch_id" :disabled="is_paid || filterStatus(status).is_disabled" :value="branch_id" v-bind="singleSelectOption" :options="branch.options" @select="branchSelect" @change="removeBranch" class="form-group mb-0"></Multiselect>
+            <span class="text-danger small" v-if="errors.branch_id">{{ errors.branch_id }}</span>
           </div>
+
+          <!-- Sélection du Personnel -->
           <div class="form-group" v-if="bookingType !== 'CALENDER_BOOKING' && branch_id">
-            <Multiselect id="employee_id" placeholder="Select Staff" v-model="employee_id" :value="employee_id" :disabled="is_paid || filterStatus(status).is_disabled" v-bind="singleSelectOption" :options="employee.options" @select="employeeSelect" @change="removeEmployee" class="form-group"></Multiselect>
+            <Multiselect id="employee_id" placeholder="Select Staff" v-model="employee_id" :value="employee_id" :disabled="is_paid || filterStatus(status).is_disabled" v-bind="singleSelectOption" :options="employee.options" @select="employeeSelect" @change="removeEmployee" class="form-group mb-0"></Multiselect>
+            <span class="text-danger small" v-if="errors.employee_id">{{ errors.employee_id }}</span>
           </div>
+
+          <!-- Sélection Date et Heure -->
           <div class="row">
             <div class="form-group col-6" v-if="bookingType !== 'CALENDER_BOOKING' && employee_id">
               <div class="booking-datepicker">
@@ -35,11 +42,13 @@
               </div>
             </div>
             <div class="form-group col-6" v-if="bookingType !== 'CALENDER_BOOKING' && current_date && employee_id">
-              <Multiselect id="star_time" placeholder="Select Time" v-model="start_date_time" :disabled="is_paid || filterStatus(status).is_disabled" :value="start_date_time" v-bind="singleSelectOption" :options="slots" @select="slotSelect"  @change="removeSlot" class="form-group"></Multiselect>
+              <Multiselect id="star_time" placeholder="Select Time" v-model="start_date_time" :disabled="is_paid || filterStatus(status).is_disabled" :value="start_date_time" v-bind="singleSelectOption" :options="slots" @select="slotSelect"  @change="removeSlot" class="form-group mb-0"></Multiselect>
+              <span class="text-danger small" v-if="errors.start_date_time">{{ errors.start_date_time }}</span>
             </div>
           </div>
+
+          <!-- Sélection du Client -->
           <div class="form-group border-bottom ">
-            <!-- data-bs-toggle="modal" data-bs-target="#exampleModal" -->
             <div v-if="selectedCustomer">
               <div class="d-flex align-items-start gap-3 mb-2">
                 <img :src="selectedCustomer.profile_image" alt="avatar" class="img-fluid avatar avatar-60 rounded-pill" />
@@ -62,9 +71,17 @@
                 <strong class="col">{{ selectedCustomer.email }}</strong>
               </div>
             </div>
-            <Multiselect id="user_id" v-else v-model="user_id" placeholder="Select Customer" :disabled="is_paid || filterStatus(status).is_disabled" :value="user_id" v-bind="singleSelectOption" :options="customer.options" @select="customerSelect" class="form-group"></Multiselect>
+            <div v-else>
+              <Multiselect id="user_id" v-model="user_id" placeholder="Select Customer" :disabled="is_paid || filterStatus(status).is_disabled" :value="user_id" v-bind="singleSelectOption" :options="customer.options" @select="customerSelect" class="form-group mb-0"></Multiselect>
+              <span class="text-danger small" v-if="errors.user_id">{{ errors.user_id }}</span>
+            </div>
           </div>
+
+          <!-- Liste des Services Sélectionnés -->
           <ul class="form-group list-group list-group-flush">
+          <div class="alert alert-warning m-3" v-if="service.options.length === 0 && employee_id">
+  <i class="fa-solid fa-triangle-exclamation"></i> La base de données ne trouve aucun service actif pour {{ selectedEmployee?.name }} dans ce salon. Vérifiez l'assignation des services, des salons et le statut des catégories.
+</div>
             <li v-for="(service, index) in selectedService" :key="index" class="list-group-item py-3 px-1">
               <div class="d-flex flex-column gap-2">
                 <div class="d-flex align-items-center justify-content-between">
@@ -80,6 +97,8 @@
               </div>
             </li>
           </ul>
+
+          <!-- Ajout d'un nouveau Service -->
           <div v-if="services_id.length < service.options.length && selectedCustomer && employee_id" class="text-center">
             <Multiselect v-if="newService" :canClear="false" placeholder="Selectionner un service" ref="serviceInput" class="" v-model="services_id" :value="services_id" v-bind="multipleSelectOption" :options="service.options" @select="serviceSelect" id="service_ids">
               <template v-slot:multiplelabel="{ values }">
@@ -89,8 +108,10 @@
             <template v-else>
               <a v-if="!filterStatus(status).is_disabled && !is_paid && start_date_time" href="javascript:void(0)" @click="addNewService" class="btnw-100"><i class="fa-solid fa-circle-plus"></i>  {{ $t('booking.lbl_add_service') }}</a>
             </template>
+            <span class="text-danger small d-block mt-2" v-if="errors.services_id">{{ errors.services_id }}</span>
           </div>
         </div>
+
         <div class="offcanvas-footer">
           <div class="form-group px-3">
             <label class="form-label">{{ $t('booking.lbl_note') }}</label>
@@ -100,8 +121,19 @@
             <label for=""><strong>{{ $t('booking.lbl_sub_tot') }} </strong> </label>
             <span>{{ formatCurrencyVue(SUB_TOTAL_SERVICE_AMOUNT) }}</span>
           </div>
-          <div class="d-grid gap-3" v-if="status !== 'check_in' && !is_paid">
-            <button :disabled="services_id.length > 0 && status !== 'cancelled' ? false : true" :class="`btn ${services_id.length > 0 && status !== 'cancelled' ? 'btn-primary' : 'disabled btn-gray'} btn-lg rounded-0 d-block`" @click="formSubmit">
+
+          <!-- Alertes de Validation avant soumission -->
+          <div class="px-3">
+            <div class="alert alert-danger py-2 mb-2" v-if="Object.keys(errors).length > 0">
+              <small><i class="fa-solid fa-circle-exclamation me-2"></i>Veuillez remplir tous les champs obligatoires mis en évidence ci-dessus.</small>
+            </div>
+            <small class="text-danger d-block text-center mb-2 fw-bold" v-if="services_id.length === 0">
+              * Veuillez ajouter au moins un service pour pouvoir enregistrer.
+            </small>
+          </div>
+
+          <div class="d-grid gap-3 px-3 pb-3" v-if="status !== 'check_in' && !is_paid">
+            <button type="button" :disabled="services_id.length > 0 && status !== 'cancelled' ? false : true" :class="`btn ${services_id.length > 0 && status !== 'cancelled' ? 'btn-primary' : 'disabled btn-gray'} btn-lg rounded-0 d-block`" @click="formSubmit">
               <template v-if="IS_SUBMITED">
                 <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                 Loading...
@@ -111,6 +143,8 @@
           </div>
         </div>
       </template>
+
+      <!-- CHECKOUT TEMPLATE -->
       <template v-else-if="SINLGE_STEP == 'CHECK_OUT' && status == 'checkout'">
         <div class="offcanvas-header">
           <div class="d-flex gap-2 align-items-center">
@@ -232,11 +266,12 @@
           </div>
         </div>
       </template>
+
+      <!-- PAYMENT TEMPLATE -->
       <template v-else-if="SINLGE_STEP == 'PAYMENT'">
         <div class="offcanvas-header">
           <h4 class="offcanvas-title" id="form-offcanvasLabel">{{ $t('booking.lbl_payment') }}</h4>
           <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-
         </div>
         <div class="offcanvas-body border-top">
           <PaymentForm @updatePaymentData="updatePaymentData" :booking-id="id" :booking-status="status"></PaymentForm>
@@ -368,11 +403,11 @@ watch(
 
 // Vee-Validation Validations
 const validationSchema = yup.object({
-  start_date_time: yup.string().required('Start Date Time is required'),
-  branch_id: yup.string().required('Branch is required'),
-  employee_id: yup.string().required('Employee is required'),
-  services_id: yup.array().required('Services is required'),
-  user_id: yup.string().required('User is required')
+  start_date_time: yup.string().required('L\'heure et la date sont requises'),
+  branch_id: yup.string().required('Le salon est requis'),
+  employee_id: yup.string().required('L\'employé est requis'),
+  services_id: yup.array().required('Les services sont requis'),
+  user_id: yup.string().required('Le client est requis')
 })
 
 const { handleSubmit, errors, resetForm } = useForm({ validationSchema })
@@ -571,6 +606,12 @@ const addNewService = (value) => {
 }
 const serviceSelect = (value) => {
   const filteredService = service.value.list.find((ser) => ser.service_id == value)
+  
+  // Ajoute l'ID au tableau validé par Vee-Validate
+  if (!services_id.value.includes(value)) {
+    services_id.value.push(value)
+  }
+
   const bookingService = {
     id: null,
     start_date_time: null,
@@ -886,5 +927,12 @@ const openStripe = (data) => {
 }
 .list-group-flush > .list-group-item {
   color: var(--bs-body-color);
+}
+
+/* Vous pouvez modifier la couleur et la taille des textes d'erreur ici si besoin */
+.text-danger.small {
+  font-size: 0.85em;
+  margin-top: 4px;
+  display: inline-block;
 }
 </style>
