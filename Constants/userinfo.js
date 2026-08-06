@@ -1,4 +1,4 @@
-import { faGithubAlt, faLinkedinIn, faMediumM, faFacebook, faTwitter, faInstagram, faYoutube, faBehance } from "@fortawesome/free-brands-svg-icons"
+import { faGithubAlt, faLinkedinIn, faWhatsapp, faMediumM, faFacebook, faTwitter, faInstagram, faYoutube, faBehance } from "@fortawesome/free-brands-svg-icons"
 
 export const userinfo = {
     logoText: "Kaboré Samuel", // Nom affiché sur la navbar et le footer
@@ -8,8 +8,9 @@ export const userinfo = {
         countrycode: '+226' 
     },
     socials: [
-        { type: 'github', link: '', icon: faGithubAlt },
-        { type: 'linkedin', link: '', icon: faLinkedinIn },
+        { type: 'github', link: 'https://github.com/Sakab2003/', icon: faGithubAlt },
+        { type: 'linkedin', link: 'https://www.linkedin.com/in/samuel-kabore-88a544346?utm_source=share_via&utm_content=profile&utm_medium=member_android', icon: faLinkedinIn },
+        { type: 'whatsapp', link: 'https://wa.me/22605531199', icon: faWhatsapp },
     ],
     greeting: {
         title: "Bonjour, je suis Kaboré Samuel",
@@ -35,7 +36,7 @@ export const userinfo = {
     ],
     about: {
         content: "Jeune diplômé en génie informatique, spécialisé en technologies high-tech, avec une solide formation académique et une soutenance validée avec une moyenne de 17/20[cite: 1]. Passionné par le développement et les nouvelles technologies, je suis à la recherche d'une première opportunité professionnelle afin de mettre en pratique mes compétences et contribuer à des projets innovants[cite: 1].",
-        resume: "/" // Remplace par le lien de ton CV si hébergé en ligne
+        resume: "/CV_KABORE_SAMUEL.pdf" // Remplace par le lien de ton CV si hébergé en ligne
     },
     education: {
         visible: true, 
@@ -84,7 +85,7 @@ export const headings = {
 
 export const ctaTexts = {
     landingCTA: 'Voir mes projets',
-    workCTA: 'Tout afficher',
+    workCTA: 'Voir plus',
     capabCTA: 'Me contacter',
     educationCTA: 'En savoir plus',
     resumeCTA: 'Mon CV',

@@ -35,7 +35,7 @@ const Contact = ({ currentTheme }) => {
     setMessage('')
 
     toast({
-      description: "You reached us!",
+      description: "Message envoyé avec succès !",
       status: "success",
       duration: 5000,
       isClosable: true,
@@ -68,11 +68,11 @@ const Contact = ({ currentTheme }) => {
       </div>
       <form onSubmit={(e) => { handleSubmit(e) }} className={styles.form} style={{ borderColor: currentTheme.text, backgroundColor: currentTheme.name === 'light' ? '#fafafa' : 'transparent' }}>
         <Stack spacing={4}>
-          <Input type="text" name="name" value={name} placeholder="Your Name" focusBorderColor={currentTheme.tertiary} isRequired autoComplete="off" onChange={(e) => { setName(e.target.value) }} />
-          <Input type="email" name="email" value={email} placeholder="yourname@email.com" focusBorderColor={currentTheme.tertiary} autoComplete="off" isRequired onChange={(e) => { setEmail(e.target.value) }} />
-          <Input type="tel" name="phone" value={phone} placeholder="Phone Number" focusBorderColor={currentTheme.tertiary} autoComplete="off" isRequired onChange={(e) => { setPhone(e.target.value) }} />
+          <Input type="text" name="name" value={name} placeholder="Votre Nom" focusBorderColor={currentTheme.tertiary} isRequired autoComplete="off" onChange={(e) => { setName(e.target.value) }} />
+          <Input type="email" name="email" value={email} placeholder="votrenom@email.com" focusBorderColor={currentTheme.tertiary} autoComplete="off" isRequired onChange={(e) => { setEmail(e.target.value) }} />
+          <Input type="tel" name="phone" value={phone} placeholder="Numéro de téléphone" focusBorderColor={currentTheme.tertiary} autoComplete="off" isRequired onChange={(e) => { setPhone(e.target.value) }} />
           <Textarea
-            placeholder="Message for me!"
+            placeholder="Votre message"
             resize="vertical"
             focusBorderColor={currentTheme.tertiary}
             isRequired
@@ -103,7 +103,7 @@ const Contact = ({ currentTheme }) => {
           userinfo.socials.map((social, key) => {
             return (
               <div className={styles.socialIcon} style={iconStyles} key={key}>
-                <Link href={social.link}><a><FontAwesomeIcon icon={social.icon} /></a></Link>
+                <Link href={social.link}><a target="_blank" rel="noopener noreferrer"><FontAwesomeIcon icon={social.icon} /></a></Link>
               </div>
             )
           }) : null

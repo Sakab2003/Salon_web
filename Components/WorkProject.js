@@ -14,7 +14,7 @@ const WorkProject = ({ currentTheme, project, id }) => {
 
   const showGitToast = () => {
     toast({
-      description: "Sorry, this project has a private repository!",
+      description: "Désolé, le code de ce projet est privé !",
       status: "info",
       isClosable: true,
     })
@@ -22,7 +22,7 @@ const WorkProject = ({ currentTheme, project, id }) => {
 
   const showProjToast = () => {
     toast({
-      description: "Sorry, this project has not been deployed yet!",
+      description: "Désolé, ce projet n'est pas encore en ligne !",
       status: "info",
       isClosable: true,
     })
@@ -77,12 +77,12 @@ const WorkProject = ({ currentTheme, project, id }) => {
           <div>
             <Tooltip label="Github link" placement="right">
               <div className={styles.socialIcon} style={{ color: currentTheme.subtext, borderColor: currentTheme.subtext }}>
-                {project.githubLink !== '' ? <Link href={project.githubLink}><a><FontAwesomeIcon icon={faGithubAlt} /></a></Link> : <FontAwesomeIcon icon={faGithubAlt} onClick={showGitToast} />}
+                {project.githubLink !== '' ? <Link href={project.githubLink}><a target="_blank" rel="noopener noreferrer"><FontAwesomeIcon icon={faGithubAlt} /></a></Link> : <FontAwesomeIcon icon={faGithubAlt} onClick={showGitToast} />}
               </div>
             </Tooltip>
             <Tooltip label="Project link" placement="right">
               <div className={styles.socialIcon} style={{ color: currentTheme.subtext, borderColor: currentTheme.subtext }}>
-                {project.projectLink !== '' ? <Link href={project.projectLink}><a><FontAwesomeIcon icon={faTelegramPlane} /></a></Link> : <FontAwesomeIcon icon={faTelegramPlane} onClick={showProjToast} />}
+                {project.projectLink !== '' ? <Link href={project.projectLink}><a target="_blank" rel="noopener noreferrer"><FontAwesomeIcon icon={faTelegramPlane} /></a></Link> : <FontAwesomeIcon icon={faTelegramPlane} onClick={showProjToast} />}
               </div>
             </Tooltip>
           </div>
