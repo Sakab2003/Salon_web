@@ -1,11 +1,11 @@
 <template>
-  <BModal @hide="onHide" :title="$t('export.title')" v-model="modal" centered>
+  <BModal @hide="onHide" :title="$t('export.title')" :cancel-title="$t('export.cancel') || 'Annuler'" v-model="modal" centered>
     <template v-slot:ok>
       <div class="d-grid d-md-block setting-footer">
         <button @click="onSubmit" :disabled="IS_SUBMITED" class="btn btn-primary" name="submit">
           <template v-if="IS_SUBMITED">
             <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-            Loading...
+            Chargement...
           </template>
           <template v-else> <i class="fa-solid fa-file-arrow-down"></i> {{ $t('export.download') }}</template>
         </button>
@@ -93,7 +93,7 @@ const setFormData = (data) => {
   })
 }
 const defaultDate = () => {
-  return threeMonthsAgo.format('YYYY-MM-DD')+' to '+currentDate.format('YYYY-MM-DD')
+  return threeMonthsAgo.format('YYYY-MM-DD')+' à '+currentDate.format('YYYY-MM-DD')
 }
 const defaultData = () => {
   return {

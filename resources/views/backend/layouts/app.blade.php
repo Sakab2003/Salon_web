@@ -5,14 +5,14 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
-    <link rel="icon" type="image/png" href="{{ asset(setting('logo')) }}">
-    <link rel="apple-touch-icon" sizes="76x76" href="{{ asset(setting('favicon')) }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('img/logo/favicon/favicon-32x32.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('img/logo/favicon/apple-icon.png') }}">
     <meta name="keyword" content="{{ setting('meta_keyword') }}">
     <meta name="description" content="{{ setting('meta_description') }}">
     <meta name="setting_options" content="{{ setting('customization_json') }}">
     <!-- Shortcut Icon -->
-    <link rel="shortcut icon" href="{{ asset(setting('favicon')) }}">
-    <link rel="icon" type="image/ico" href="{{ asset(setting('favicon')) }}" />
+    <link rel="shortcut icon" href="{{ asset('img/logo/favicon/favicon.ico') }}">
+    <link rel="icon" type="image/x-icon" href="{{ asset('img/logo/favicon/favicon.ico') }}" />
 
     <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -222,17 +222,52 @@
     <script src="{{ asset('laravel-js/modal-view.js') }}" defer></script>
     <script>
       const currencyFormat = (amount) => {
-        const DEFAULT_CURRENCY = JSON.parse(@json(json_encode(Currency::getDefaultCurrency(true))))
-         const noOfDecimal = DEFAULT_CURRENCY.no_of_decimal
-         const decimalSeparator = DEFAULT_CURRENCY.decimal_separator
-         const thousandSeparator = DEFAULT_CURRENCY.thousand_separator
-         const currencyPosition = DEFAULT_CURRENCY.currency_position
-         const currencySymbol = DEFAULT_CURRENCY.currency_symbol
+        const DEFAULT_CURRENCY = JSON.parse(@json(json_encode(Currency::getDefaultCurrency(true)))) || {}
+        let noOfDecimal = DEFAULT_CURRENCY.no_of_decimal !== undefined ? DEFAULT_CURRENCY.no_of_decimal : 0
+        let decimalSeparator = DEFAULT_CURRENCY.decimal_separator || ','
+        let thousandSeparator = DEFAULT_CURRENCY.thousand_separator || ' '
+        let currencyPosition = DEFAULT_CURRENCY.currency_position || 'right_with_space'
+        let currencySymbol = (DEFAULT_CURRENCY.currency_symbol && DEFAULT_CURRENCY.currency_symbol !== '$') ? DEFAULT_CURRENCY.currency_symbol : 'FCFA'
+        if (!DEFAULT_CURRENCY.currency_symbol || DEFAULT_CURRENCY.currency_symbol === '$') {
+          noOfDecimal = 0;
+          currencyPosition = 'right_with_space';
+          thousandSeparator = ' ';
+        }
         return formatCurrency(amount, noOfDecimal, decimalSeparator, thousandSeparator, currencyPosition, currencySymbol)
       }
       window.currencyFormat = currencyFormat
-      window.defaultCurrencySymbol = @json(Currency::defaultSymbol())
+      window.defaultCurrencySymbol = 'FCFA'
 
+      document.addEventListener("DOMContentLoaded", function() {
+        if (window.jQuery && $.fn.dataTable) {
+          $.extend(true, $.fn.dataTable.defaults, {
+            language: {
+              decimal:        "",
+              emptyTable:     "Aucune donnée disponible dans le tableau",
+              info:           "Affichage de _START_ à _END_ sur _TOTAL_ éléments",
+              infoEmpty:      "Affichage de 0 à 0 sur 0 élément",
+              infoFiltered:   "(filtré à partir de _MAX_ éléments au total)",
+              infoPostFix:    "",
+              thousands:      " ",
+              lengthMenu:     "Afficher _MENU_ éléments",
+              loadingRecords: "Chargement...",
+              processing:     "Traitement...",
+              search:         "Chercher...",
+              zeroRecords:    "Aucun élément correspondant trouvé",
+              paginate: {
+                first:        "Premier",
+                last:         "Dernier",
+                next:         "Suivant",
+                previous:     "Précédent"
+              },
+              aria: {
+                sortAscending:  ": activer pour trier la colonne par ordre croissant",
+                sortDescending: ": activer pour trier la colonne par ordre décroissant"
+              }
+            }
+          });
+        }
+      });
     </script>
     <script src="{{ mix('js/booking-form.min.js') }}"></script>
     <script src="{{ mix('js/import-export.min.js') }}"></script>

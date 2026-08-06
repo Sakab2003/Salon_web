@@ -5,12 +5,12 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
-    <link rel="icon" type="image/png" href="{{ asset(setting('favicon')) }}">
-    <link rel="apple-touch-icon" sizes="76x76" href="{{ asset(setting('favicon')) }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('img/logo/favicon/favicon-32x32.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('img/logo/favicon/apple-icon.png') }}">
 
     <!-- Shortcut Icon -->
-    <link rel="shortcut icon" href="{{ asset(setting('favicon')) }}">
-    <link rel="icon" type="image/ico" href="{{ asset(setting('favicon')) }}" />
+    <link rel="shortcut icon" href="{{ asset('img/logo/favicon/favicon.ico') }}">
+    <link rel="icon" type="image/x-icon" href="{{ asset('img/logo/favicon/favicon.ico') }}" />
 
     <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -219,16 +219,21 @@
         return currencyString
       }
       const currencyFormat = (amount) => {
-        const DEFAULT_CURRENCY = JSON.parse(@json(json_encode(Currency::getDefaultCurrency(true))))
-         const noOfDecimal = DEFAULT_CURRENCY.no_of_decimal
-         const decimalSeparator = DEFAULT_CURRENCY.decimal_separator
-         const thousandSeparator = DEFAULT_CURRENCY.thousand_separator
-         const currencyPosition = DEFAULT_CURRENCY.currency_position
-         const currencySymbol = DEFAULT_CURRENCY.currency_symbol
+        const DEFAULT_CURRENCY = JSON.parse(@json(json_encode(Currency::getDefaultCurrency(true)))) || {}
+        let noOfDecimal = DEFAULT_CURRENCY.no_of_decimal !== undefined ? DEFAULT_CURRENCY.no_of_decimal : 0
+        let decimalSeparator = DEFAULT_CURRENCY.decimal_separator || ','
+        let thousandSeparator = DEFAULT_CURRENCY.thousand_separator || ' '
+        let currencyPosition = DEFAULT_CURRENCY.currency_position || 'right_with_space'
+        let currencySymbol = (DEFAULT_CURRENCY.currency_symbol && DEFAULT_CURRENCY.currency_symbol !== '$') ? DEFAULT_CURRENCY.currency_symbol : 'FCFA'
+        if (!DEFAULT_CURRENCY.currency_symbol || DEFAULT_CURRENCY.currency_symbol === '$') {
+          noOfDecimal = 0;
+          currencyPosition = 'right_with_space';
+          thousandSeparator = ' ';
+        }
         return formatCurrency(amount, noOfDecimal, decimalSeparator, thousandSeparator, currencyPosition, currencySymbol)
       }
       window.currencyFormat = currencyFormat
-      window.defaultCurrencySymbol = @json(Currency::defaultSymbol())
+      window.defaultCurrencySymbol = 'FCFA'
 
     </script>
 

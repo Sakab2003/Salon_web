@@ -6,10 +6,10 @@ $notifications_count = optional(auth()->user())->unreadNotifications->count();
         <a href="{{route('backend.dashboard')}}" class="navbar-brand">
             <div class="logo-main">
                 <div class="logo-mini d-none">
-                    <img  src="{{asset(setting('mini_logo'))}}" height="30" alt="{{ app_name() }}">
+                    <img  src="{{asset(setting('mini_logo'))}}" height="38" style="max-height: 40px; width: auto;" alt="{{ app_name() }}">
                 </div>
                 <div class="logo-normal">
-                    <img  src="{{asset(setting('logo'))}}" height="30" alt="{{ app_name() }}">
+                    <img  src="{{asset(setting('logo'))}}" height="38" style="max-height: 40px; width: auto;" alt="{{ app_name() }}">
                     {{-- <h4 class="logo-title d-none d-sm-block">{{app_name()}}</h4> --}}
                 </div>
             </div>

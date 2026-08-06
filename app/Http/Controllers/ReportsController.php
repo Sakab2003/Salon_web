@@ -300,9 +300,10 @@ class ReportsController extends Controller
         }
 
         if (isset($request->date_range)) {
-            if (isset(explode(' to ', $request->date_range)[1])) {
-                $startDate = explode(' to ', $request->date_range)[0] ?? date('Y-m-d');
-                $endDate = explode(' to ', $request->date_range)[1] ?? date('Y-m-d');
+            $parts = preg_split('/\s+(to|à)\s+/i', $request->date_range);
+            if (isset($parts[1])) {
+                $startDate = $parts[0] ?? date('Y-m-d');
+                $endDate = $parts[1] ?? date('Y-m-d');
                 $query = $query->whereDate('start_date_time', '>=', $startDate)
                     ->whereDate('start_date_time', '<=', $endDate);
             }
@@ -312,8 +313,9 @@ class ReportsController extends Controller
 
         if (isset($filter['booking_date'])) {
             try {
-                $startDate = explode(' to ', $filter['booking_date'])[0];
-                $endDate = explode(' to ', $filter['booking_date'])[1];
+                $parts = preg_split('/\s+(to|à)\s+/i', $filter['booking_date']);
+                $startDate = $parts[0];
+                $endDate = $parts[1] ?? $parts[0];
 
                 $query->whereBetween('bookings.start_date_time', [$startDate, $endDate]);
             } catch (\Exception $e) {

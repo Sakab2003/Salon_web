@@ -2,12 +2,12 @@
 
 return [
     'STATUS' => [
-        'pending' => ['title' => 'Pending'],
-        'confirmed' => ['title' => 'Confirmed'],
-        'check_in' => ['title' => 'Check In'],
-        'checkout' => ['title' => 'CheckOut'],
-        'cancelled' => ['title' => 'Cancelled'],
-        'completed' => ['title' => 'Completed'],
+        'pending' => ['title' => 'En attente'],
+        'confirmed' => ['title' => 'Confirmé'],
+        'check_in' => ['title' => 'Enregistré'],
+        'checkout' => ['title' => 'Paiement / Encaissé'],
+        'cancelled' => ['title' => 'Annulé'],
+        'completed' => ['title' => 'Terminé'],
     ],
     'DEFAULT_STATUS' => 'pending',
 ];

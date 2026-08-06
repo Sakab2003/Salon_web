@@ -199,19 +199,19 @@ class BookingsController extends Controller
             ],
             [
                 'value' => 'customer',
-                'text' => 'Customer Name',
+                'text' => 'Nom du client',
             ],
             [
                 'value' => 'service_amount',
-                'text' => 'Amount',
+                'text' => 'Montant',
             ],
             [
                 'value' => 'service_duration',
-                'text' => 'Duration',
+                'text' => 'Durée',
             ],
             [
                 'value' => 'employee',
-                'text' => 'Staff Name',
+                'text' => 'Nom du personnel',
             ],
             [
                 'value' => 'services',
@@ -219,11 +219,11 @@ class BookingsController extends Controller
             ],
             [
                 'value' => 'status',
-                'text' => 'Status',
+                'text' => 'Statut',
             ],
             [
                 'value' => 'updated_at',
-                'text' => 'Updated At',
+                'text' => 'Mis à jour le',
             ],
         ];
         $export_url = route('backend.bookings.export');

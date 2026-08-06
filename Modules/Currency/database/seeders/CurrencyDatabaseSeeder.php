@@ -19,13 +19,13 @@ class CurrencyDatabaseSeeder extends Seeder
 
         $data = [
             [
-                'currency_name' => 'Doller',
-                'currency_symbol' => '$',
-                'currency_code' => 'USD',
-                'currency_position' => 'left',
-                'no_of_decimal' => 2,
-                'thousand_separator' => ',',
-                'decimal_separator' => '.',
+                'currency_name' => 'Franc CFA',
+                'currency_symbol' => 'FCFA',
+                'currency_code' => 'XOF',
+                'currency_position' => 'right_with_space',
+                'no_of_decimal' => 0,
+                'thousand_separator' => ' ',
+                'decimal_separator' => ',',
                 'is_primary' => 1,
             ],
         ];

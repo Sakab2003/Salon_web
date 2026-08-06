@@ -32,16 +32,16 @@ class CurrencyChange
     // }
     public function defaultSymbol()
     {
-        return $this->defaultCurrency->currency_symbol ?? '';
+        return $this->defaultCurrency->currency_symbol ?? 'FCFA';
     }
 
     public function format($amount)
     {
-        $noOfDecimal = $this->defaultCurrency->no_of_decimal;
-        $decimalSeparator = $this->defaultCurrency->decimal_separator;
-        $thousandSeparator = $this->defaultCurrency->thousand_separator;
-        $currencyPosition = $this->defaultCurrency->currency_position;
-        $currencySymbol = $this->defaultCurrency->currency_symbol;
+        $noOfDecimal = $this->defaultCurrency->no_of_decimal ?? 0;
+        $decimalSeparator = $this->defaultCurrency->decimal_separator ?? ',';
+        $thousandSeparator = $this->defaultCurrency->thousand_separator ?? ' ';
+        $currencyPosition = $this->defaultCurrency->currency_position ?? 'right_with_space';
+        $currencySymbol = $this->defaultCurrency->currency_symbol ?? 'FCFA';
 
         return formatCurrency($amount, $noOfDecimal, $decimalSeparator, $thousandSeparator, $currencyPosition, $currencySymbol);
     }

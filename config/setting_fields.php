@@ -23,7 +23,7 @@ return [
                 'label' => 'Footer Text', // you know what label it is
                 'rules' => 'required|min:2', // validation rule of laravel
                 'class' => '', // any class for input
-                'value' => 'Built with ♥ from <a href="https://iqonic.design" target="_blank">IQONIC DESIGN.</a>', // default value if you want
+                'value' => 'Conçu avec ♥ par Kuilinga Technologies.', // default value if you want
             ],
             [
                 'type' => 'text', // input fields type
@@ -41,7 +41,7 @@ return [
                 'label' => 'Copyright Text', // you know what label it is
                 'rules' => 'required|min:2', // validation rule of laravel
                 'class' => '', // any class for input
-                'value' => 'Copyright © 2023', // default value if you want
+                'value' => 'Droits d\'auteur © 2026', // default value if you want
             ],
             [
                 'type' => 'text', // input fields type
@@ -50,7 +50,7 @@ return [
                 'label' => 'UI Text', // you know what label it is
                 'rules' => 'required|min:2', // validation rule of laravel
                 'class' => '', // any class for input
-                'value' => 'UI Powered By <a href="https://hopeui.iqonic.design/" target="_blank">HOPE UI</a>', // default value if you want
+                'value' => 'Propulsé par Kuilinga Technologies', // default value if you want
             ],
             [
                 'type' => 'text', // input fields type

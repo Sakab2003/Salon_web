@@ -68,6 +68,9 @@
                 flatpickr(elem, {
                     mode: "range",
                     dateFormat: "d-m-Y",
+                    locale: {
+                        rangeSeparator: " à "
+                    }
                 })
             }
         })

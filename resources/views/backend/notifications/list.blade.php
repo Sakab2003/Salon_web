@@ -8,7 +8,7 @@
               @if($notification->data['data']['notification_group']=='booking')
                 <div class="dropdown-item-1 float-none p-3 list-unstyled iq-sub-card  {{ $notification->read_at ? '':'notify-list-bg'}} ">
                   <a href="{{ route('backend.bookings.index', ['booking_id' => $notification->data['data']['id']]) }}" class="">
-                    <h6>{{ $notification->data['subject']}}</h6>
+                    <h6>{{ $notification->data['subject'] == 'Booking Confirmation Received!' ? 'Confirmation de réservation reçue !' : $notification->data['subject'] }}</h6>
                     <div class="list-item d-flex">
                         <div class="me-3 mt-1">
                             <button type="button" class="btn btn-soft-primary btn-icon rounded-pill">
@@ -16,7 +16,7 @@
                             </button>
                         </div>
                         <div class="list-style-detail">
-                            <p class="text-body mb-1">Booking received for <span class="text-primary">{{ ($notification->data['data']['booking_services_names']) }}</span> service by <span class="text-black">{{ ($notification->data['data']['user_name']) }}</span></p>
+                            <p class="text-body mb-1">Réservation reçue pour le service <span class="text-primary">{{ ($notification->data['data']['booking_services_names']) }}</span> par <span class="text-black">{{ ($notification->data['data']['user_name']) }}</span></p>
                             <div class="d-flex justify-content-between">
                                 <p class="text-body">{{ ($notification->data['data']['booking_date']) }}</p>
                                 <p class="text-body">{{ ($notification->data['data']['booking_time']) }}</p>
@@ -29,7 +29,7 @@
                      <div class="dropdown-item-1 float-none p-3 list-unstyled iq-sub-card  {{ $notification->read_at ? '':'notify-list-bg'}} ">
                      <a href="{{ route('backend.orders.show', ['id' => $notification->data['data']['id']]) }}" class="">
                      <div class="d-flex justify-content-between">
-                    <h6>{{ $notification->data['subject']}}</h6>
+                    <h6>{{ $notification->data['subject'] == 'Booking Confirmation Received!' ? 'Confirmation de réservation reçue !' : $notification->data['subject'] }}</h6>
                     <h6>{{ ($notification->data['data']['order_code']) }} </h6>
                     </div>
                     <div class="list-item d-flex">
@@ -40,28 +40,28 @@
                         </div>
                          <div class="list-style-detail">
                             @if($notification->data['data']['notification_type']=='order_placed')
-                            <p class="text-body mb-1">New Order received from <span class="text-black">{{ ($notification->data['data']['user_name']) }}.</span></p>
+                            <p class="text-body mb-1">Nouvelle commande reçue de <span class="text-black">{{ ($notification->data['data']['user_name']) }}.</span></p>
                             <div class="d-flex justify-content-between">
                                 <p class="text-body">{{ ($notification->data['data']['order_date']) }}</p>
                                 <p class="text-body">{{ ($notification->data['data']['order_time']) }}</p>
                             </div>
 
                              @elseif($notification->data['data']['notification_type']=='order_proccessing')
-                            <p class="text-body mb-1">Order <span class="text-black">{{ ($notification->data['data']['order_code']) }}</span> has been Processing.</p>
+                            <p class="text-body mb-1">La commande <span class="text-black">{{ ($notification->data['data']['order_code']) }}</span> est en cours de traitement.</p>
                             <div class="d-flex justify-content-between">
                                 <p class="text-body">{{ ($notification->data['data']['order_date']) }}</p>
                                 <p class="text-body">{{ ($notification->data['data']['order_time']) }}</p>
                             </div>
 
                              @elseif($notification->data['data']['notification_type']=='order_delivered')
-                            <p class="text-body mb-1">Order <span class="text-black">{{ ($notification->data['data']['order_code']) }} </span> has been Delivered.</p>
+                            <p class="text-body mb-1">La commande <span class="text-black">{{ ($notification->data['data']['order_code']) }} </span> a été livrée.</p>
                             <div class="d-flex justify-content-between">
                                 <p class="text-body">{{ ($notification->data['data']['order_date']) }}</p>
                                 <p class="text-body">{{ ($notification->data['data']['order_time']) }}</p>
                             </div>
 
                               @elseif($notification->data['data']['notification_type']=='order_cancelled')
-                            <p class="text-body mb-1">Order <span class="text-black">{{ ($notification->data['data']['order_code']) }} </span> has been Cancelled.</p>
+                            <p class="text-body mb-1">La commande <span class="text-black">{{ ($notification->data['data']['order_code']) }} </span> a été annulée.</p>
                             <div class="d-flex justify-content-between">
                                 <p class="text-body">{{ ($notification->data['data']['order_date']) }}</p>
                                 <p class="text-body">{{ ($notification->data['data']['order_time']) }}</p>

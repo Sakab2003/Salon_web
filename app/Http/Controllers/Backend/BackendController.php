@@ -28,14 +28,15 @@ class BackendController extends Controller
         $global_booking = false;
         $today = Carbon::today();
         $action = $request->action ?? 'reset';
-        if (isset($request->date_range) && count(explode(' to ', $request->date_range)) > 0 && $action !== 'reset') {
-            $startDate = explode(' to ', $request->date_range)[0] ?? date('Y-m-d');
-            $endDate = explode(' to ', $request->date_range)[1] ?? date('Y-m-d');
+        if (isset($request->date_range) && $action !== 'reset') {
+            $parts = preg_split('/\s+(to|à)\s+/i', $request->date_range);
+            $startDate = $parts[0] ?? date('Y-m-d');
+            $endDate = $parts[1] ?? date('Y-m-d');
         } else {
             $startDate = Carbon::now()->subDays(10)->toDateString();
             $endDate = Carbon::now()->toDateString();
         }
-        $date_range = $startDate.' to '.$endDate;
+        $date_range = $startDate.' à '.$endDate;
 
         $data = [
             'total_appointments' => 0,

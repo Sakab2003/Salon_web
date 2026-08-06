@@ -9,10 +9,10 @@
     <div class="d-flex align-items-center justify-content-start">
         <div class="logo-main">
             <a href="{{route('backend.dashboard')}}" class="navbar-brand">
-            <img class="logo-normal img-fluid" src="{{asset(setting('logo'))}}" height="30" alt="{{ app_name() }}">
-                <img class="logo-normal dark-normal img-fluid" src="{{asset(setting('dark_logo'))}}" height="30" alt="{{ app_name() }}">
-                <img class="logo-mini img-fluid" src="{{asset(setting('mini_logo'))}}" height="30" alt="{{ app_name() }}">
-                <img class="logo-mini dark-mini img-fluid" src="{{asset(setting('dark_mini_logo'))}}" height="30" alt="{{ app_name() }}">
+                <img class="logo-normal img-fluid" src="{{asset(setting('logo'))}}" height="38" style="max-height: 40px; width: auto;" alt="{{ app_name() }}">
+                <img class="logo-normal dark-normal img-fluid" src="{{asset(setting('dark_logo'))}}" height="38" style="max-height: 40px; width: auto;" alt="{{ app_name() }}">
+                <img class="logo-mini img-fluid" src="{{asset(setting('mini_logo'))}}" height="38" style="max-height: 40px; width: auto;" alt="{{ app_name() }}">
+                <img class="logo-mini dark-mini img-fluid" src="{{asset(setting('dark_mini_logo'))}}" height="38" style="max-height: 40px; width: auto;" alt="{{ app_name() }}">
             </a>
         </div>
         <div class="sidebar-toggle" data-toggle="sidebar" data-active="true">

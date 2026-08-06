@@ -5,7 +5,7 @@ return [
     'dashboard' => 'Tableau de bord',
     'calendar_bookings' => 'Réservations de calendrier',
     'company' => 'Entreprise',
-    'branches' => 'Filiales',
+    'branches' => 'Salons',
     'bookings' => 'Réservations',
     'services' => 'Services',
     'list' => 'Liste',

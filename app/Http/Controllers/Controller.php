@@ -54,7 +54,7 @@ class Controller extends BaseController
     {
         $columns = explode(',', $request->columns);
         $type = $request->file_type;
-        $dateRange = explode(' to ', $request->date_range);
+        $dateRange = preg_split('/\s+(to|à)\s+/i', $request->date_range);
         if (count($dateRange) == 1) {
             $dateRange[1] = $dateRange[0];
         }

@@ -155,7 +155,7 @@ function dateAgo($date, $type2 = '')
     return $diff_time1.' on '.$diff_time;
 }
 
-function customDate($date, $format = 'd-m-Y h:i A')
+function customDate($date, $format = 'd-m-Y H:i')
 {
     if ($date == null || $date == '0000-00-00 00:00:00') {
         return '-';
@@ -686,44 +686,34 @@ function str_slug($title, $separator = '-', $language = 'en')
 
 function formatCurrency($number, $noOfDecimal, $decimalSeparator, $thousandSeparator, $currencyPosition, $currencySymbol)
 {
-    // Convert the number to a string with the desired decimal places
+    if (empty($currencySymbol) || $currencySymbol == '$') {
+        $currencySymbol = 'FCFA';
+        $currencyPosition = 'right_with_space';
+        $noOfDecimal = 0;
+        $thousandSeparator = ' ';
+    }
+
+    $number = floatval($number);
     $formattedNumber = number_format($number, $noOfDecimal, '.', '');
 
-    // Split the number into integer and decimal parts
     $parts = explode('.', $formattedNumber);
-    $integerPart = $parts[0];
+    $integerPart = number_format((float)$parts[0], 0, '', $thousandSeparator);
     $decimalPart = isset($parts[1]) ? $parts[1] : '';
 
-    // Add thousand separators to the integer part
-    $integerPart = number_format($integerPart, 0, '', $thousandSeparator);
-
-    // Construct the final formatted currency string
-    $currencyString = '';
-
-    if ($currencyPosition == 'left' || $currencyPosition == 'left_with_space') {
-        $currencyString .= $currencySymbol;
-        if ($currencyPosition == 'left_with_space') {
-            $currencyString .= ' ';
-        }
-        $currencyString .= $integerPart;
-        // Add decimal part and decimal separator if applicable
-        if ($noOfDecimal > 0) {
-            $currencyString .= $decimalSeparator.$decimalPart;
-        }
+    $amountStr = $integerPart;
+    if ($noOfDecimal > 0 && strlen($decimalPart) > 0) {
+        $amountStr .= $decimalSeparator . $decimalPart;
     }
 
-    if ($currencyPosition == 'right' || $currencyPosition == 'right_with_space') {
-        // Add decimal part and decimal separator if applicable
-        if ($noOfDecimal > 0) {
-            $currencyString .= $integerPart.$decimalSeparator.$decimalPart;
-        }
-        if ($currencyPosition == 'right_with_space') {
-            $currencyString .= ' ';
-        }
-        $currencyString .= $currencySymbol;
+    if ($currencyPosition == 'left') {
+        return $currencySymbol . $amountStr;
+    } elseif ($currencyPosition == 'left_with_space') {
+        return $currencySymbol . ' ' . $amountStr;
+    } elseif ($currencyPosition == 'right') {
+        return $amountStr . $currencySymbol;
+    } else {
+        return $amountStr . ' ' . $currencySymbol;
     }
-
-    return $currencyString;
 }
 
 function timeAgoFormate($date)

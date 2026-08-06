@@ -11,7 +11,7 @@
         <form action="{{ route('backend.home') }}" class="d-flex align-items-center gap-2">
           <div class="form-group my-0 ms-3">
             <input type="text" name="date_range" value="{{ $date_range }}" class="form-control dashboard-date-range"
-              placeholder="24 may 2023 to 25 June 2023" readonly="readonly">
+              placeholder="24 mai 2026 à 25 juin 2026" readonly="readonly">
           </div>
           <button type="submit" name="action" value="filter" class="btn btn-primary" data-bs-toggle="tooltip"
             data-bs-title="{{ __('messages.submit_date_filter') }}">{{ __('dashboard.lbl_submit') }}</button>
@@ -125,18 +125,16 @@
                   class="rounded-pill avatar avatar-60" loading="lazy">
                 <div class="ms-3">
                   <h5 class="mb-2">{{ $booking->user->full_name ?? default_user_name() }}</h5>
-                  <p class="mb-0">{{ date('M d | H:II', strtotime($booking->start_date_time)) }} | {{
+                  <p class="mb-0">{{ \Carbon\Carbon::parse($booking->start_date_time)->locale('fr')->isoFormat('D MMM | HH:mm') }} | {{
                     $booking->branch->name }}</p>
                 </div>
               </div>
               <div class="d-flex align-items-center text-info">
                 <i class="fa-regular fa-clock me-2"></i>
                 @php
-                $currentDateTime = Carbon\Carbon::now();
-                $dateTime = Carbon\Carbon::parse($booking->start_date_time);
-                $humanTimeDifference = $dateTime->diffForHumans($currentDateTime);
+                $dateTime = \Carbon\Carbon::parse($booking->start_date_time)->locale('fr');
                 @endphp
-                In {{ $currentDateTime->add($dateTime->diff())->diffForHumans(null, true) }}
+                Dans {{ $dateTime->diffForHumans(null, true) }}
               </div>
               <div class="dropdown">
                 <a href="{{ route('backend.bookings.index', ['booking_id' => $booking->id]) }}" class="text-primary">
@@ -259,6 +257,9 @@
             if (typeof flatpickr !== typeof undefined) {
               flatpickr(elem, {
                 mode: "range",
+                locale: {
+                  rangeSeparator: " à "
+                }
               })
             }
           })

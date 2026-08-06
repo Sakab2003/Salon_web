@@ -12,11 +12,11 @@
         <div>
           <div class="d-flex text-center date-time">
             <div class="col-6 py-3">
-              <i>On</i> <strong v-if="start_date_time && start_date_time !== 'Invalid date'">{{ moment(start_date_time).format('D, MMM YYYY') }}</strong>
-              <strong v-else> {{ moment(current_date).format('D, MMM YYYY') }}</strong>
+              <i>Le</i> <strong v-if="start_date_time && start_date_time !== 'Invalid date'">{{ moment(start_date_time).locale('fr').format('D MMMM YYYY') }}</strong>
+              <strong v-else> {{ moment(current_date).locale('fr').format('D MMMM YYYY') }}</strong>
             </div>
             <div class="col-6 py-3">
-              <i>At</i> <strong v-if="start_date_time && start_date_time !== 'Invalid date'">{{ moment(start_date_time).format('LT') }}</strong>
+              <i>À</i> <strong v-if="start_date_time && start_date_time !== 'Invalid date'">{{ moment(start_date_time).locale('fr').format('HH:mm') }}</strong>
               <strong v-else>--:--</strong>
             </div>
           </div>
@@ -30,7 +30,7 @@
 
           <!-- Sélection du Personnel -->
           <div class="form-group" v-if="bookingType !== 'CALENDER_BOOKING' && branch_id">
-            <Multiselect id="employee_id" placeholder="Select Staff" v-model="employee_id" :value="employee_id" :disabled="is_paid || filterStatus(status).is_disabled" v-bind="singleSelectOption" :options="employee.options" @select="employeeSelect" @change="removeEmployee" class="form-group mb-0"></Multiselect>
+            <Multiselect id="employee_id" placeholder="Sélectionner le personnel" v-model="employee_id" :value="employee_id" :disabled="is_paid || filterStatus(status).is_disabled" v-bind="singleSelectOption" :options="employee.options" @select="employeeSelect" @change="removeEmployee" class="form-group mb-0"></Multiselect>
             <span class="text-danger small" v-if="errors.employee_id">{{ errors.employee_id }}</span>
           </div>
 
@@ -38,11 +38,11 @@
           <div class="row">
             <div class="form-group col-6" v-if="bookingType !== 'CALENDER_BOOKING' && employee_id">
               <div class="booking-datepicker">
-                <flat-pickr v-model="current_date" :disabled="is_paid || filterStatus(status).is_disabled" placeholder="Select Date" @change="dateChange" :config="config" class="form-control" />
+                <flat-pickr v-model="current_date" :disabled="is_paid || filterStatus(status).is_disabled" placeholder="Sélectionner la date" @change="dateChange" :config="config" class="form-control" />
               </div>
             </div>
             <div class="form-group col-6" v-if="bookingType !== 'CALENDER_BOOKING' && current_date && employee_id">
-              <Multiselect id="star_time" placeholder="Select Time" v-model="start_date_time" :disabled="is_paid || filterStatus(status).is_disabled" :value="start_date_time" v-bind="singleSelectOption" :options="slots" @select="slotSelect"  @change="removeSlot" class="form-group mb-0"></Multiselect>
+              <Multiselect id="star_time" placeholder="Sélectionner l'heure" v-model="start_date_time" :disabled="is_paid || filterStatus(status).is_disabled" :value="start_date_time" v-bind="singleSelectOption" :options="slots" @select="slotSelect"  @change="removeSlot" class="form-group mb-0"></Multiselect>
               <span class="text-danger small" v-if="errors.start_date_time">{{ errors.start_date_time }}</span>
             </div>
           </div>
@@ -56,7 +56,7 @@
                   <div class="gap-2">
                     <strong>{{ selectedCustomer.full_name }}</strong>
                     <p class="m-0">
-                      <small>Client since {{ moment(selectedCustomer.created_at).format('MMMM YYYY') }}</small>
+                      <small>Client depuis {{ moment(selectedCustomer.created_at).locale('fr').format('MMMM YYYY') }}</small>
                     </p>
                   </div>
                 </div>
@@ -72,7 +72,7 @@
               </div>
             </div>
             <div v-else>
-              <Multiselect id="user_id" v-model="user_id" placeholder="Select Customer" :disabled="is_paid || filterStatus(status).is_disabled" :value="user_id" v-bind="singleSelectOption" :options="customer.options" @select="customerSelect" class="form-group mb-0"></Multiselect>
+              <Multiselect id="user_id" v-model="user_id" placeholder="Sélectionner un client" :disabled="is_paid || filterStatus(status).is_disabled" :value="user_id" v-bind="singleSelectOption" :options="customer.options" @select="customerSelect" class="form-group mb-0"></Multiselect>
               <span class="text-danger small" v-if="errors.user_id">{{ errors.user_id }}</span>
             </div>
           </div>
@@ -92,7 +92,7 @@
                   <label><i>{{ $t('booking.lbl_with') }}</i></label> <strong>{{ service.employee?.full_name || selectedEmployee?.name || '' }}</strong>
                 </p>
                 <div>
-                  <label><i>{{ $t('booking.lbl_at') }}</i></label> <strong v-if="service.start_date_time !== 'Invalid date'">{{ moment(service.start_date_time).format('LT') }}</strong><strong v-else>--:--</strong> <span class="px-2">|</span> <label class="me-2"><i>For: </i></label><strong>{{ service.duration_min }} Min</strong>
+                  <label><i>{{ $t('booking.lbl_at') }}</i></label> <strong v-if="service.start_date_time !== 'Invalid date'">{{ moment(service.start_date_time).locale('fr').format('HH:mm') }}</strong><strong v-else>--:--</strong> <span class="px-2">|</span> <label class="me-2"><i>Pour : </i></label><strong>{{ service.duration_min }} Min</strong>
                 </div>
               </div>
             </li>
@@ -125,9 +125,9 @@
 
           <!-- Ajout de Service (Bases de données & Saisie libre) -->
           <div v-if="selectedCustomer && employee_id" class="text-center d-flex flex-column gap-2 mt-2">
-            <Multiselect v-if="newService" :canClear="false" placeholder="Selectionner un service" ref="serviceInput" class="" v-model="services_id" :value="services_id" v-bind="multipleSelectOption" :options="service.options" @select="serviceSelect" id="service_ids">
+            <Multiselect v-if="newService" :canClear="false" placeholder="Sélectionner un service" ref="serviceInput" class="" v-model="services_id" :value="services_id" v-bind="multipleSelectOption" :options="service.options" @select="serviceSelect" id="service_ids">
               <template v-slot:multiplelabel="{ values }">
-                <div class="multiselect-multiple-label">Selectionner un service</div>
+                <div class="multiselect-multiple-label">Sélectionner un service</div>
               </template>
             </Multiselect>
             <div v-else class="d-flex justify-content-center gap-2">
@@ -153,7 +153,7 @@
             <div class="alert alert-danger py-2 mb-2" v-if="Object.keys(errors).length > 0 && selectedService.length === 0">
               <small><i class="fa-solid fa-circle-exclamation me-2"></i>Veuillez remplir tous les champs obligatoires mis en évidence ci-dessus.</small>
             </div>
-            <small class="text-danger d-block text-center mb-2 fw-bold" v-if="selectedService.length === 0">
+            <small class="text-danger d-block text-center mb-2 fw-bold" v-if="errors.services_id && selectedService.length === 0">
               * Veuillez ajouter au moins un service pour pouvoir enregistrer.
             </small>
           </div>
@@ -162,7 +162,7 @@
             <button type="button" :disabled="selectedService.length > 0 && status !== 'cancelled' ? false : true" :class="`btn ${selectedService.length > 0 && status !== 'cancelled' ? 'btn-primary' : 'disabled btn-gray'} btn-lg rounded-0 d-block`" @click="formSubmit">
               <template v-if="IS_SUBMITED">
                 <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                Loading...
+                Chargement...
               </template>
               <span v-else><i class="fa-solid fa-floppy-disk me-2"></i>{{ $t('messages.save_appointment') }}</span>
             </button>
@@ -174,7 +174,7 @@
       <template v-else-if="SINLGE_STEP == 'CHECK_OUT' && status == 'checkout'">
         <div class="offcanvas-header">
           <div class="d-flex gap-2 align-items-center">
-            <h4 class="offcanvas-title" id="form-offcanvasLabel">Checkout</h4>
+            <h4 class="offcanvas-title" id="form-offcanvasLabel">Paiement / Encaisser</h4>
             <small class="badge bg-success" v-if="is_paid">{{ $t('booking.lbl_is_paid') }}</small>
           </div>
           <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>

@@ -109,6 +109,9 @@ onMounted(() => {
         plugins: [DayGrid, List, TimeGrid, ResourceTimeGrid, Interaction],
         options: {
           date: props.date,
+          locale: 'fr',
+          allDayText: 'Toute la journée',
+          allDayContent: 'Toute la journée',
           slotEventOverlap: false,
           dragScroll: false,
           view: 'resourceTimeGridDay',
@@ -117,30 +120,26 @@ onMounted(() => {
             start: 'prev,next today',
             center: 'title',
             end: 'resourceTimeGridDay'
-            // dayGridMonth,timeGridWeek,timeGridDay,listWeek
           },
           buttonText: function (texts) {
-            texts.resourceTimeGridDay = 'Day'
-            texts.resourceTimeGridWeek = 'Week'
+            texts.today = "Aujourd'hui"
+            texts.resourceTimeGridDay = 'Jour'
+            texts.resourceTimeGridWeek = 'Semaine'
+            texts.dayGridMonth = 'Mois'
+            texts.listWeek = 'Liste'
+            texts.allDay = 'Toute la journée'
             return texts
           },
           eventContent: function (data) {
-          //   // console.log(data, data.event.titleHTML)
             if(data.event.titleHTML !== undefined) {
               return {html: data.event.titleHTML + data.timeText}
             }
             return data.timeText
           },
           slotLabelFormat: function (data) {
-            // Convert the input string to a Date object
-            const date = new Date(data);
-
-            // Get the hour and minute from the Date object
             const minute = data.getMinutes();
-
-            // Check if the hour and minute are both "00"
             if (minute === 0) {
-              return moment(data).format('hh:mm A');
+              return moment(data).format('HH:mm');
             } else {
               return '';
             }

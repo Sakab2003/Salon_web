@@ -107,6 +107,9 @@
                 flatpickr(elem, {
                     mode: "range",
                     dateFormat: "d-m-Y",
+                    locale: {
+                        rangeSeparator: " à "
+                    }
                 })
             }
         })
@@ -115,8 +118,6 @@
             $('#order_date').val('');
             window.renderedDataTable.ajax.reload(null, false);
         });
-
-
 
         const columns = [
              {
@@ -204,7 +205,7 @@
                     code: $('[name="code"]').val(),
                     delivery_status: $('[name="delivery_status"]').val(),
                     payment_status: $('[name="payment_status"]').val(),
-                    order_date: $('[name="order_date"]').val().split(' to '),
+                    order_date: $('[name="order_date"]').val().split(/ to | à /),
                   }
                 }
             });
