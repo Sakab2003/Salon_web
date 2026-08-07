@@ -103,6 +103,32 @@ return [
             ],
         ],
         [
+            'start_icon' => 'fa-solid fa-scissors',
+            'title' => 'sidebar.hairstyle_models',
+            'nickname' => 'hairstyle_models',
+            'menu_item_type' => 'parent',
+            'permission' => ['view_hairstyle_model'],
+            'order' => 7,
+            'children' => [
+                [
+                    'title' => 'sidebar.list',
+                    'route' => 'backend.hairstyle-models.index',
+                    'active' => ['app/hairstyle-models'],
+                    'permission' => ['view_hairstyle_model'],
+                    'order' => 0,
+                    'menu_level' => 1,
+                ],
+                [
+                    'title' => 'sidebar.visualize',
+                    'route' => 'backend.hairstyle-models.visualize',
+                    'active' => ['app/hairstyle-models/visualize'],
+                    'permission' => ['view_hairstyle_model'],
+                    'order' => 1,
+                    'menu_level' => 1,
+                ],
+            ],
+        ],
+        [
             'title' => 'sidebar.users',
             'menu_item_type' => 'static',
             'permission' => ['view_customer', 'view_staff', 'view_customer_reviews'],
@@ -411,6 +437,36 @@ return [
                         ],
                     ],
                 ],
+                [
+                    'menu_type' => 'horizontal',
+                    'start_icon' => 'fa-solid fa-scissors',
+                    'title' => 'sidebar.hairstyle_models',
+                    'nickname' => 'hairstyle_models',
+                    'menu_item_type' => 'parent',
+                    'order' => 3,
+                    'menu_level' => 1,
+                    'permission' => ['view_hairstyle_model'],
+                    'children' => [
+                        [
+                            'menu_type' => 'horizontal',
+                            'title' => 'sidebar.list',
+                            'route' => 'backend.hairstyle-models.index',
+                            'active' => ['app/hairstyle-models'],
+                            'permission' => ['view_hairstyle_model'],
+                            'order' => 0,
+                            'menu_level' => 2,
+                        ],
+                        [
+                            'menu_type' => 'horizontal',
+                            'title' => 'sidebar.visualize',
+                            'route' => 'backend.hairstyle-models.visualize',
+                            'active' => ['app/hairstyle-models/visualize'],
+                            'permission' => ['view_hairstyle_model'],
+                            'order' => 1,
+                            'menu_level' => 2,
+                        ],
+                    ],
+                ],
             ],
         ],
         [
@@ -629,6 +685,14 @@ return [
         [
             'route' => 'backend.services.index',
             'title' => 'Services List',
+        ],
+        [
+            'route' => 'backend.hairstyle-models.index',
+            'title' => 'Liste des modèles',
+        ],
+        [
+            'route' => 'backend.hairstyle-models.visualize',
+            'title' => 'Visualiser les modèles',
         ],
         [
             'route' => 'backend.categories.index',

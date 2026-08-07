@@ -32,6 +32,16 @@ require __DIR__.'/auth.php';
 
 Route::get('sync-manager-permissions', function () {
     $manager = \App\Models\Role::firstOrCreate(['name' => 'manager', 'title' => 'manager']);
+    
+    // Ensure critical permissions exist
+    $extraPermissions = [
+        'view_dashboard', 'menu_builder_sidebar', 'menu_builder_header',
+        'view_hairstyle_model', 'add_hairstyle_model', 'edit_hairstyle_model', 'delete_hairstyle_model'
+    ];
+    foreach ($extraPermissions as $perm) {
+        \App\Models\Permission::firstOrCreate(['name' => $perm, 'is_fixed' => true]);
+    }
+
     $permissions = \App\Models\Permission::whereNotIn('name', [
         'setting_system', 'setting_payment', 'setting_mail', 'view_role', 'add_role', 'edit_role', 'delete_role'
     ])->get();

@@ -27,6 +27,10 @@ return [
             'is_custom_permission' => 0,
         ],
         [
+            'module_name' => 'Hairstyle Model',
+            'is_custom_permission' => 0,
+        ],
+        [
             'module_name' => 'Category',
             'is_custom_permission' => 0,
         ],

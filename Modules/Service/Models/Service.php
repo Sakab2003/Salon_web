@@ -97,6 +97,11 @@ class Service extends BaseModel
         return $this->belongsToMany(Branch::class, 'service_branches');
     }
 
+    public function hairstyle_models()
+    {
+        return $this->hasMany(HairstyleModel::class, 'service_id');
+    }
+
     protected function getFeatureImageAttribute()
     {
         $media = $this->getFirstMediaUrl('feature_image');

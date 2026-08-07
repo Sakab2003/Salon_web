@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Modules\Booking\Models\Booking;
 use Modules\Booking\Models\BookingService;
 use Modules\Booking\Models\BookingTransaction;
+use Modules\Commission\Models\CommissionEarning;
 use Modules\Product\Models\Order;
 use Modules\Product\Models\OrderGroup;
 
@@ -62,10 +63,11 @@ class BackendController extends Controller
                     ->whereDate('start_date_time', '<=', $endDate);
             });
         })->where('status', 'completed')->branch()->count();
-        $data['total_commission'] = Booking::with('commission')->branch()->whereDate('start_date_time', '>=', $startDate)
+        $commissionBookings = Booking::with('commission')->branch()
+            ->whereDate('start_date_time', '>=', $startDate)
             ->whereDate('start_date_time', '<=', $endDate)->get();
 
-        $data['total_commission'] = \Currency::format($data['total_commission']->sum(function ($booking) {
+        $data['total_commission'] = \Currency::format($commissionBookings->sum(function ($booking) {
             return $booking->commission->commission_amount ?? 0;
         }));
 
@@ -126,9 +128,7 @@ class BackendController extends Controller
         $data['revenue_chart']['total_bookings'] = $chartBookingRevenue?->pluck('total_booking')->toArray() ?? [];
         $data['revenue_chart']['total_price'] = $chartBookingRevenue?->pluck('total_price')->toArray() ?? [];
 
-        $orders = Order::where(function ($q) {
-            $q->orWhereIn('order_group_id', OrderGroup::pluck('id'));
-        });
+        $orders = Order::whereIn('order_group_id', OrderGroup::select('id'));
 
         $data['total_orders'] = $orders->count();
 

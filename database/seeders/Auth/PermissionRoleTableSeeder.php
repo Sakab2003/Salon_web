@@ -41,19 +41,54 @@ class PermissionRoleTableSeeder extends Seeder
                 }
             }
         }
+
+        $extraPermissions = [
+            'view_dashboard', 'menu_builder_sidebar', 'menu_builder_header',
+            'view_hairstyle_model', 'add_hairstyle_model', 'edit_hairstyle_model', 'delete_hairstyle_model',
+            'view_category', 'add_category', 'edit_category', 'delete_category',
+            'view_categories', 'add_categories', 'edit_categories', 'delete_categories',
+            'view_subcategory', 'add_subcategory', 'edit_subcategory', 'delete_subcategory',
+            'view_subcategories', 'add_subcategories', 'edit_subcategories', 'delete_subcategories'
+        ];
+        foreach ($extraPermissions as $perm) {
+            Permission::firstOrCreate(['name' => $perm, 'is_fixed' => true]);
+        }
+
         // Assign Permissions to Roles
         $admin->givePermissionTo(Permission::get());
         $manager->givePermissionTo([
+            'view_dashboard',
             'view_booking',
             'add_booking',
             'edit_booking',
             'delete_booking',
+            'menu_builder_sidebar',
             'menu_builder_header',
             'view_service',
             'add_service',
             'edit_service',
             'delete_service',
             'service_gallery',
+            'view_category',
+            'add_category',
+            'edit_category',
+            'delete_category',
+            'view_categories',
+            'add_categories',
+            'edit_categories',
+            'delete_categories',
+            'view_subcategory',
+            'add_subcategory',
+            'edit_subcategory',
+            'delete_subcategory',
+            'view_subcategories',
+            'add_subcategories',
+            'edit_subcategories',
+            'delete_subcategories',
+            'view_hairstyle_model',
+            'add_hairstyle_model',
+            'edit_hairstyle_model',
+            'delete_hairstyle_model',
             'view_staff',
             'add_staff',
             'edit_staff',
@@ -62,10 +97,6 @@ class PermissionRoleTableSeeder extends Seeder
             'add_customer',
             'edit_customer',
             'delete_customer',
-            // 'reports_daily_booking',
-            // 'reports_overall_booking',
-            // 'reports_staff_payout',
-            // 'reports_staff_service',
             'setting_commission',
             'view_commission',
             'add_commission',

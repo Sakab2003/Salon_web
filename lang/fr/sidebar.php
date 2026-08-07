@@ -8,6 +8,8 @@ return [
     'branches' => 'Salons',
     'bookings' => 'Réservations',
     'services' => 'Services',
+    'hairstyle_models' => 'Modèle de coiffure',
+    'visualize' => 'Visualiser les modèles',
     'list' => 'Liste',
     'categories' => 'Catégories',
     'sub_categories' => 'Sous-catégories',

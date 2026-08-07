@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Backend\UserController;
 use Illuminate\Support\Facades\Route;
+use Modules\Service\Http\Controllers\Backend\HairstyleModelController;
 use Modules\Service\Http\Controllers\Backend\ServicePackageController;
 use Modules\Service\Http\Controllers\Backend\ServicesController;
 
@@ -61,6 +62,15 @@ Route::group(['prefix' => 'app', 'as' => 'backend.', 'middleware' => ['auth']], 
         Route::get('export', [ServicesController::class, 'export'])->name('export');
     });
     Route::resource('services', ServicesController::class);
+
+    // Hairstyle Models Routes
+    Route::group(['prefix' => 'hairstyle-models', 'as' => 'hairstyle-models.'], function () {
+        Route::get('/visualize', [HairstyleModelController::class, 'visualize'])->name('visualize');
+        Route::get('/index_data', [HairstyleModelController::class, 'index_data'])->name('index_data');
+        Route::post('bulk-action', [HairstyleModelController::class, 'bulk_action'])->name('bulk_action');
+        Route::post('update-status/{id}', [HairstyleModelController::class, 'update_status'])->name('update_status');
+    });
+    Route::resource('hairstyle-models', HairstyleModelController::class);
 
     // Service Packages
     Route::group(['prefix' => 'service', 'as' => 'service.'], function () {
