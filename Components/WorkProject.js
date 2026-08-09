@@ -69,8 +69,14 @@ const WorkProject = ({ currentTheme, project, id }) => {
           </HStack>
         </div>
         <div className={styles.imageandsocials}>
-          <div className={styles.card} {...handlers} style={{ borderColor: currentTheme.footerColor, position: 'relative' }}>
-            <Image src={project.photo[index]} alt='thumbnail image' height='300' width='500' />
+          <div className={styles.card} {...handlers} style={{ borderColor: currentTheme.footerColor, position: 'relative', overflow: 'hidden' }}>
+            {
+              project.photo[index].endsWith('.mp4') ? (
+                <video src={project.photo[index]} autoPlay loop muted playsInline style={{ objectFit: 'cover', height: '100%', width: '100%', position: 'absolute', top: 0, left: 0 }} />
+              ) : (
+                <Image src={project.photo[index]} alt='thumbnail image' layout='fill' objectFit='cover' />
+              )
+            }
             <button onClick={back} style={{position: 'absolute', top: '50%', left: '10px', color: 'white', fontSize: '20px'}}>&lt;</button>
             <button onClick={ahead} style={{position: 'absolute', top: '50%', right: '10px', color: 'white', fontSize: '20px'}}>&gt;</button>
           </div>

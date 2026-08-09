@@ -44,7 +44,7 @@ const BlogCard = ({ blog, currentTheme }) => {
                     </Box>
                     <div style={{marginTop: '1rem'}}>
                         <Box>
-                            <Link href={blog.link||blog.url}><a className={styles.cta2} style={{ color: '#3182ce' }}>View More</a></Link>
+                            <Link href={blog.link||blog.url}><a className={styles.cta2} style={{ color: '#3182ce' }}>Voir plus</a></Link>
                         </Box>
                     </div>
                 </Box>

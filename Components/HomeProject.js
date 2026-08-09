@@ -10,7 +10,7 @@ const HomeProject = ({ currentTheme, project, id }) => {
                 <div className={styles.projectIcon} style={{color: currentTheme.accent, backgroundColor: currentTheme.footerColor, borderColor: currentTheme.accent}}><Link href={project.projectLink}><a><FontAwesomeIcon icon={faTelegramPlane} /></a></Link></div>
                 <h1 className={styles.projectTitle}>{project.name}</h1>
                 <h2 className={styles.projectSubTitle} style={{color: currentTheme.subtext}}>{project.description}</h2>
-                <Link href='/work'><a className={styles.cta2} style={{ color: currentTheme.tertiary }}>View More</a></Link>
+                <Link href='/work'><a className={styles.cta2} style={{ color: currentTheme.tertiary }}>Voir plus</a></Link>
             </div>
         </div>
     )

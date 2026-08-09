@@ -5,7 +5,7 @@ export const projects = [
         githubLink: 'https://github.com/Sakab2003/Mon-portfolio',
         projectLink: 'https://github.com/Sakab2003/Mon-portfolio',
         tech: ['JavaScript', 'Next.js'],
-        photo: ['/images/Project1_1.jpg', '/images/Project1_2.jpg', '/images/Project1_3.jpg'], 
+        photo: ['/images/portfolio.jpg'], 
     },
     {
         name: 'Salon_web',
@@ -13,7 +13,7 @@ export const projects = [
         githubLink: 'https://github.com/Sakab2003/Salon_web',
         projectLink: 'https://github.com/Sakab2003/Salon_web',
         tech: ['PHP'],
-        photo: ['/images/Project2_1.jpg', '/images/Project2_2.jpg', '/images/Project2_3.jpg'],
+        photo: ['/images/salon_web.jpg'],
     },
     {
         name: 'Salon_mobile',
@@ -21,7 +21,7 @@ export const projects = [
         githubLink: 'https://github.com/Sakab2003/Salon_mobile',
         projectLink: 'https://github.com/Sakab2003/Salon_mobile',
         tech: ['Dart', 'Flutter'],
-        photo: ['/images/Project3_1.jpg', '/images/Project3_2.jpg', '/images/Project3_3.jpg'],
+        photo: ['/images/salon_mobile.jpeg'],
     },
     {
         name: 'Expert-de-la-semaine',
@@ -29,7 +29,7 @@ export const projects = [
         githubLink: 'https://github.com/Sakab2003/Expert-de-la-semaine',
         projectLink: 'https://github.com/Sakab2003/Expert-de-la-semaine',
         tech: ['PHP'],
-        photo: ['/images/blog.jpg'],
+        photo: ['/images/expert.jpg'],
     },
     {
         name: 'raproser',
@@ -37,7 +37,7 @@ export const projects = [
         githubLink: 'https://github.com/Sakab2003/raproser',
         projectLink: 'https://github.com/Sakab2003/raproser',
         tech: ['Blade', 'Laravel'],
-        photo: ['/images/blog.jpg'],
+        photo: ['/images/raproser.jpg'],
     },
     {
         name: 'Projet-de-l-universit-virtuelle.',
@@ -45,7 +45,7 @@ export const projects = [
         githubLink: 'https://github.com/Sakab2003/Projet-de-l-universit-virtuelle.',
         projectLink: 'https://github.com/Sakab2003/Projet-de-l-universit-virtuelle.',
         tech: ['PHP', 'MySQL'],
-        photo: ['/images/blog.jpg'],
+        photo: ['/images/universite.jpg'],
     },
     {
         name: 'focus-',
@@ -53,6 +53,6 @@ export const projects = [
         githubLink: 'https://github.com/Sakab2003/focus-',
         projectLink: 'https://github.com/Sakab2003/focus-',
         tech: ['Blade', 'Laravel'],
-        photo: ['/images/blog.jpg'],
+        photo: ['/images/focus_video.mp4'],
     },
 ]
