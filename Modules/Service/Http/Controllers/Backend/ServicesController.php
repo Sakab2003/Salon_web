@@ -311,6 +311,13 @@ class ServicesController extends Controller
         return view('service::backend.services.create', compact('module_action'));
     }
 
+    public function category_list()
+    {
+        $categories = Category::where('status', 1)->select('id', 'name')->get();
+
+        return response()->json($categories);
+    }
+
     /**
      * Store a newly created resource in storage.
      *
@@ -319,7 +326,16 @@ class ServicesController extends Controller
      */
     public function store(ServiceRequest $request)
     {
-        $data = $request->except('feature_image');
+        // Unique service name check
+        $existing = Service::where('name', 'LIKE', trim($request->name))->first();
+        if ($existing) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Un service avec le nom "' . $request->name . '" existe déjà dans la section des services.'
+            ], 422);
+        }
+
+        $data = $request->except(['feature_image', 'employee_id']);
 
         $query = Service::create($data);
 
@@ -331,9 +347,31 @@ class ServicesController extends Controller
             storeMediaFile($query, $request->file('feature_image'));
         }
 
+        // Auto-assign to all branches
+        $branches = \App\Models\Branch::pluck('id');
+        foreach ($branches as $bId) {
+            ServiceBranches::firstOrCreate([
+                'service_id' => $query->id,
+                'branch_id' => $bId,
+            ], [
+                'service_price' => $query->default_price,
+                'duration_min' => $query->duration_min,
+            ]);
+        }
+
+        // Auto-assign to employee if specified
+        if ($request->employee_id) {
+            ServiceEmployee::firstOrCreate([
+                'service_id' => $query->id,
+                'employee_id' => $request->employee_id,
+            ]);
+        }
+
+        $query->feature_image_url = $query->feature_image;
+
         $message = __('messages.create_form', ['form' => __('service.singular_title')]);
 
-        return response()->json(['message' => $message, 'status' => true], 200);
+        return response()->json(['message' => $message, 'status' => true, 'data' => $query], 200);
     }
 
     /**

@@ -59,6 +59,7 @@ Route::group(['prefix' => 'app', 'as' => 'backend.', 'middleware' => ['auth']], 
         Route::post('/gallery-images/{id}', [ServicesController::class, 'uploadGalleryImages']);
         Route::post('bulk-action', [ServicesController::class, 'bulk_action'])->name('bulk_action');
         Route::post('update-status/{id}', [ServicesController::class, 'update_status'])->name('update_status');
+        Route::get('/category_list', [ServicesController::class, 'category_list'])->name('category_list');
         Route::get('export', [ServicesController::class, 'export'])->name('export');
     });
     Route::resource('services', ServicesController::class);
@@ -69,6 +70,7 @@ Route::group(['prefix' => 'app', 'as' => 'backend.', 'middleware' => ['auth']], 
         Route::get('/index_data', [HairstyleModelController::class, 'index_data'])->name('index_data');
         Route::post('bulk-action', [HairstyleModelController::class, 'bulk_action'])->name('bulk_action');
         Route::post('update-status/{id}', [HairstyleModelController::class, 'update_status'])->name('update_status');
+        Route::post('delete-images/{id}', [HairstyleModelController::class, 'delete_images'])->name('delete_images');
     });
     Route::resource('hairstyle-models', HairstyleModelController::class);
 

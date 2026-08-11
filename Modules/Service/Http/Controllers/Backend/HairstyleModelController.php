@@ -45,69 +45,66 @@ class HairstyleModelController extends Controller
         ];
         $module_action = 'Liste des';
 
-        $hairCategoryIds = Category::whereIn('slug', [
-            'hair', 'haircuts', 'hairstyling', 'coloring', 'hair-coloring', 
-            'permanent-hair-coloring', 'highlights', 'hair-treatments', 
-            'hair-repair-treatments', 'scalp-treatments', 'hair-texture-services', 
-            'keratin smothings', 'hair-extension'
-        ])->orWhere('name', 'LIKE', '%Coiffure%')->orWhere('name', 'LIKE', '%Cheveux%')->pluck('id');
-
         $services = Service::active()
-            ->where(function($q) use ($hairCategoryIds) {
-                if (count($hairCategoryIds) > 0) {
-                    $q->whereIn('category_id', $hairCategoryIds)
-                      ->orWhereIn('sub_category_id', $hairCategoryIds);
-                }
+            ->where(function ($q) {
+                $q->whereHas('category', function ($query) {
+                    $query->where('name', 'like', '%coiffure%')
+                        ->orWhere('slug', 'like', '%coiffure%')
+                        ->orWhere('name', 'like', '%hair%')
+                        ->orWhere('slug', 'like', '%hair%');
+                })
+                ->orWhereHas('sub_category', function ($query) {
+                    $query->where('name', 'like', '%coiffure%')
+                        ->orWhere('slug', 'like', '%coiffure%')
+                        ->orWhere('name', 'like', '%hair%')
+                        ->orWhere('slug', 'like', '%hair%');
+                });
             })
-            ->select('id', 'name', 'category_id')
+            ->select('id', 'name', 'category_id', 'sub_category_id')
             ->get();
-
-        if ($services->isEmpty()) {
-            $services = Service::active()->select('id', 'name', 'category_id')->get();
-        }
 
         return view('service::backend.hairstyle_models.index_datatable', compact('module_action', 'filter', 'services'));
     }
 
     /**
-     * Interactive visual card gallery view per Hair Service.
+     * Interactive visual card gallery view grouped by Service.
      */
     public function visualize(Request $request)
     {
         $module_action = 'Visualiser les';
 
-        $hairCategoryIds = Category::whereIn('slug', [
-            'hair', 'haircuts', 'hairstyling', 'coloring', 'hair-coloring', 
-            'permanent-hair-coloring', 'highlights', 'hair-treatments', 
-            'hair-repair-treatments', 'scalp-treatments', 'hair-texture-services', 
-            'keratin smothings', 'hair-extension'
-        ])->orWhere('name', 'LIKE', '%Coiffure%')->orWhere('name', 'LIKE', '%Cheveux%')->pluck('id');
-
-        $servicesQuery = Service::active()
-            ->where(function($q) use ($hairCategoryIds) {
-                if (count($hairCategoryIds) > 0) {
-                    $q->whereIn('category_id', $hairCategoryIds)
-                      ->orWhereIn('sub_category_id', $hairCategoryIds);
-                }
-            })
+        $services = Service::active()
             ->with(['hairstyle_models' => function($q) {
                 $q->active()->orderBy('id', 'desc');
-            }, 'category', 'sub_category'])
-            ->has('hairstyle_models');
+            }, 'category'])
+            ->has('hairstyle_models')
+            ->get();
 
-        $services = $servicesQuery->get();
-
-        // If no services have models yet under hair category, fallback to all services with models
         if ($services->isEmpty()) {
             $services = Service::active()
                 ->with(['hairstyle_models' => function($q) {
                     $q->active()->orderBy('id', 'desc');
-                }, 'category', 'sub_category'])
-                ->has('hairstyle_models')
+                }, 'category'])
                 ->get();
         }
 
         return view('service::backend.hairstyle_models.visualize', compact('module_action', 'services'));
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    /**
+     * Display the specified resource.
+     */
+    public function show($id)
+    {
+        $data = HairstyleModel::with('service')->findOrFail($id);
+        $data->feature_image_url = $data->feature_image;
+        $data->feature_images = $data->feature_images;
+        $data->feature_image_items = $data->feature_image_items;
+
+        return response()->json(['data' => $data, 'status' => true]);
     }
 
     /**
@@ -134,10 +131,34 @@ class HairstyleModelController extends Controller
                 return '<input type="checkbox" class="form-check-input select-table-row" id="datatable-row-'.$data->id.'" name="datatable_ids[]" value="'.$data->id.'" onclick="dataTableRowCheck('.$data->id.')">';
             })
             ->addColumn('image', function ($data) {
-                return '<img src='.$data->feature_image." class='avatar avatar-50 rounded-pill'>";
+                $items = $data->feature_image_items;
+                $count = count($items);
+                $firstUrl = $data->feature_image;
+                $serviceName = e($data->service ? $data->service->name : '');
+                $modelName = e($data->name);
+                $encodedData = e(json_encode([
+                    'id' => $data->id,
+                    'name' => $data->name,
+                    'service' => $data->service ? $data->service->name : '',
+                    'description' => $data->description,
+                    'items' => $items,
+                ]));
+
+                $countBadge = '';
+                if ($count > 1) {
+                    $extra = $count - 1;
+                    $countBadge = '<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary border border-2 border-white shadow-sm" style="font-size:0.7rem; font-weight:700;">+'.$extra.'</span>';
+                }
+
+                return '
+                    <div class="position-relative d-inline-block open-futuristic-gallery" data-model-info="'.$encodedData.'" style="cursor: pointer;" title="Cliquer pour voir la galerie ('.$count.' photos)">
+                        <img src="'.$firstUrl.'" class="avatar avatar-50 rounded-3 border border-2 border-primary-subtle shadow-sm object-cover transition-all hover-scale" style="object-fit: cover; width: 48px; height: 48px;">
+                        '.$countBadge.'
+                    </div>
+                ';
             })
             ->addColumn('service', function ($data) {
-                return $data->service ? $data->service->name : '-';
+                return $data->service ? '<span class="badge bg-soft-primary">'.$data->service->name.'</span>' : '-';
             })
             ->editColumn('status', function ($row) {
                 $checked = $row->status ? 'checked="checked"' : '';
@@ -166,7 +187,7 @@ class HairstyleModelController extends Controller
             ->addColumn('action', function ($data) use ($module_name) {
                 return view('service::backend.hairstyle_models.action_column', compact('module_name', 'data'));
             })
-            ->rawColumns(['action', 'image', 'status', 'check'])
+            ->rawColumns(['action', 'image', 'service', 'status', 'check'])
             ->orderColumns(['id'], '-:column $1')
             ->toJson();
     }
@@ -176,11 +197,20 @@ class HairstyleModelController extends Controller
      */
     public function store(HairstyleModelRequest $request)
     {
-        $data = $request->except('feature_image');
+        $data = $request->except(['feature_image', 'remove_image_ids']);
         $model = HairstyleModel::create($data);
 
         if ($request->hasFile('feature_image')) {
-            storeMediaFile($model, $request->file('feature_image'));
+            $files = $request->file('feature_image');
+            if (is_array($files)) {
+                foreach ($files as $file) {
+                    if ($file) {
+                        $model->addMedia($file)->toMediaCollection('feature_image');
+                    }
+                }
+            } else {
+                $model->addMedia($files)->toMediaCollection('feature_image');
+            }
         }
 
         return response()->json(['message' => 'Modèle de coiffure créé avec succès.', 'status' => true], 200);
@@ -193,6 +223,8 @@ class HairstyleModelController extends Controller
     {
         $data = HairstyleModel::findOrFail($id);
         $data->feature_image_url = $data->feature_image;
+        $data->feature_images = $data->feature_images;
+        $data->feature_image_items = $data->feature_image_items;
 
         return response()->json(['data' => $data, 'status' => true]);
     }
@@ -203,14 +235,77 @@ class HairstyleModelController extends Controller
     public function update(HairstyleModelRequest $request, $id)
     {
         $model = HairstyleModel::findOrFail($id);
-        $request_data = $request->except('feature_image');
+        $request_data = $request->except(['feature_image', 'remove_image_ids']);
         $model->update($request_data);
 
+        // Remove media items marked for deletion
+        if ($request->has('remove_image_ids')) {
+            $removeIds = $request->input('remove_image_ids');
+            if (is_array($removeIds)) {
+                foreach ($removeIds as $mediaId) {
+                    $media = $model->media()->find($mediaId);
+                    if ($media) {
+                        $media->delete();
+                    }
+                }
+                $model->unsetRelation('media');
+            }
+        }
+
+        // Add newly uploaded media items
         if ($request->hasFile('feature_image')) {
-            storeMediaFile($model, $request->file('feature_image'), 'feature_image');
+            $files = $request->file('feature_image');
+            if (is_array($files)) {
+                foreach ($files as $file) {
+                    if ($file) {
+                        $model->addMedia($file)->toMediaCollection('feature_image');
+                    }
+                }
+            } else {
+                $model->addMedia($files)->toMediaCollection('feature_image');
+            }
+            $model->unsetRelation('media');
         }
 
         return response()->json(['message' => 'Modèle de coiffure mis à jour avec succès.', 'status' => true], 200);
+    }
+
+    /**
+     * Delete specific images from a hairstyle model entry.
+     */
+    public function delete_images(Request $request, $id)
+    {
+        $model = HairstyleModel::findOrFail($id);
+        $mediaIds = $request->input('media_ids', []);
+
+        if (is_array($mediaIds) && !empty($mediaIds)) {
+            foreach ($mediaIds as $mediaId) {
+                $media = $model->media()->find($mediaId);
+                if ($media) {
+                    $media->delete();
+                }
+            }
+            $model->unsetRelation('media');
+        }
+
+        $remainingMediaCount = $model->getMedia('feature_image')->count();
+
+        // If no media items remain and user opted to delete model if empty, soft delete the model record
+        if ($remainingMediaCount === 0 && $request->boolean('delete_model_if_empty')) {
+            $model->delete();
+            return response()->json([
+                'status' => true,
+                'message' => 'Toutes les images et le modèle ont été supprimés avec succès.',
+                'model_deleted' => true,
+            ]);
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Les images sélectionnées ont été supprimées avec succès.',
+            'remaining_count' => $remainingMediaCount,
+            'model_deleted' => false,
+        ]);
     }
 
     /**
@@ -232,7 +327,11 @@ class HairstyleModelController extends Controller
         $model = HairstyleModel::findOrFail($id);
         $model->delete();
 
-        return response()->json(['message' => 'Modèle de coiffure supprimé avec succès.', 'status' => true], 200);
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json(['message' => 'Modèle de coiffure supprimé avec succès.', 'status' => true], 200);
+        }
+
+        return redirect()->route('backend.hairstyle-models.index')->withSuccess('Modèle de coiffure supprimé avec succès.');
     }
 
     /**

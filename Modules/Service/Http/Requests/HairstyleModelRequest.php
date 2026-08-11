@@ -13,12 +13,23 @@ class HairstyleModelRequest extends FormRequest
      */
     public function rules()
     {
-        return [
+        $rules = [
             'name' => 'required|string|max:255',
             'service_id' => 'required|exists:services,id',
             'status' => 'required|in:0,1',
-            'feature_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:4096',
+            'remove_image_ids' => 'nullable|array',
+            'remove_image_ids.*' => 'integer',
         ];
+
+        if ($this->isMethod('post')) {
+            $rules['feature_image'] = 'required';
+            $rules['feature_image.*'] = 'image|mimes:jpeg,png,jpg,gif,svg,webp|max:10240';
+        } else {
+            $rules['feature_image'] = 'nullable';
+            $rules['feature_image.*'] = 'image|mimes:jpeg,png,jpg,gif,svg,webp|max:10240';
+        }
+
+        return $rules;
     }
 
     /**

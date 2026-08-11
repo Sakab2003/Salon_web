@@ -23,10 +23,7 @@
                                 <input type="text" class="form-control" v-model="mobile" placeholder="+226 XX XX XX XX" />
                                 <span class="text-danger small" v-if="errors.mobile">{{ errors.mobile }}</span>
                             </div>
-                            <div class="form-group col-md-12">
-                                <label for="e-mail">E-mail <small class="text-muted">(Optionnel)</small></label>
-                                <input type="text" class="form-control" v-model="email" placeholder="client@exemple.com (facultatif)" />
-                            </div>
+
                             <div class="form-group col-md-12">
                               <label for="" class="w-100">Gender</label>
                                 <div class="form-check form-check-inline">
@@ -92,7 +89,6 @@ const defaultData = () => {
   return {
     first_name: '',
     last_name: '',
-    email: '',
     mobile: '',
     gender: 'male',
 
@@ -105,7 +101,6 @@ const setFormData = (data) => {
     values: {
       first_name: data.first_name,
       last_name: data.last_name,
-      email: data.email,
       mobile: data.mobile,
       gender: data.gender,
     }
@@ -116,8 +111,7 @@ const setFormData = (data) => {
 const validationSchema = yup.object({
     first_name: yup.string().required('Le prénom est requis'),
     last_name: yup.string().required('Le nom de famille est requis'),
-    mobile: yup.string().required('Le numéro de téléphone est requis'),
-    email: yup.string().nullable().email('Format email invalide')
+    mobile: yup.string().required('Le numéro de téléphone est requis')
 })
 
 const { handleSubmit, errors, resetForm } = useForm({
@@ -126,7 +120,6 @@ const { handleSubmit, errors, resetForm } = useForm({
 
 const { value: first_name } = useField('first_name')
 const { value: last_name } = useField('last_name')
-const { value: email } = useField('email')
 const { value: gender } = useField('gender')
 const { value: mobile } = useField('mobile')
 

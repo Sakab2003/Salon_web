@@ -366,20 +366,21 @@ const validationSchema = yup.object({
     email: yup.string().required('Email is a required field').test('is-string', 'First strings are allowed', (value) => !numberRegex.test(value)).matches(EMAIL_REGX, 'Must be a valid email'),
     mobile: yup.string()
       .required('Phone Number is a required field').matches(/^(\+?\d+)?(\s?\d+)*$/, 'Phone Number must contain only digits'),
-    password : yup.string().test('password','Password is required' , function(value) {
-      if(currentId === 0 && !value){
+    password: yup.string().test('password', 'Password is required', function(value) {
+      if (currentId.value === 0 && !value) {
         return false;
       }
-      return true
-    }
-    ).min(8, 'Password must be at least 8 characters long'),
-    confirm_password : yup.string().test('confirm_password', 'Current password is required', function(value) {
-      if(currentId === 0 && !value){
+      return true;
+    }).min(8, 'Password must be at least 8 characters long'),
+    confirm_password: yup.string().test('confirm_password', 'Confirm password is required', function(value) {
+      if (currentId.value === 0 && !value) {
         return false;
       }
-      return true
-    }
-    ).oneOf([yup.ref('password')], 'Passwords must match'),
+      return true;
+    }).test('passwords-match', 'Passwords must match', function(value) {
+      if (!value && !this.parent.password) return true;
+      return value === this.parent.password;
+    }),
     commission_id: yup.string()
       .required('Select commission is a required field'),
       branch_id: yup.string()

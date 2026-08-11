@@ -36,7 +36,8 @@ Route::get('sync-manager-permissions', function () {
     // Ensure critical permissions exist
     $extraPermissions = [
         'view_dashboard', 'menu_builder_sidebar', 'menu_builder_header',
-        'view_hairstyle_model', 'add_hairstyle_model', 'edit_hairstyle_model', 'delete_hairstyle_model'
+        'view_hairstyle_model', 'add_hairstyle_model', 'edit_hairstyle_model', 'delete_hairstyle_model',
+        'view_customer_reviews', 'delete_review', 'view_earning'
     ];
     foreach ($extraPermissions as $perm) {
         \App\Models\Permission::firstOrCreate(['name' => $perm, 'is_fixed' => true]);
@@ -58,6 +59,15 @@ Route::get('sync-manager-permissions', function () {
 Route::get('storage-link', function () {
     return Artisan::call('storage:link');
 });
+
+Route::get('client-review', function (\Illuminate\Http\Request $request) {
+    $userId = $request->get('user_id', 17);
+    $user = \App\Models\User::find($userId) ?? \App\Models\User::where('first_name', 'Samuel')->first();
+    $employees = \App\Models\User::role('employee')->get();
+    return view('public_review', compact('user', 'employees'));
+})->name('public.client_review');
+
+Route::post('public-save-review', [\Modules\Employee\Http\Controllers\Backend\EmployeesController::class, 'save_review'])->name('public.save_review');
 Route::get('/', function () {
     if (auth()->user()->hasRole('employee')) {
         return redirect(RouteServiceProvider::EMPLOYEE_LOGIN_REDIRECT);

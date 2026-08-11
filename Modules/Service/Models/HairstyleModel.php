@@ -20,7 +20,7 @@ class HairstyleModel extends BaseModel
         'description',
     ];
 
-    protected $appends = ['feature_image'];
+    protected $appends = ['feature_image', 'feature_images', 'feature_image_items'];
 
     protected $casts = [
         'service_id' => 'integer',
@@ -32,11 +32,40 @@ class HairstyleModel extends BaseModel
         return $this->belongsTo(Service::class, 'service_id');
     }
 
+    protected function getFeatureImageItemsAttribute()
+    {
+        $mediaItems = $this->getMedia('feature_image');
+
+        if ($mediaItems->isEmpty()) {
+            return [];
+        }
+
+        return $mediaItems->map(function ($media) {
+            return [
+                'id' => $media->id,
+                'url' => $media->getFullUrl(),
+            ];
+        })->toArray();
+    }
+
     protected function getFeatureImageAttribute()
     {
         $media = $this->getFirstMediaUrl('feature_image');
 
         return isset($media) && ! empty($media) ? $media : default_feature_image();
+    }
+
+    protected function getFeatureImagesAttribute()
+    {
+        $mediaItems = $this->getMedia('feature_image');
+
+        if ($mediaItems->isEmpty()) {
+            return [];
+        }
+
+        return $mediaItems->map(function ($media) {
+            return $media->getFullUrl();
+        })->toArray();
     }
 
     public function scopeActive($query)

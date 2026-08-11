@@ -109,9 +109,9 @@
         title: "{{ __('customer.lbl_last_name') }}"
       },
       {
-        data: 'email',
-        name: 'email',
-        title: "{{ __('customer.lbl_Email') }}"
+        data: 'mobile',
+        name: 'mobile',
+        title: "{{ __('customer.lbl_phone_number') ?? 'Téléphone' }}"
       },
       {
         data: 'email_verified_at',

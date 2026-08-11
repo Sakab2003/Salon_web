@@ -8,5 +8,6 @@ Route::group(['prefix' => 'quick-booking'], function () {
     Route::get('slot-time-list', [QuickBookingsController::class, 'slot_time_list']);
     Route::get('services-list', [QuickBookingsController::class, 'services_list']);
     Route::get('employee-list', [QuickBookingsController::class, 'employee_list']);
+    Route::get('check-review-eligibility', [QuickBookingsController::class, 'check_review_eligibility']);
     Route::post('store', [QuickBookingsController::class, 'create_booking'])->name('api.quick_bookings.store');
 });

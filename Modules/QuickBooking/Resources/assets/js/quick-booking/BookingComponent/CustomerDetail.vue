@@ -1,20 +1,48 @@
 <template>
   <div class="card-list-data">
-    <div class="row">
-      <InputField class="col-md-6" :is-required="true" :label="$t('quick_booking.lbl_first_name')" placeholder="" v-model="first_name" :error-message="errors.first_name" :error-messages="errorMessages['first_name']"></InputField>
-      <InputField class="col-md-6" :is-required="true" :label="$t('quick_booking.lbl_last_name')" placeholder="" v-model="last_name" :error-message="errors['last_name']" :error-messages="errorMessages['last_name']"></InputField>
+    <!-- Image de profil / Télécharger -->
+    <div class="form-group text-center mb-4">
+      <div class="mb-2">
+        <img :src="profile_image_preview || defaultImage" alt="profile-image" class="avatar avatar-90 rounded-circle border p-1 shadow-sm" style="object-fit: cover;" />
+      </div>
+      <div>
+        <label for="public_profile_image_input" class="btn btn-sm btn-info text-white rounded-pill px-3">
+          <i class="fa-solid fa-cloud-arrow-up me-1"></i> Télécharger
+        </label>
+        <input type="file" id="public_profile_image_input" accept="image/*" class="d-none" @change="onImageSelect" />
+      </div>
     </div>
 
-    <InputField :is-required="true" :label="$t('quick_booking.lbl_Email')" placeholder="" v-model="email" :error-message="errors['email']" :error-messages="errorMessages['email']"></InputField>
+    <div class="row">
+      <InputField class="col-md-6" :is-required="true" :label="$t('quick_booking.lbl_first_name')" placeholder="Prénom" v-model="first_name" :error-message="errors.first_name" :error-messages="errorMessages['first_name']"></InputField>
+      <InputField class="col-md-6" :is-required="true" :label="$t('quick_booking.lbl_last_name')" placeholder="Nom de famille" v-model="last_name" :error-message="errors['last_name']" :error-messages="errorMessages['last_name']"></InputField>
+    </div>
+
     <div class="form-group">
       <label class="form-label">{{ $t('quick_booking.lbl_phone_number') }}<span class="text-danger">*</span> </label>
       <vue-tel-input :value="mobile" @input="handleInput" v-bind="{ mode: 'international', maxLen: 15 }"></vue-tel-input>
-      <span class="text-danger">{{ errors['mobile'] }}</span>
+      <span class="text-danger small" v-if="errors['mobile']">{{ errors['mobile'] }}</span>
     </div>
 
-    <div class="form-group col-md-4">
-      <label for="" class="w-100">{{ $t('quick_booking.lbl_gender') }}</label>
-      <div class="d-flex mt-2">
+
+    <!-- Mot de passe & Confirmation -->
+    <div class="row">
+      <div class="form-group col-md-6">
+        <label class="form-label">Mot de passe <span class="text-danger">*</span></label>
+        <input type="password" v-model="password" class="form-control form-control-sm" placeholder="••••••••" />
+        <span class="text-danger small" v-if="errors['password']">{{ errors['password'] }}</span>
+      </div>
+      <div class="form-group col-md-6">
+        <label class="form-label">Confirmer le mot de passe <span class="text-danger">*</span></label>
+        <input type="password" v-model="password_confirmation" class="form-control form-control-sm" placeholder="••••••••" />
+        <span class="text-danger small" v-if="errors['password_confirmation']">{{ errors['password_confirmation'] }}</span>
+      </div>
+    </div>
+
+    <!-- Genre -->
+    <div class="form-group col-md-12">
+      <label for="" class="w-100 font-weight-bold mb-2">{{ $t('quick_booking.lbl_gender') }}</label>
+      <div class="d-flex align-items-center gap-3">
         <div class="form-check form-check-inline">
           <input class="form-check-input" type="radio" name="gender" v-model="gender" id="male" value="male" />
           <label class="form-check-label" for="male"> Male </label>
@@ -23,22 +51,24 @@
           <input class="form-check-input" type="radio" name="gender" v-model="gender" id="female" value="female" />
           <label class="form-check-label" for="female"> Female </label>
         </div>
-
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="gender" v-model="gender" id="other" value="other" />
-          <label class="form-check-label" for="other"> Other </label>
+          <input class="form-check-input" type="radio" name="gender" v-model="gender" id="intersex" value="intersex" />
+          <label class="form-check-label" for="intersex"> Intersex </label>
         </div>
       </div>
     </div>
   </div>
-  <div class="card-footer">
-    <button type="button" class="btn btn-secondary iq-text-uppercase" v-if="wizardPrev" @click="prevTabChange(wizardPrev)">Back</button>
+
+  <div class="card-footer d-flex justify-content-between">
+    <button type="button" class="btn btn-secondary iq-text-uppercase" v-if="wizardPrev" @click="prevTabChange(wizardPrev)">
+      <i class="fa-solid fa-angles-left me-1"></i> Retour
+    </button>
     <button :disabled="IS_SUBMITED" class="btn btn-primary iq-text-uppercase" name="submit" v-if="wizardNext" @click="formSubmit">
       <template v-if="IS_SUBMITED">
-        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-        Loading...
+        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+        Enregistrement...
       </template>
-      <template v-else> Submit</template>
+      <template v-else> <i class="fa-solid fa-floppy-disk me-1"></i> Enregistrer</template>
     </button>
   </div>
 </template>
@@ -49,6 +79,7 @@ import { VueTelInput } from 'vue3-tel-input'
 import InputField from '@/vue/components/form-elements/InputField.vue'
 import * as yup from 'yup'
 import { useQuickBooking } from '../../store/quick-booking'
+
 const props = defineProps({
   wizardNext: {
     default: '',
@@ -59,18 +90,32 @@ const props = defineProps({
     type: [String, Number]
   }
 })
-/*
- * Form Data & Validation & Handeling
- */
+
+const defaultImage = '/images/user/user.png'
+const profile_image_preview = ref('')
+
+const onImageSelect = (event) => {
+  const file = event.target.files[0]
+  if (file) {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      profile_image_preview.value = e.target.result
+      store.updateUserValues({ key: 'profile_image', value: e.target.result })
+    }
+    reader.readAsDataURL(file)
+  }
+}
+
 // Default FORM DATA
 const defaultData = () => {
   errorMessages.value = {}
   return {
     first_name: '',
     last_name: '',
-    email: '',
     mobile: '',
-    gender: ''
+    password: '',
+    password_confirmation: '',
+    gender: 'male'
   }
 }
 
@@ -79,46 +124,45 @@ let EMAIL_REGX = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
 const validationSchema = yup.object({
   first_name: yup
     .string()
-    .required('First Name is a required field')
-    .test('is-string', 'Only strings are allowed', (value) => {
-      // Regular expressions to disallow special characters and numbers
+    .required('Le prénom est obligatoire')
+    .test('is-string', 'Seules les lettres sont autorisées', (value) => {
       const specialCharsRegex = /[!@#$%^&*(),.?":{}|<>\-_;'\/+=\[\]\\]/
       return !specialCharsRegex.test(value) && !numberRegex.test(value)
     }),
   last_name: yup
     .string()
-    .required('Last Name is a required field')
-    .test('is-string', 'Only strings are allowed', (value) => {
-      // Regular expressions to disallow special characters and numbers
+    .required('Le nom de famille est obligatoire')
+    .test('is-string', 'Seules les lettres sont autorisées', (value) => {
       const specialCharsRegex = /[!@#$%^&*(),.?":{}|<>\-_;'\/+=\[\]\\]/
       return !specialCharsRegex.test(value) && !numberRegex.test(value)
     }),
-  email: yup
-    .string()
-    .required('Email is a required field').matches(EMAIL_REGX, 'Must be a valid email'),
-  mobile: yup.string().required('Phone No is a required field').matches(/^(\+?\d+)?(\s?\d+)*$/, 'Phone Number must contain only digits')
+  mobile: yup.string().required('Le numéro de téléphone est obligatoire'),
+  password: yup.string().nullable().notRequired(),
+  password_confirmation: yup.string().nullable().notRequired()
 })
 
 const { handleSubmit, errors, resetForm } = useForm({
-  validationSchema
+  validationSchema,
+  initialValues: {
+    gender: 'male'
+  }
 })
 const { value: first_name } = useField('first_name')
 const { value: last_name } = useField('last_name')
-const { value: email } = useField('email')
+const { value: password } = useField('password')
+const { value: password_confirmation } = useField('password_confirmation')
 const { value: gender } = useField('gender')
 const { value: mobile } = useField('mobile')
+
 const errorMessages = ref({})
 const IS_SUBMITED = ref(false)
 
-// phone number
 const handleInput = (phone, phoneObject) => {
-  // Handle the input event
   if (phoneObject?.formatted) {
     mobile.value = phoneObject.formatted
   }
 }
 
-// Form Submit
 const emit = defineEmits(['tab-change', 'onReset'])
 const prevTabChange = (val) => (emit('tab-change', val))
 const formSubmit = handleSubmit((values) => {
@@ -126,47 +170,16 @@ const formSubmit = handleSubmit((values) => {
   emit('tab-change', props.wizardNext)
 })
 const store = useQuickBooking()
-watch(() => store.bookingResponse, (value) => {
+
+watch(() => store.bookingResponse, () => {
   IS_SUBMITED.value = false
   resetForm(defaultData())
 }, {deep: true})
-watch(
-  () => mobile.value,
-  (value) => {
-    store.updateUserValues({ key: 'mobile', value: value })
-  },
-  { deep: true }
-)
 
-watch(
-  () => first_name.value,
-  (value) => {
-    store.updateUserValues({ key: 'first_name', value: value })
-  },
-  { deep: true }
-)
-
-watch(
-  () => last_name.value,
-  (value) => {
-    store.updateUserValues({ key: 'last_name', value: value })
-  },
-  { deep: true }
-)
-
-watch(
-  () => email.value,
-  (value) => {
-    store.updateUserValues({ key: 'email', value: value })
-  },
-  { deep: true }
-)
-
-watch(
-  () => gender.value,
-  (value) => {
-    store.updateUserValues({ key: 'gender', value: value })
-  },
-  { deep: true }
-)
+watch(() => mobile.value, (value) => { store.updateUserValues({ key: 'mobile', value: value }) }, { deep: true })
+watch(() => first_name.value, (value) => { store.updateUserValues({ key: 'first_name', value: value }) }, { deep: true })
+watch(() => last_name.value, (value) => { store.updateUserValues({ key: 'last_name', value: value }) }, { deep: true })
+watch(() => password.value, (value) => { store.updateUserValues({ key: 'password', value: value }) }, { deep: true })
+watch(() => gender.value, (value) => { store.updateUserValues({ key: 'gender', value: value }) }, { deep: true })
 </script>
+

@@ -378,6 +378,18 @@ class CustomersController extends Controller
 
         $data->update(['email_verified_at' => $current_time]);
 
+        try {
+            $notification_data = [
+                'id' => $data->id,
+                'type' => 'customer_verification',
+                'subject' => 'Compte Vérifié !',
+                'message' => 'Félicitations ! Votre compte client a été vérifié avec succès par le salon.',
+            ];
+            $data->notify(new \App\Notifications\CommonNotification($notification_data));
+        } catch (\Throwable $e) {
+            // notification fallback
+        }
+
         return response()->json(['status' => true, 'message' => __('messages.customer_verify')]);
     }
 }

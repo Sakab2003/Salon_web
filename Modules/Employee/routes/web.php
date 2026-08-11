@@ -51,9 +51,11 @@ Route::group(['prefix' => 'app', 'as' => 'backend.', 'middleware' => ['auth']], 
         Route::get('trashed/{id}', [EmployeesController::class, 'restore'])->name('restore');
         Route::post('bulk-action', [EmployeesController::class, 'bulk_action'])->name('bulk_action');
         Route::post('bulk-action-review', [EmployeesController::class, 'bulk_action_review'])->name('bulk_action_review');
+        Route::post('save-review', [EmployeesController::class, 'save_review'])->name('save_review');
         Route::get('export', [EmployeesController::class, 'export'])->name('export');
         Route::get('review-export', [EmployeesController::class, 'reviewExport'])->name('reviewExport');
     });
     Route::get('employees-review', [EmployeesController::class, 'review'])->name('employees.review');
+    Route::post('employees-save-review', [EmployeesController::class, 'save_review'])->name('employees.save_review');
     Route::resource('employees', EmployeesController::class);
 });

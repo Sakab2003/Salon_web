@@ -76,7 +76,7 @@ class EmployeeController extends Controller
     {
         $user = auth()->user();
         $rating_data = $request->all();
-        $rating_data['user_id'] = $user->id;
+        $rating_data['user_id'] = $user ? $user->id : ($request->user_id ?? 1);
         $result = EmployeeRating::updateOrCreate(['id' => $request->id], $rating_data);
 
         $message = __('employee.rating_update');

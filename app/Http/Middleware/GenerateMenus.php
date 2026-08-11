@@ -42,6 +42,15 @@ class GenerateMenus
 
             // Access Permission Check
             $menu->filter(function ($item) {
+                if (auth()->check() && auth()->user()->hasRole('manager')) {
+                    $isBranchMenu = ($item->title == __('sidebar.branches'))
+                        || (isset($item->nickname) && $item->nickname == 'branch')
+                        || (isset($item->activematches) && in_array('app/branch', (array)$item->activematches))
+                        || ($item->url() && str_contains($item->url(), 'branch'));
+                    if ($isBranchMenu) {
+                        return false;
+                    }
+                }
                 if ($item->data('permission')) {
                     if (auth()->check()) {
                         if (auth()->user()->hasRole('admin')) {

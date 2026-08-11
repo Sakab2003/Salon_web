@@ -84,25 +84,43 @@ class QuickBookingsController extends Controller
     public function create_booking(Request $request)
     {
         $userRequest = $request->user;
-        $user = User::where('email', $userRequest['email'])->first();
+        $user = null;
+        if (!empty($userRequest['email'])) {
+            $user = User::where('email', $userRequest['email'])->first();
+        }
+        if (!$user && !empty($userRequest['mobile'])) {
+            $user = User::where('mobile', $userRequest['mobile'])->first();
+        }
 
         if (! isset($user)) {
-            $userRequest['password'] = Hash::make('12345678');
+            $rawPassword = !empty($userRequest['password']) ? $userRequest['password'] : '12345678';
+            $userRequest['password'] = Hash::make($rawPassword);
+            $userRequest['email_verified_at'] = null;
+
             $user = User::create($userRequest);
-            // Sync Roles
             $roles = ['user'];
             $user->syncRoles($roles);
+
+            if (!empty($userRequest['profile_image']) && str_contains($userRequest['profile_image'], 'base64')) {
+                try {
+                    storeMediaFile($user, $userRequest['profile_image'], 'profile_image');
+                } catch (\Exception $e) {
+                    \Log::error('Erreur enregistrement photo profil client: '.$e->getMessage());
+                }
+            }
 
             \Artisan::call('cache:clear');
 
             event(new UserCreated($user));
 
             $data = [
-                'password' => '12345678',
+                'password' => $rawPassword,
             ];
 
             try {
-                $user->notify(new UserAccountCreated($data));
+                if ($user->email) {
+                    $user->notify(new UserAccountCreated($data));
+                }
             } catch (\Exception $e) {
                 \Log::error($e->getMessage());
             }
@@ -130,6 +148,17 @@ class QuickBookingsController extends Controller
 
         try {
             $this->sendNotificationOnBookingUpdate('quick_booking', $booking);
+            // Notification au manager du salon concerné
+            if ($booking->branch && $booking->branch->manager_id) {
+                $manager = User::find($booking->branch->manager_id);
+                if ($manager) {
+                    $manager->notify(new \App\Notifications\CommonNotification([
+                        'subject' => 'Nouvelle Réservation Client !',
+                        'message' => 'Nouveau rendez-vous enregistré par '.$user->full_name.' au salon '.$booking->branch->name,
+                        'type' => 'booking_created'
+                    ]));
+                }
+            }
         } catch (\Exception $e) {
             \Log::error($e->getMessage());
         }
@@ -160,5 +189,73 @@ class QuickBookingsController extends Controller
             'employee_id' => $request->employee_id,
             'start_date_time' => $request->start_date_time,
         ];
+    }
+
+    public function check_review_eligibility(Request $request)
+    {
+        $identifier = trim($request->input('identifier', ''));
+        if (empty($identifier)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Veuillez saisir votre numéro de téléphone ou votre adresse e-mail.'
+            ]);
+        }
+
+        $rawInput = trim($request->input('identifier', ''));
+        $digitsInput = preg_replace('/\D/', '', $rawInput);
+
+        $user = User::where(function ($q) use ($rawInput, $digitsInput) {
+            if (!empty($rawInput)) {
+                $q->where('email', $rawInput)
+                  ->orWhere('mobile', $rawInput)
+                  ->orWhere('mobile', 'like', '%' . $rawInput . '%');
+            }
+            if (!empty($digitsInput) && strlen($digitsInput) >= 6) {
+                $lastDigits = substr($digitsInput, -8);
+                $q->orWhereRaw("REPLACE(REPLACE(REPLACE(mobile, ' ', ''), '+', ''), '-', '') LIKE ?", ['%' . $lastDigits . '%']);
+            }
+        })->first();
+
+        if (!$user) {
+            return response()->json([
+                'status' => false,
+                'can_review' => false,
+                'message' => 'Impossible d\'évaluer : Aucun compte client n\'a été trouvé avec ces coordonnées. Veuillez d\'abord effectuer une réservation !'
+            ]);
+        }
+
+        $completedBooking = Booking::with('employee')->where('user_id', $user->id)
+            ->where(function ($q) {
+                $q->where('status', 'completed')
+                  ->orWhere('start_date_time', '<', now());
+            })
+            ->orderBy('start_date_time', 'desc')
+            ->first();
+
+        if (!$completedBooking) {
+            return response()->json([
+                'status' => false,
+                'can_review' => false,
+                'message' => 'Impossible d\'évaluer : Vous n\'avez pas encore été soumis à nos services ou votre rendez-vous n\'est pas encore terminé. Merci de réserver un rendez-vous !'
+            ]);
+        }
+
+        $assignedEmployee = $completedBooking->employee ?? User::role('employee')->first();
+
+        return response()->json([
+            'status' => true,
+            'can_review' => true,
+            'user' => [
+                'id' => $user->id,
+                'full_name' => $user->full_name,
+                'initials' => strtoupper(substr($user->first_name ?? 'K', 0, 1) . substr($user->last_name ?? 'S', 0, 1)),
+                'is_verified' => $user->email_verified_at !== null
+            ],
+            'booking_employee' => [
+                'id' => $assignedEmployee ? $assignedEmployee->id : 1,
+                'name' => $assignedEmployee ? $assignedEmployee->full_name . ' (' . ($assignedEmployee->email ?? 'Staff Salon') . ')' : 'Coiffeur Salon'
+            ],
+            'message' => 'Vous êtes éligible pour évaluer nos prestations !'
+        ]);
     }
 }

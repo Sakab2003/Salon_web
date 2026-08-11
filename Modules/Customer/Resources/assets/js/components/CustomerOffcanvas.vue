@@ -24,7 +24,6 @@
               <span class="text-danger">{{ errors['mobile'] }}</span>
             </div>
 
-            <InputField :is-required="false" :label="$t('customer.lbl_Email') + ' (Facultatif)'" placeholder="client@exemple.com (facultatif)" v-model="email" :error-message="errors['email']" :error-messages="errorMessages['email']"></InputField>
 
             <div class="row" v-if="currentId === 0">
               <InputField type="password" class="col-md-12" :is-required="true" :autocomplete="newpassword" :label="$t('employee.lbl_password')"
@@ -135,7 +134,6 @@ const defaultData = () => {
     id: null,
     first_name: '',
     last_name: '',
-    email: '',
     mobile: '',
     password: '',
     confirm_password: '',
@@ -153,7 +151,6 @@ const setFormData = (data) => {
       id: data.id,
       first_name: data.first_name,
       last_name: data.last_name,
-      email: data.email,
       mobile: data.mobile,
       password: data.password,
       confirm_password: data.confirm_password,
@@ -197,23 +194,23 @@ const reset_datatable_close_offcanvas = (res) => {
       const specialCharsRegex = /[!@#$%^&*(),.?":{}|<>\-_;'\/+=\[\]\\]/
       return !specialCharsRegex.test(value) && !numberRegex.test(value)
     }),
-    email: yup.string().nullable().notRequired(),
     mobile: yup.string()
     .required('Phone Number is a required field').matches(/^(\+?\d+)?(\s?\d+)*$/, 'Phone Number must contain only digits'),
-    password : yup.string().test('password','Password is required' , function(value) {
-      if(currentId === 0 && !value){
+    password: yup.string().test('password', 'Password is required', function(value) {
+      if (currentId.value === 0 && !value) {
         return false;
       }
-      return true
-    }
-    ).min(8,'Password must be at least 8 characters long'),
-    confirm_password : yup.string().test('confirm_password', 'Confirm password is required', function(value) {
-      if(currentId === 0 && !value){
+      return true;
+    }).min(8, 'Password must be at least 8 characters long'),
+    confirm_password: yup.string().test('confirm_password', 'Confirm password is required', function(value) {
+      if (currentId.value === 0 && !value) {
         return false;
       }
-      return true
-    }
-    ).oneOf([yup.ref('password')], 'Passwords must match'),
+      return true;
+    }).test('passwords-match', 'Passwords must match', function(value) {
+      if (!value && !this.parent.password) return true;
+      return value === this.parent.password;
+    }),
 
   })
 
@@ -224,7 +221,6 @@ const { handleSubmit, errors, resetForm } = useForm({
 const { value: id } = useField('first_name')
 const { value: first_name } = useField('first_name')
 const { value: last_name } = useField('last_name')
-const { value: email } = useField('email')
 const { value: gender } = useField('gender')
 const { value: mobile } = useField('mobile')
 const { value: profile_image } = useField('profile_image')

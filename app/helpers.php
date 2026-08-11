@@ -647,13 +647,25 @@ if (! function_exists('module_exist')) {
 
 function storeMediaFile($module, $file, $key = 'feature_image')
 {
-    if (isset($module) && isset($file)) {
-        $module->clearMediaCollection($key);
-        $mediaItems = $module->addMedia($file)->toMediaCollection($key);
+    if (! isset($module)) {
+        return;
     }
 
     if ($file == '') {
         $module->clearMediaCollection($key);
+        return;
+    }
+
+    $module->clearMediaCollection($key);
+
+    if (is_iterable($file)) {
+        foreach ($file as $item) {
+            if ($item) {
+                $module->addMedia($item)->toMediaCollection($key);
+            }
+        }
+    } else {
+        $module->addMedia($file)->toMediaCollection($key);
     }
 }
 function getCustomizationSetting($name, $key = 'customization_json')

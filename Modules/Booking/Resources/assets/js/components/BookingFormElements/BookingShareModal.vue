@@ -9,18 +9,33 @@
             </div>
             <div>
               <h5 class="modal-title fw-bold text-gradient mb-0" id="shareBookingModalLabel">Inviter des Clients au Salon</h5>
-              <small class="text-muted">Partagez la page de réservation publique sur tous vos réseaux sociaux</small>
+              <small class="text-muted">Partagez la page de réservation publique directement pour votre salon</small>
             </div>
           </div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         
         <div class="modal-body py-4">
+          <!-- Selection Obligatoire du Salon pour l'Administrateur -->
+          <div v-if="branches.length > 1 || !isManager" class="salon-selection-card p-3 mb-3 rounded-3 border bg-light">
+            <label class="form-label small fw-bold text-primary mb-1">
+              <i class="fa-solid fa-store me-1"></i> Sélectionner le salon à partager (Obligatoire pour l'Administrateur) :
+            </label>
+            <select v-model="selectedBranchId" @change="onBranchChange" class="form-select form-select-sm fw-bold border-primary">
+              <option v-for="b in branches" :key="b.id" :value="b.id">
+                {{ b.name }} {{ b.contact_number ? '(' + b.contact_number + ')' : '' }}
+              </option>
+            </select>
+            <small class="text-muted d-block mt-1">
+              <i class="fa-solid fa-circle-info me-1"></i> Le lien généré ci-dessous bloquera automatiquement la réservation sur le salon sélectionné.
+            </small>
+          </div>
+
           <!-- Multi-vendor Salon info badge -->
           <div class="salon-badge-info p-3 mb-3 rounded-3 d-flex align-items-center justify-content-between">
             <div>
-              <small class="text-uppercase tracking-wider text-muted fw-bold d-block">Salon Sélectionné (Multi-Vendor)</small>
-              <strong class="fs-6 text-dark"><i class="fa-solid fa-store me-1 text-primary"></i> {{ branchName || 'Salon Principal' }}</strong>
+              <small class="text-uppercase tracking-wider text-muted fw-bold d-block">Salon Sélectionné</small>
+              <strong class="fs-6 text-dark"><i class="fa-solid fa-store me-1 text-primary"></i> {{ selectedBranchName || 'Salon Principal' }}</strong>
             </div>
             <a :href="shareUrl" target="_blank" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm">
               <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Ouvrir la Page Publique
@@ -37,9 +52,9 @@
               </div>
             </div>
             <div class="col-md-5">
-              <label class="form-label small text-muted mb-1">Lien de test Téléphone / Domaine :</label>
+              <label class="form-label small text-muted mb-1">Domaine / Domaine personnalisé :</label>
               <div class="input-group input-group-sm">
-                <input type="text" v-model="customHost" class="form-control bg-light" placeholder="ex: https://frezka-salon.loca.lt ou mon-salon.com" />
+                <input type="text" v-model="customHost" class="form-control bg-light" placeholder="ex: mon-salon.com" />
               </div>
             </div>
           </div>
@@ -64,7 +79,7 @@
 
           <!-- Direct Link Section -->
           <div class="form-group">
-            <label class="form-label small fw-bold">Lien de réservation directe (Page d'inscription client) :</label>
+            <label class="form-label small fw-bold">Lien de réservation directe du salon (Page client) :</label>
             <div class="input-group">
               <input type="text" readonly class="form-control form-control-sm bg-light text-primary fw-bold" :value="shareUrl" />
               <a :href="shareUrl" target="_blank" class="btn btn-outline-secondary btn-sm px-2" title="Tester le lien">
@@ -88,22 +103,65 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 
 const props = defineProps({
   branchId: { type: [Number, String], default: null },
-  branchName: { type: String, default: '' }
+  branchName: { type: String, default: '' },
+  isManager: { type: Boolean, default: false }
 })
 
 const copied = ref(false)
 const searchQuery = ref('')
-const customHost = ref('https://frezka-salon.loca.lt')
+const customHost = ref('')
 const canNativeShare = ref(false)
+
+const branches = ref([])
+const selectedBranchId = ref(props.branchId || 1)
+const selectedBranchName = ref(props.branchName || '')
+
+const fetchBranches = async () => {
+  try {
+    const res = await fetch('/api/quick-booking/branch-list')
+    if (res.ok) {
+      const data = await res.json()
+      if (data && data.data && Array.isArray(data.data)) {
+        branches.value = data.data
+        if (!selectedBranchId.value || !branches.value.some(b => b.id == selectedBranchId.value)) {
+          if (branches.value.length > 0) {
+            selectedBranchId.value = branches.value[0].id
+            selectedBranchName.value = branches.value[0].name
+          }
+        } else {
+          const current = branches.value.find(b => b.id == selectedBranchId.value)
+          if (current) selectedBranchName.value = current.name
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Erreur chargement des salons', e)
+  }
+}
+
+const onBranchChange = () => {
+  const found = branches.value.find(b => b.id == selectedBranchId.value)
+  if (found) {
+    selectedBranchName.value = found.name
+  }
+}
+
+watch(() => props.branchId, (newVal) => {
+  if (newVal) {
+    selectedBranchId.value = newVal
+    if (props.branchName) selectedBranchName.value = props.branchName
+  }
+})
 
 onMounted(() => {
   if (navigator.share) {
     canNativeShare.value = true
   }
+  fetchBranches()
 })
 
 const shareUrl = computed(() => {
@@ -115,12 +173,12 @@ const shareUrl = computed(() => {
     }
     origin = h.replace(/\/$/, '')
   }
-  const bId = props.branchId || 1
+  const bId = selectedBranchId.value || 1
   return `${origin}/quick-booking?branch_id=${bId}`
 })
 
 const shareMessage = computed(() => {
-  return encodeURIComponent(`Bonjour ! Prenez rendez-vous directement au ${props.branchName || 'salon'} en suivant ce lien : ${shareUrl.value}`)
+  return encodeURIComponent(`Bonjour ! Prenez rendez-vous directement au salon ${selectedBranchName.value || ''} en suivant ce lien : ${shareUrl.value}`)
 })
 
 const networks = computed(() => [
@@ -167,8 +225,8 @@ const copyLink = () => {
 const nativeShare = () => {
   if (navigator.share) {
     navigator.share({
-      title: `Réservation ${props.branchName || 'Salon'}`,
-      text: `Réservez votre prestation en ligne au ${props.branchName || 'salon'}`,
+      title: `Réservation ${selectedBranchName.value || 'Salon'}`,
+      text: `Réservez votre prestation en ligne au salon ${selectedBranchName.value || ''}`,
       url: shareUrl.value
     }).catch(() => {})
   }
@@ -233,3 +291,4 @@ const nativeShare = () => {
 .social-btn.snapchat { background: linear-gradient(135deg, #FFFC00, #E0DC00); color: #000 !important; }
 .social-btn.linkedin { background: linear-gradient(135deg, #0A66C2, #004182); }
 </style>
+

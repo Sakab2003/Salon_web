@@ -47,65 +47,82 @@
       
       <div class="modal-body py-4">
         @php
+          $isAdmin = auth()->user()->hasRole('admin');
           $targetBranchId = auth()->user()->branch_id ?? 1;
           $publicShareUrl = url('/quick-booking?branch_id=' . $targetBranchId);
+          $branches = \App\Models\Branch::all();
         @endphp
-        <div class="p-3 mb-4 rounded-3 d-flex align-items-center justify-content-between" style="background: rgba(111, 66, 193, 0.05); border: 1px dashed rgba(111, 66, 193, 0.3);">
-          <div>
-            <small class="text-uppercase text-muted fw-bold d-block">Salon Sélectionné</small>
-            <strong class="fs-6 text-dark"><i class="fa-solid fa-store me-1 text-primary"></i> {{ auth()->user()->branch->name ?? 'Salon Principal' }}</strong>
+        <div class="p-3 mb-4 rounded-3" style="background: rgba(111, 66, 193, 0.05); border: 1px dashed rgba(111, 66, 193, 0.3);">
+          @if($isAdmin)
+            <div class="form-group mb-2">
+              <label class="form-label small fw-bold text-dark">Sélectionnez le Salon à Partager :</label>
+              <select id="admin-share-branch-select" class="form-select border-primary fw-bold" onchange="updateShareLinks(this.value)">
+                @foreach($branches as $branch)
+                  <option value="{{ $branch->id }}" {{ $branch->id == $targetBranchId ? 'selected' : '' }}>{{ $branch->name }}</option>
+                @endforeach
+              </select>
+            </div>
+          @else
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <div>
+                <small class="text-uppercase text-muted fw-bold d-block">Salon Sélectionné</small>
+                <strong class="fs-6 text-dark"><i class="fa-solid fa-store me-1 text-primary"></i> {{ auth()->user()->branch->name ?? 'Salon Principal' }}</strong>
+              </div>
+            </div>
+          @endif
+          <div class="text-end mt-2">
+            <a href="{{ $publicShareUrl }}" target="_blank" id="btn-open-public-link" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+              <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Ouvrir la Page Publique
+            </a>
           </div>
-          <a href="{{ $publicShareUrl }}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-3">
-            <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Ouvrir la Page Publique
-          </a>
         </div>
 
         <p class="small text-muted fw-semibold mb-3">Partager directement sur :</p>
         <div class="row g-3 mb-4 text-center">
           <div class="col-3">
-            <a href="https://api.whatsapp.com/send?text={{ urlencode('Bonjour ! Réservez directement vos prestations en suivant ce lien : ' . $publicShareUrl) }}" target="_blank" class="d-flex flex-column align-items-center p-2 rounded-3 text-decoration-none text-white shadow-sm" style="background: linear-gradient(135deg, #25D366, #128C7E);">
-              <i class="fa-brands fa-whatsapp fs-3 mb-1"></i>
+            <a href="https://api.whatsapp.com/send?text={{ urlencode('Bonjour ! Réservez directement vos prestations en suivant ce lien : ' . $publicShareUrl) }}" id="btn-share-whatsapp" target="_blank" class="d-flex flex-column align-items-center p-2 rounded-3 text-decoration-none text-white shadow-sm" {{--style="background: linear-gradient(135deg, #25D366, #128C7E);"--}}>
+              <i class="fa-brands fa-whatsapp fs-3 mb-1"style="color: ##25D366;"></i>
               <span class="small" style="font-size:11px;">WhatsApp</span>
             </a>
           </div>
           <div class="col-3">
-            <a href="javascript:void(0)" onclick="navigator.clipboard.writeText('{{ $publicShareUrl }}'); alert('Lien copié ! Collez-le dans votre profil ou vidéo TikTok.');" class="d-flex flex-column align-items-center p-2 rounded-3 text-decoration-none text-white shadow-sm" style="background: linear-gradient(135deg, #000000, #25F4EE 50%, #FE2C55);">
+            <a href="javascript:void(0)" id="btn-share-tiktok" onclick="navigator.clipboard.writeText(document.getElementById('share-link-input-blade-cal').value); alert('Lien copié ! Collez-le dans votre profil ou vidéo TikTok.');" class="d-flex flex-column align-items-center p-2 rounded-3 text-decoration-none text-white shadow-sm" style="background: linear-gradient(135deg, #000000, #25F4EE 50%, #FE2C55);">
               <i class="fa-brands fa-tiktok fs-3 mb-1"></i>
               <span class="small" style="font-size:11px;">TikTok</span>
             </a>
           </div>
           <div class="col-3">
-            <a href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode($publicShareUrl) }}" target="_blank" class="d-flex flex-column align-items-center p-2 rounded-3 text-decoration-none text-white shadow-sm" style="background: linear-gradient(135deg, #1877F2, #0d52ab);">
+            <a href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode($publicShareUrl) }}" id="btn-share-facebook" target="_blank" class="d-flex flex-column align-items-center p-2 rounded-3 text-decoration-none text-white shadow-sm" style="background: linear-gradient(135deg, #1877F2, #0d52ab);">
               <i class="fa-brands fa-facebook-f fs-3 mb-1"></i>
               <span class="small" style="font-size:11px;">Facebook</span>
             </a>
           </div>
           <div class="col-3">
-            <a href="https://twitter.com/intent/tweet?text={{ urlencode('Bonjour ! Réservez directement vos prestations en suivant ce lien : ' . $publicShareUrl) }}" target="_blank" class="d-flex flex-column align-items-center p-2 rounded-3 text-decoration-none text-white shadow-sm" style="background: linear-gradient(135deg, #14171A, #000000);">
+            <a href="https://twitter.com/intent/tweet?text={{ urlencode('Bonjour ! Réservez directement vos prestations en suivant ce lien : ' . $publicShareUrl) }}" id="btn-share-twitter" target="_blank" class="d-flex flex-column align-items-center p-2 rounded-3 text-decoration-none text-white shadow-sm" style="background: linear-gradient(135deg, #14171A, #000000);">
               <i class="fa-brands fa-x-twitter fs-3 mb-1"></i>
               <span class="small" style="font-size:11px;">X / Twitter</span>
             </a>
           </div>
           <div class="col-3">
-            <a href="javascript:void(0)" onclick="navigator.clipboard.writeText('{{ $publicShareUrl }}'); alert('Lien copié pour Instagram !');" class="d-flex flex-column align-items-center p-2 rounded-3 text-decoration-none text-white shadow-sm" style="background: linear-gradient(135deg, #f09433, #dc2743);">
+            <a href="javascript:void(0)" id="btn-share-instagram" onclick="navigator.clipboard.writeText(document.getElementById('share-link-input-blade-cal').value); alert('Lien copié pour Instagram !');" class="d-flex flex-column align-items-center p-2 rounded-3 text-decoration-none text-white shadow-sm" style="background: linear-gradient(135deg, #f09433, #dc2743);">
               <i class="fa-brands fa-instagram fs-3 mb-1"></i>
               <span class="small" style="font-size:11px;">Instagram</span>
             </a>
           </div>
           <div class="col-3">
-            <a href="https://www.threads.net/intent/post?text={{ urlencode('Bonjour ! Réservez vos prestations : ' . $publicShareUrl) }}" target="_blank" class="d-flex flex-column align-items-center p-2 rounded-3 text-decoration-none text-white shadow-sm" style="background: linear-gradient(135deg, #101010, #333333);">
+            <a href="https://www.threads.net/intent/post?text={{ urlencode('Bonjour ! Réservez vos prestations : ' . $publicShareUrl) }}" id="btn-share-threads" target="_blank" class="d-flex flex-column align-items-center p-2 rounded-3 text-decoration-none text-white shadow-sm" style="background: linear-gradient(135deg, #101010, #333333);">
               <i class="fa-brands fa-threads fs-3 mb-1"></i>
               <span class="small" style="font-size:11px;">Threads</span>
             </a>
           </div>
           <div class="col-3">
-            <a href="https://www.snapchat.com/scan?attachmentUrl={{ urlencode($publicShareUrl) }}" target="_blank" class="d-flex flex-column align-items-center p-2 rounded-3 text-decoration-none text-dark shadow-sm" style="background: linear-gradient(135deg, #FFFC00, #E0DC00);">
+            <a href="https://www.snapchat.com/scan?attachmentUrl={{ urlencode($publicShareUrl) }}" id="btn-share-snapchat" target="_blank" class="d-flex flex-column align-items-center p-2 rounded-3 text-decoration-none text-dark shadow-sm" style="background: linear-gradient(135deg, #FFFC00, #E0DC00);">
               <i class="fa-brands fa-snapchat fs-3 mb-1"></i>
               <span class="small" style="font-size:11px;">Snapchat</span>
             </a>
           </div>
           <div class="col-3">
-            <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ urlencode($publicShareUrl) }}" target="_blank" class="d-flex flex-column align-items-center p-2 rounded-3 text-decoration-none text-white shadow-sm" style="background: linear-gradient(135deg, #0A66C2, #004182);">
+            <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ urlencode($publicShareUrl) }}" id="btn-share-linkedin" target="_blank" class="d-flex flex-column align-items-center p-2 rounded-3 text-decoration-none text-white shadow-sm" style="background: linear-gradient(135deg, #0A66C2, #004182);">
               <i class="fa-brands fa-linkedin-in fs-3 mb-1"></i>
               <span class="small" style="font-size:11px;">LinkedIn</span>
             </a>
@@ -116,7 +133,7 @@
           <label class="form-label small fw-bold">Lien de réservation directe du salon (Page Inscription Client) :</label>
           <div class="input-group">
             <input type="text" readonly class="form-control form-control-sm bg-light text-primary fw-bold" id="share-link-input-blade-cal" value="{{ $publicShareUrl }}" />
-            <a href="{{ $publicShareUrl }}" target="_blank" class="btn btn-outline-secondary btn-sm px-2" title="Tester le lien">
+            <a href="{{ $publicShareUrl }}" target="_blank" id="btn-test-link" class="btn btn-outline-secondary btn-sm px-2" title="Tester le lien">
               <i class="fa-solid fa-external-link"></i>
             </a>
             <button type="button" class="btn btn-primary btn-sm px-3" onclick="navigator.clipboard.writeText(document.getElementById('share-link-input-blade-cal').value); alert('Lien copié !');">
@@ -135,6 +152,27 @@
 @endsection
 
 @push ('after-scripts')
+<script>
+  function updateShareLinks(branchId) {
+    const baseUrl = '{{ url('/quick-booking') }}';
+    const newUrl = baseUrl + '?branch_id=' + branchId;
+    
+    // Mettre à jour l'input
+    document.getElementById('share-link-input-blade-cal').value = newUrl;
+    
+    // Mettre à jour "Ouvrir la Page Publique"
+    document.getElementById('btn-open-public-link').href = newUrl;
+    document.getElementById('btn-test-link').href = newUrl;
+    
+    // Mettre à jour les liens sociaux
+    document.getElementById('btn-share-whatsapp').href = 'https://api.whatsapp.com/send?text=' + encodeURIComponent('Bonjour ! Réservez directement vos prestations en suivant ce lien : ' + newUrl);
+    document.getElementById('btn-share-facebook').href = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(newUrl);
+    document.getElementById('btn-share-twitter').href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent('Bonjour ! Réservez directement vos prestations en suivant ce lien : ' + newUrl);
+    document.getElementById('btn-share-linkedin').href = 'https://www.linkedin.com/sharing/share-offsite/?url=' + encodeURIComponent(newUrl);
+    document.getElementById('btn-share-snapchat').href = 'https://www.snapchat.com/scan?attachmentUrl=' + encodeURIComponent(newUrl);
+    document.getElementById('btn-share-threads').href = 'https://www.threads.net/intent/post?text=' + encodeURIComponent('Bonjour ! Réservez vos prestations : ' + newUrl);
+  }
+</script>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script src="{{ mix("modules/booking/script.js") }}"></script>
 

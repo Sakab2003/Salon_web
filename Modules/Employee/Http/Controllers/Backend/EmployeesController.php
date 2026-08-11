@@ -658,6 +658,28 @@ class EmployeesController extends Controller
     public function review_data(Datatables $datatable, Request $request)
     {
         $query = EmployeeRating::with('user', 'employee')->orderBy('updated_at', 'desc');
+
+        // Filtrage par salon pour le Manager
+        if (auth()->check() && auth()->user()->hasRole('manager')) {
+            $managerId = auth()->id();
+            $branchIds = \App\Models\Branch::where('manager_id', $managerId)->pluck('id')->toArray();
+            if (empty($branchIds) && auth()->user()->branch_id) {
+                $branchIds = [auth()->user()->branch_id];
+            }
+            if (!empty($branchIds)) {
+                $employeeIds = \Modules\Employee\Models\BranchEmployee::whereIn('branch_id', $branchIds)->pluck('employee_id')->toArray();
+                $query->where(function ($q) use ($employeeIds, $branchIds, $managerId) {
+                    if (!empty($employeeIds)) {
+                        $q->whereIn('employee_id', $employeeIds);
+                    }
+                    $q->orWhereHas('employee', function ($eq) use ($branchIds) {
+                        $eq->whereIn('branch_id', $branchIds);
+                    });
+                    $q->orWhere('employee_id', $managerId);
+                });
+            }
+        }
+
         $filter = $request->filter;
         if (isset($filter)) {
             if (isset($filter['column_status'])) {
@@ -669,7 +691,8 @@ class EmployeesController extends Controller
                 return '<input type="checkbox" class="form-check-input select-table-row"  id="datatable-row-'.$data->id.'"  name="datatable_ids[]" value="'.$data->id.'" onclick="dataTableRowCheck('.$data->id.')">';
             })
             ->addColumn('image', function ($data) {
-                return '<img src='.$data->user->profile_image." class='avatar avatar-50 rounded-pill'>";
+                $img = optional($data->user)->profile_image ?? asset('images/user/user.png');
+                return "<img src='{$img}' class='avatar avatar-50 rounded-pill'>";
             })
             ->addColumn('action', function ($data) {
                 return view('employee::backend.employees.review_action_column', compact('data'));
@@ -759,5 +782,37 @@ class EmployeesController extends Controller
         $message = __('messages.delete_form', ['form' => __($module_title)]);
 
         return response()->json(['message' => $message, 'status' => true], 200);
+    }
+
+    public function save_review(Request $request)
+    {
+        $validator = \Validator::make($request->all(), [
+            'user_id' => 'required',
+            'employee_id' => 'required',
+            'rating' => 'required|numeric|min:1|max:5',
+            'review_msg' => 'required|string'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Veuillez remplir tous les champs obligatoires.',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $rating = EmployeeRating::create([
+            'user_id' => $request->user_id,
+            'employee_id' => $request->employee_id,
+            'rating' => $request->rating,
+            'review_msg' => $request->review_msg,
+            'status' => 1
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Avis enregistré avec succès !',
+            'data' => $rating
+        ]);
     }
 }

@@ -66,10 +66,6 @@
                 <label class="col-4"><i>{{ $t('booking.lbl_phone') }}</i></label>
                 <strong class="col text-primary">{{ selectedCustomer.mobile }}</strong>
               </div>
-              <div class="row mb-3" v-if="selectedCustomer.email">
-                <label class="col-4"><i>{{ $t('booking.lbl_e-mail') }}</i></label>
-                <strong class="col text-muted">{{ selectedCustomer.email }}</strong>
-              </div>
             </div>
             <div v-else>
               <Multiselect id="user_id" v-model="user_id" placeholder="Sélectionner un client" :disabled="is_paid || filterStatus(status).is_disabled" :value="user_id" v-bind="singleSelectOption" :options="customer.options" @select="customerSelect" class="form-group mb-0"></Multiselect>
@@ -98,29 +94,81 @@
             </li>
           </ul>
 
-          <!-- Formulaire de Saisie Libre de Service -->
-          <div v-if="showCustomServiceInput" class="card card-body bg-light my-2 border-dashed">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <strong class="text-primary small"><i class="fa-solid fa-pen-to-square me-1"></i> Nouveau Service Personnalisé</strong>
-              <button type="button" class="btn-close btn-sm" @click="showCustomServiceInput = false"></button>
+          <!-- Formulaire Créer Services (Identique à la section Services) -->
+          <div v-if="showCustomServiceInput" class="card shadow-sm my-3 border rounded-3 bg-white">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center py-2 px-3">
+              <h6 class="fw-bold m-0 text-dark">Créer Services</h6>
+              <button type="button" class="btn-close btn-sm" @click="showCustomServiceInput = false" aria-label="Close"></button>
             </div>
-            <div class="form-group mb-2">
-              <label class="form-label small">Nom du service *</label>
-              <input type="text" v-model="custom_service_title" class="form-control form-control-sm" placeholder="ex: Coiffure VIP / Tresses" />
-            </div>
-            <div class="row g-2">
-              <div class="col-7">
-                <label class="form-label small">Prix *</label>
-                <input type="number" v-model="custom_service_amount" class="form-control form-control-sm" placeholder="ex: 5000" />
+            <div class="card-body p-3">
+              <!-- Upload Image Circle -->
+              <div class="text-center mb-3">
+                <div class="d-inline-block position-relative">
+                  <div class="rounded-circle border d-flex align-items-center justify-content-center bg-light shadow-sm overflow-hidden" style="width: 120px; height: 120px; margin: 0 auto;">
+                    <img v-if="custom_service_image_preview" :src="custom_service_image_preview" class="w-100 h-100" style="object-fit: cover;" alt="Aperçu image">
+                    <span v-else class="text-muted small fw-bold">600 x 300</span>
+                  </div>
+                </div>
+                <div class="mt-2">
+                  <button type="button" class="btn btn-sm btn-info text-white px-3 py-1" @click="triggerImageSelect" style="background-color: #00b8c4; border: none; border-radius: 4px;">
+                    Télécharger
+                  </button>
+                  <input type="file" ref="fileInputRef" accept="image/*" class="d-none" @change="onImageSelected">
+                </div>
               </div>
-              <div class="col-5">
-                <label class="form-label small">Durée (Min)</label>
-                <input type="number" v-model="custom_service_duration" class="form-control form-control-sm" placeholder="30" />
+
+              <!-- Nom * -->
+              <div class="form-group mb-3">
+                <label class="form-label small fw-semibold text-dark mb-1">Nom <span class="text-danger">*</span></label>
+                <input type="text" v-model="custom_service_name" class="form-control form-control-sm" placeholder="Nom du service" required />
+              </div>
+
+              <!-- Durée du service (en minutes) * -->
+              <div class="form-group mb-3">
+                <label class="form-label small fw-semibold text-dark mb-1">Durée du service (en minutes) <span class="text-danger">*</span></label>
+                <input type="number" v-model="custom_service_duration" class="form-control form-control-sm" placeholder="Ex: 30" required />
+              </div>
+
+              <!-- Prix par défaut (FCFA) * -->
+              <div class="form-group mb-3">
+                <label class="form-label small fw-semibold text-dark mb-1">Prix par défaut (FCFA) <span class="text-danger">*</span></label>
+                <input type="number" v-model="custom_service_amount" class="form-control form-control-sm" placeholder="Ex: 5000" required />
+              </div>
+
+              <!-- Catégorie * -->
+              <div class="form-group mb-3">
+                <label class="form-label small fw-semibold text-dark mb-1">Catégorie <span class="text-danger">*</span></label>
+                <select v-model="custom_service_category_id" class="form-select form-select-sm" required>
+                  <option value="">Sélectionner une catégorie</option>
+                  <option v-for="cat in categoryList" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+                </select>
+              </div>
+
+              <!-- Description -->
+              <div class="form-group mb-3">
+                <label class="form-label small fw-semibold text-dark mb-1">Description</label>
+                <textarea v-model="custom_service_description" class="form-control form-control-sm" rows="3" placeholder="Description du service..."></textarea>
+              </div>
+
+              <!-- Statut -->
+              <div class="form-group mb-3 d-flex align-items-center justify-content-between">
+                <label class="form-label small fw-semibold text-dark m-0">Statut</label>
+                <div class="form-check form-switch m-0">
+                  <input class="form-check-input" type="checkbox" role="switch" v-model="custom_service_status" id="customServiceStatus" />
+                </div>
+              </div>
+
+              <!-- Footer Buttons -->
+              <div class="d-flex gap-2 pt-2 border-top">
+                <button type="button" class="btn btn-sm text-white flex-fill py-2" :disabled="isSavingService" @click="saveCustomService" style="background-color: #9c27b0; border-color: #9c27b0; border-radius: 4px;">
+                  <span v-if="isSavingService"><span class="spinner-border spinner-border-sm me-1"></span> Enregistrement...</span>
+                  <span v-else><i class="fa-solid fa-floppy-disk me-1"></i> Enregistrer</span>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary flex-fill py-2" @click="showCustomServiceInput = false" style="border-radius: 4px;">
+                  <i class="fa-solid fa-angles-left me-1"></i> Fermer
+                </button>
               </div>
             </div>
-            <button type="button" class="btn btn-sm btn-success mt-2" @click="addCustomService">
-              <i class="fa-solid fa-plus me-1"></i> Ajouter ce service
-            </button>
           </div>
 
           <!-- Ajout de Service (Bases de données & Saisie libre) -->
@@ -333,7 +381,8 @@ import { BRANCH_LIST } from '@/vue/constants/branch'
 import { useField, useForm } from 'vee-validate'
 import * as yup from 'yup'
 
-import { useRequest,useOnOffcanvasHide, useOnOffcanvasShow } from '@/helpers/hooks/useCrudOpration'
+import { useRequest, useOnOffcanvasHide, useOnOffcanvasShow } from '@/helpers/hooks/useCrudOpration'
+import { XSRF_REQUEST_HEADER } from '@/helpers/utilities'
 
 // Modals
 import CustomerCreate from '@/vue/components/Modal/CustomerCreate.vue'
@@ -349,40 +398,155 @@ import QtyButton from '@/vue/components/form-elements/QtyButton.vue'
 import { useSelect } from '@/helpers/hooks/useSelect'
 import moment from 'moment'
 
-// Custom Service State
+// Custom Service State & Form matching "Créer Services"
 const showCustomServiceInput = ref(false)
-const custom_service_title = ref('')
-const custom_service_amount = ref('')
+const categoryList = ref([])
+const custom_service_name = ref('')
 const custom_service_duration = ref(30)
+const custom_service_amount = ref('')
+const custom_service_category_id = ref('')
+const custom_service_description = ref('')
+const custom_service_status = ref(true)
+const custom_service_file = ref(null)
+const custom_service_image_preview = ref(null)
+const fileInputRef = ref(null)
+const isSavingService = ref(false)
 
-const addCustomService = () => {
-  if (!custom_service_title.value || !custom_service_amount.value) {
+const triggerImageSelect = () => {
+  if (fileInputRef.value) {
+    fileInputRef.value.click()
+  }
+}
+
+const onImageSelected = (e) => {
+  const file = e.target.files[0]
+  if (file) {
+    custom_service_file.value = file
+    const reader = new FileReader()
+    reader.onload = (evt) => {
+      custom_service_image_preview.value = evt.target.result
+    }
+    reader.readAsDataURL(file)
+  }
+}
+
+const fetchCategories = async () => {
+  try {
+    const response = await fetch('/app/services/category_list', {
+      headers: {
+        'Accept': 'application/json',
+        ...XSRF_REQUEST_HEADER()
+      }
+    })
+    const data = await response.json()
+    if (data && Array.isArray(data)) {
+      categoryList.value = data
+    }
+  } catch (err) {
+    console.error('Erreur chargement catégories:', err)
+  }
+}
+
+watch(showCustomServiceInput, (val) => {
+  if (val && categoryList.value.length === 0) {
+    fetchCategories()
+  }
+})
+
+const saveCustomService = async () => {
+  if (!custom_service_name.value || !custom_service_duration.value || !custom_service_amount.value || !custom_service_category_id.value) {
     if (window.errorSnackbar) {
-      window.errorSnackbar('Veuillez renseigner le nom et le prix du service.')
+      window.errorSnackbar('Veuillez remplir tous les champs obligatoires (*).')
     }
     return
   }
-  const customId = 'custom_' + Date.now()
-  const bookingService = {
-    id: null,
-    start_date_time: moment(start_date_time.value || new Date()).format('YYYY-MM-DD HH:mm:ss'),
-    service_name: custom_service_title.value,
-    employee_id: employee_id.value || null,
-    booking_id: id.value || null,
-    service_id: customId,
-    branch_id: branch_id.value,
-    service_price: parseFloat(custom_service_amount.value),
-    duration_min: parseInt(custom_service_duration.value || 30),
-    is_custom: true
+
+  isSavingService.value = true
+
+  const formData = new FormData()
+  formData.append('name', custom_service_name.value)
+  formData.append('duration_min', custom_service_duration.value)
+  formData.append('default_price', custom_service_amount.value)
+  formData.append('category_id', custom_service_category_id.value)
+  formData.append('description', custom_service_description.value || '')
+  formData.append('status', custom_service_status.value ? 1 : 0)
+  if (employee_id.value) {
+    formData.append('employee_id', employee_id.value)
   }
-  selectedService.value.push(bookingService)
-  if (!services_id.value.includes(customId)) {
-    services_id.value.push(customId)
+  if (custom_service_file.value) {
+    formData.append('feature_image', custom_service_file.value)
   }
-  resetServiceTime()
-  custom_service_title.value = ''
-  custom_service_amount.value = ''
-  showCustomServiceInput.value = false
+
+  try {
+    const response = await fetch('/app/services', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        ...XSRF_REQUEST_HEADER()
+      },
+      body: formData
+    })
+
+    const res = await response.json()
+    isSavingService.value = false
+
+    if (response.ok && res.status && res.data) {
+      const createdService = res.data
+      
+      if (window.successSnackbar) {
+        window.successSnackbar('Service créé et enregistré avec succès dans la section Services !')
+      }
+
+      // Add to service.options dropdown if not present
+      if (service.value && service.value.options && !service.value.options.some(opt => opt.value == createdService.id)) {
+        service.value.options.push({
+          value: createdService.id,
+          label: createdService.name + ' (' + formatCurrencyVue(createdService.default_price) + ')'
+        })
+      }
+
+      // Add to current appointment selectedService
+      const bookingService = {
+        id: null,
+        start_date_time: moment(start_date_time.value || new Date()).format('YYYY-MM-DD HH:mm:ss'),
+        service_name: createdService.name,
+        employee_id: employee_id.value || null,
+        booking_id: id.value || null,
+        service_id: createdService.id,
+        branch_id: branch_id.value,
+        service_price: parseFloat(createdService.default_price),
+        duration_min: parseInt(createdService.duration_min),
+        is_custom: false
+      }
+      selectedService.value.push(bookingService)
+      if (!services_id.value.includes(createdService.id)) {
+        services_id.value.push(createdService.id)
+      }
+      resetServiceTime()
+
+      // Reset form
+      custom_service_name.value = ''
+      custom_service_amount.value = ''
+      custom_service_duration.value = 30
+      custom_service_category_id.value = ''
+      custom_service_description.value = ''
+      custom_service_status.value = true
+      custom_service_file.value = null
+      custom_service_image_preview.value = null
+      showCustomServiceInput.value = false
+    } else {
+      const msg = res.message || 'Erreur lors de la création du service.'
+      if (window.errorSnackbar) {
+        window.errorSnackbar(msg)
+      }
+    }
+  } catch (err) {
+    isSavingService.value = false
+    const msg = err?.response?.data?.message || err?.message || 'Erreur lors de la création du service.'
+    if (window.errorSnackbar) {
+      window.errorSnackbar(msg)
+    }
+  }
 }
 
 const selectedBranchName = computed(() => {
