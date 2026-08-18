@@ -35,7 +35,7 @@ Route::group(['prefix' => 'app', 'as' => 'backend.', 'middleware' => ['auth']], 
      * ---------------------------------------------------------------------
      */
 
-    Route::group(['prefix' => 'tax', 'as' => 'tax.'], function () {
+    Route::group(['prefix' => 'taxes', 'as' => 'tax.'], function () {
         Route::get('index_list', [TaxesController::class, 'index_list'])->name('index_list');
         Route::get('index_data', [TaxesController::class, 'index_data'])->name('index_data');
         Route::get('trashed', [TaxesController::class, 'trashed'])->name('trashed');
@@ -43,5 +43,6 @@ Route::group(['prefix' => 'app', 'as' => 'backend.', 'middleware' => ['auth']], 
         Route::post('update-status/{id}', [TaxesController::class, 'update_status'])->name('update_status');
         Route::post('bulk-action', [TaxesController::class, 'bulk_action'])->name('bulk_action');
     });
-    Route::resource('tax', TaxesController::class);
+    Route::resource('taxes', TaxesController::class, ['names' => 'tax']);
+    Route::get('tax', function() { return redirect()->route('backend.tax.index'); });
 });

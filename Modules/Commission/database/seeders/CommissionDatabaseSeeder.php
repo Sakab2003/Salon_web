@@ -28,31 +28,31 @@ class CommissionDatabaseSeeder extends Seeder
         if (env('IS_DUMMY_DATA')) {
             $data = [
                 [
-                    'title' => 'Booking Commission',
+                    'title' => 'Commission de réservation',
                     'commission_type' => 'percentage',
                     'commission_value' => 10,
                     'status' => 1,
                 ],
                 [
-                    'title' => 'Haircut Commission',
+                    'title' => 'Commission de coiffure',
                     'commission_type' => 'fixed',
                     'commission_value' => 5.00,
                     'status' => 1,
                 ],
                 [
-                    'title' => 'Makeup Commission',
+                    'title' => 'Commission de maquillage',
                     'commission_type' => 'percentage',
                     'commission_value' => 15,
                     'status' => 1,
                 ],
                 [
-                    'title' => 'Massage Commission',
+                    'title' => 'Commission de massage',
                     'commission_type' => 'fixed',
                     'commission_value' => 7.50,
                     'status' => 1,
                 ],
                 [
-                    'title' => 'Nail Art Commission',
+                    'title' => 'Commission de manucure',
                     'commission_type' => 'percentage',
                     'commission_value' => 12,
                     'status' => 1,

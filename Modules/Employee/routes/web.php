@@ -35,7 +35,7 @@ Route::group(['prefix' => 'app', 'as' => 'backend.', 'middleware' => ['auth']], 
      * ---------------------------------------------------------------------
      */
 
-    Route::group(['prefix' => 'employees', 'as' => 'employees.'], function () {
+    Route::group(['prefix' => 'personnel', 'as' => 'employees.'], function () {
         Route::get('index_list', [EmployeesController::class, 'index_list'])->name('index_list');
         Route::get('commision_list', [EmployeesController::class, 'commision_list'])->name('commision_list');
 
@@ -55,7 +55,9 @@ Route::group(['prefix' => 'app', 'as' => 'backend.', 'middleware' => ['auth']], 
         Route::get('export', [EmployeesController::class, 'export'])->name('export');
         Route::get('review-export', [EmployeesController::class, 'reviewExport'])->name('reviewExport');
     });
-    Route::get('employees-review', [EmployeesController::class, 'review'])->name('employees.review');
+    Route::get('avis-clients', [EmployeesController::class, 'review'])->name('employees.review');
+    Route::get('employees-review', function() { return redirect()->route('backend.employees.review'); });
     Route::post('employees-save-review', [EmployeesController::class, 'save_review'])->name('employees.save_review');
-    Route::resource('employees', EmployeesController::class);
+    Route::resource('personnel', EmployeesController::class, ['names' => 'employees']);
+    Route::get('employees', function() { return redirect()->route('backend.employees.index'); });
 });

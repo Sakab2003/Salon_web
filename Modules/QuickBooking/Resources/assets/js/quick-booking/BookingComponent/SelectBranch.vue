@@ -60,12 +60,12 @@
             </div>
         </div>
         <div class="h-100 w-75 d-flex align-items-center justify-content-center" v-if="branchList.length == 0 && !IS_LOADER">
-          We apologize, but currently, there are no available branches for booking appointments.
+          Aucun salon disponible pour la réservation actuellement.
         </div>
     </div>
     <div class="card-footer">
-        <button type="button" class="btn btn-secondary iq-text-uppercase" v-if="wizardPrev" @click="prevTabChange(wizardPrev)">Back</button>
-      <button type="button" class="btn btn-primary iq-text-uppercase" :disabled="branch_id !== null ? false : true" v-if="wizardNext" @click="nextTabChange(wizardNext)">Next</button>
+        <button type="button" class="btn btn-secondary iq-text-uppercase" v-if="wizardPrev" @click="prevTabChange(wizardPrev)">Retour</button>
+      <button type="button" class="btn btn-primary iq-text-uppercase" :disabled="branch_id !== null ? false : true" v-if="wizardNext" @click="nextTabChange(wizardNext)">Suivant</button>
     </div>
 </template>
 <script setup>

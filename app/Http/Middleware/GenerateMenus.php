@@ -19,25 +19,58 @@ class GenerateMenus
     public function handle($menuname, $type, $arraymenu)
     {
         \Menu::make($menuname, function ($menu) use ($type, $arraymenu) {
+            MenuBuilder::flushCache();
             $menuArray = MenuBuilder::getAllMenu()->where('menu_type', $type);
 
-            if (count($menuArray) == 0) {
+            $needsRebuild = (count($menuArray) == 0) 
+                || MenuBuilder::where('title', 'sidebar.models')->exists()
+                || MenuBuilder::where('title', 'sidebar.categories')->exists()
+                || !MenuBuilder::where('title', 'sidebar.commissions')->exists()
+                || !MenuBuilder::where('title', 'sidebar.hairstyle_models')->whereNull('parent_id')->exists();
+
+            if ($needsRebuild) {
+                MenuBuilder::where('menu_type', $type)->delete();
+                MenuBuilder::flushCache();
                 $arr = [];
                 foreach (config('menubuilder.'.$arraymenu) as $key => $value) {
-                    // code...
                     $arr[] = array_merge(config('menubuilder.MENU'), $value);
                 }
                 foreach ($arr as $key => $value) {
                     $this->saveMenu($value);
                 }
-
+                MenuBuilder::flushCache();
                 $menuArray = MenuBuilder::getAllMenu()->where('menu_type', $type);
             }
 
+            $hasReviewInDb = false;
             foreach ($menuArray as $key => $value) {
+                if ($value->route == 'backend.employees.review' || (isset($value->url) && (str_contains($value->url, 'avis-clients') || str_contains($value->url, 'employees-review')))) {
+                    $hasReviewInDb = true;
+                    $value->status = 1;
+                    $value->active = ['app/employees-review*', 'app/avis-clients*'];
+                    $value->permission = ['view_customer_reviews'];
+                }
                 if ($value->status) {
                     $this->makeMenu($menu, $value);
                 }
+            }
+
+            if (!$hasReviewInDb) {
+                $this->makeMenu($menu, new MenuBuilder([
+                    'menu_type' => $type,
+                    'menu_item_type' => 'link',
+                    'title' => 'sidebar.reviews',
+                    'short_title' => '-',
+                    'is_route' => true,
+                    'route' => 'backend.employees.review',
+                    'url' => 'app/avis-clients',
+                    'active' => ['app/employees-review*', 'app/avis-clients*'],
+                    'order' => 10,
+                    'menu_level' => 0,
+                    'start_icon' => 'fa-solid fa-star',
+                    'permission' => ['view_customer_reviews'],
+                    'status' => 1,
+                ]));
             }
 
             // Access Permission Check
@@ -56,6 +89,20 @@ class GenerateMenus
                         if (auth()->user()->hasRole('admin')) {
                             return true;
                         }
+                        if (auth()->user()->hasRole('manager')) {
+                            $isReview = ($item->title == __('sidebar.reviews'))
+                                || (isset($item->nickname) && $item->nickname == 'review')
+                                || ($item->url() && (str_contains($item->url(), 'avis-clients') || str_contains($item->url(), 'employees-review')));
+                            if ($isReview) {
+                                return true;
+                            }
+                            $isModelSection = ($item->title == __('sidebar.hairstyle_models'))
+                                || (isset($item->nickname) && $item->nickname == 'hairstyle_models')
+                                || ($item->url() && str_contains($item->url(), 'hairstyle-models'));
+                            if ($isModelSection) {
+                                return true;
+                            }
+                        }
                         if (auth()->user()->hasAnyPermission($item->data('permission'))) {
                             return true;
                         }
@@ -68,16 +115,31 @@ class GenerateMenus
             });
             // Set Active Menu
             $menu->filter(function ($item) {
+                $isActive = false;
                 if ($item->activematches) {
                     $activematches = (is_string($item->activematches)) ? [$item->activematches] : $item->activematches;
                     foreach ($activematches as $pattern) {
-                        if (request()->is($pattern)) {
-                            $item->active();
-                            $item->link->active();
-                            if ($item->hasParent() && $item->parent()) {
-                                $item->parent()->active();
-                            }
+                        $p = trim($pattern, '/');
+                        if (request()->is($p) || request()->is($p.'*') || request()->is('*'.$p.'*')) {
+                            $isActive = true;
+                            break;
                         }
+                    }
+                }
+
+                if (!$isActive) {
+                    if (request()->routeIs('backend.employees.review') || request()->is('app/avis-clients*') || request()->is('app/employees-review*')) {
+                        if ($item->title == __('sidebar.reviews') || str_contains($item->url() ?? '', 'avis-clients') || str_contains($item->url() ?? '', 'employees-review')) {
+                            $isActive = true;
+                        }
+                    }
+                }
+
+                if ($isActive) {
+                    $item->active();
+                    $item->link->active();
+                    if ($item->hasParent() && $item->parent()) {
+                        $item->parent()->active();
                     }
                 }
 
@@ -189,3 +251,4 @@ class GenerateMenus
         }
     }
 }
+

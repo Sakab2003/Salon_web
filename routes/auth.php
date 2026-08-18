@@ -14,37 +14,40 @@ use Illuminate\Support\Facades\Route;
 // Check if registration is enabled
 if (user_registration()) {
     Route::middleware('guest')->group(function () {
-        Route::get('register', [RegisteredUserController::class, 'create'])
+        Route::get('inscription', [RegisteredUserController::class, 'create'])
             ->name('register');
 
-        Route::post('register', [RegisteredUserController::class, 'store']);
+        Route::post('inscription', [RegisteredUserController::class, 'store']);
+        Route::get('register', function() { return redirect()->route('register'); });
     });
 }
 
 Route::middleware('guest')->group(function () {
-    Route::get('login', [AuthenticatedSessionController::class, 'create'])
+    Route::get('connexion', [AuthenticatedSessionController::class, 'create'])
         ->name('login');
 
-    Route::post('login', [AuthenticatedSessionController::class, 'store']);
+    Route::post('connexion', [AuthenticatedSessionController::class, 'store']);
+    Route::get('login', function() { return redirect()->route('login'); });
 
-    Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
+    Route::get('mot-de-passe-oublie', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
 
-    Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])
+    Route::post('mot-de-passe-oublie', [PasswordResetLinkController::class, 'store'])
         ->name('password.email');
+    Route::get('forgot-password', function() { return redirect()->route('password.request'); });
 
-    Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])
+    Route::get('reinitialiser-mot-de-passe/{token}', [NewPasswordController::class, 'create'])
         ->name('password.reset');
 
-    Route::post('reset-password', [NewPasswordController::class, 'store'])
+    Route::post('reinitialiser-mot-de-passe', [NewPasswordController::class, 'store'])
         ->name('password.update');
 });
 
 Route::middleware('auth')->group(function () {
-    Route::get('verify-email', [EmailVerificationPromptController::class, '__invoke'])
+    Route::get('verifier-email', [EmailVerificationPromptController::class, '__invoke'])
         ->name('verification.notice');
 
-    Route::get('verify-email/{id}/{hash}', [VerifyEmailController::class, '__invoke'])
+    Route::get('verifier-email/{id}/{hash}', [VerifyEmailController::class, '__invoke'])
         ->middleware(['signed', 'throttle:6,1'])
         ->name('verification.verify');
 
@@ -52,17 +55,18 @@ Route::middleware('auth')->group(function () {
         ->middleware('throttle:6,1')
         ->name('verification.send');
 
-    Route::get('confirm-password', [ConfirmablePasswordController::class, 'show'])
+    Route::get('confirmer-mot-de-passe', [ConfirmablePasswordController::class, 'show'])
         ->name('password.confirm');
 
-    Route::post('confirm-password', [ConfirmablePasswordController::class, 'store']);
+    Route::post('confirmer-mot-de-passe', [ConfirmablePasswordController::class, 'store']);
 
-    Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
+    Route::post('deconnexion', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
+    Route::post('logout', [AuthenticatedSessionController::class, 'destroy']);
 });
 
 // Social Login Routes
 Route::group(['namespace' => 'Auth', 'middleware' => 'guest'], function () {
-    Route::get('login/{provider}', [SocialLoginController::class, 'redirectToProvider'])->name('social.login');
-    Route::get('login/{provider}/callback', [SocialLoginController::class, 'handleProviderCallback'])->name('social.login.callback');
+    Route::get('connexion/{provider}', [SocialLoginController::class, 'redirectToProvider'])->name('social.login');
+    Route::get('connexion/{provider}/callback', [SocialLoginController::class, 'handleProviderCallback'])->name('social.login.callback');
 });

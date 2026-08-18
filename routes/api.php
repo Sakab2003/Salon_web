@@ -65,3 +65,11 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::post('verify-slot', [BranchController::class, 'verifySlot']);
 });
 Route::get('app-configuration', [SettingController::class, 'appConfiguraton']);
+Route::get('commission-list', function() {
+    $commissions = \Modules\Commission\Models\Commission::where('status', 1)->get();
+    return response()->json([
+        'status' => true,
+        'data' => $commissions,
+        'message' => 'Commission list'
+    ]);
+});

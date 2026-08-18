@@ -43,7 +43,8 @@ Route::group(['prefix' => 'app', 'as' => 'backend.', 'middleware' => ['auth']], 
         Route::get('export', [CategoriesController::class, 'export'])->name('export');
     });
     Route::get('sub-categories.export', [CategoriesController::class, 'subCategoryExport'])->name('sub-categories.export');
-    Route::get('sub-categories', [CategoriesController::class, 'index_nested'])->name('categories.index_nested');
-    Route::get('sub-categories/index_nested_data', [CategoriesController::class, 'index_nested_data'])->name('categories.index_nested_data');
+    Route::get('sous-categories', [CategoriesController::class, 'index_nested'])->name('categories.index_nested');
+    Route::get('sub-categories', function() { return redirect()->route('backend.categories.index_nested'); });
+    Route::get('sous-categories/index_nested_data', [CategoriesController::class, 'index_nested_data'])->name('categories.index_nested_data');
     Route::resource('categories', CategoriesController::class);
 });

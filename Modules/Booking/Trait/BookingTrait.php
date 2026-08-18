@@ -133,7 +133,7 @@ trait BookingTrait
                 if (! $is_booked) {
                     $slot = [
                         'value' => date('Y-m-d H:i:s', $startTimestamp),
-                        'label' => date('h:i A', $slot_start),
+                        'label' => date('H:i', $slot_start),
                         'disabled' => false,
                     ];
                     $slots[] = $slot;

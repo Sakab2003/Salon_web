@@ -27,6 +27,11 @@ class Commission extends BaseModel
      *
      * @return \Illuminate\Database\Eloquent\Factories\Factory
      */
+    public function branches()
+    {
+        return $this->belongsToMany(\App\Models\Branch::class, 'commission_branches', 'commission_id', 'branch_id');
+    }
+
     protected static function newFactory()
     {
         return \Modules\Commission\database\factories\CommissionFactory::new();

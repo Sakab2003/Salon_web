@@ -30,17 +30,17 @@
           </div>
         </div>
       </div>
-      <div class="h-100 w-75 d-flex align-items-center justify-content-center mx-auto" v-if="employeeList.length == 0">
-        We apologize for the inconvenience, but currently, there are no staff members available at this particular salon branch.
+      <div class="h-100 w-75 d-flex align-items-center justify-content-center mx-auto text-center" v-if="employeeList.length == 0">
+        Aucun membre du personnel disponible pour ce salon pour le moment.
       </div>
     </div>
     <div class="card-footer">
-      <button type="button" class="btn btn-secondary iq-text-uppercase" v-if="wizardPrev" @click="prevTabChange(wizardPrev)">Back</button>
-      <button type="button" v-if="employeeList.length > 0 && wizardNext" class="btn btn-primary iq-text-uppercase" :disabled="employee_id !== null ? false : true" @click="nextTabChange(wizardNext)">Next</button>
+      <button type="button" class="btn btn-secondary iq-text-uppercase" v-if="wizardPrev" @click="prevTabChange(wizardPrev)">Retour</button>
+      <button type="button" v-if="employeeList.length > 0 && wizardNext" class="btn btn-primary iq-text-uppercase" :disabled="employee_id !== null ? false : true" @click="nextTabChange(wizardNext)">Suivant</button>
     </div>
 </template>
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRequest } from '@/helpers/hooks/useCrudOpration'
 
 // Select Options List Request
@@ -78,6 +78,11 @@ const getStaffs = () => {
     })
   }
 }
+onMounted(() => {
+  if (store.booking.services && store.booking.services[0] && store.booking.services[0].service_id) {
+    getStaffs()
+  }
+})
 watch(() => store.booking.services[0].service_id,() => {
   getStaffs()
 }, {deep: true})

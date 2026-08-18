@@ -106,30 +106,46 @@ class ServicesController extends Controller
      */
     public function index_list(Request $request)
     {
-        $employee_id = $request->employee_id;
+        $employee_id = $request->employee_id ?? $request->id;
         $category_id = $request->category_id;
         $branch_id = $request->branch_id;
+
+        if (!isset($branch_id) && auth()->check() && auth()->user()->hasRole('manager')) {
+            $branch_id = auth()->user()->branch_id ?: optional(\App\Models\Branch::where('manager_id', auth()->id())->first())->id;
+        }
+
         $data = Service::with('employee', 'branches');
 
-        if (isset($employee_id)) {
+        if (isset($employee_id) && !empty($employee_id)) {
             $data = $data->whereHas('employee', function ($q) use ($employee_id) {
                 $q->where('employee_id', $employee_id);
             });
         }
 
-        if (isset($category_id)) {
+        if (isset($category_id) && !empty($category_id)) {
             $data->where('category_id', $category_id);
         }
 
-        if (isset($branch_id)) {
+        if (isset($branch_id) && !empty($branch_id)) {
             $data = $data->whereHas('branches', function ($q) use ($branch_id) {
                 $q->where('branch_id', $branch_id);
             });
         }
 
-        $data = $data->get();
+        $services = $data->get();
 
-        return response()->json($data);
+        $formatted = $services->map(function ($s) {
+            return [
+                'id' => $s->id,
+                'name' => $s->name,
+                'service_id' => $s->id,
+                'service_name' => $s->name . ' (' . \Currency::format($s->default_price) . ')',
+                'default_price' => $s->default_price,
+                'duration_min' => $s->duration_min,
+            ];
+        });
+
+        return response()->json($formatted);
     }
 
     /* category wise service list */
@@ -186,6 +202,19 @@ class ServicesController extends Controller
         $query = Service::query()
             ->with(['category', 'sub_category'])
             ->withCount(['branches', 'employee']);
+
+        if (auth()->check() && auth()->user()->hasRole('manager')) {
+            $managerBranchId = auth()->user()->branch_id;
+            if (!$managerBranchId) {
+                $b = \App\Models\Branch::where('manager_id', auth()->id())->first();
+                $managerBranchId = $b->id ?? null;
+            }
+            if ($managerBranchId) {
+                $query->whereHas('branches', function ($q) use ($managerBranchId) {
+                    $q->where('branch_id', $managerBranchId);
+                });
+            }
+        }
 
         $filter = $request->filter;
 
@@ -347,16 +376,40 @@ class ServicesController extends Controller
             storeMediaFile($query, $request->file('feature_image'));
         }
 
-        // Auto-assign to all branches
-        $branches = \App\Models\Branch::pluck('id');
-        foreach ($branches as $bId) {
-            ServiceBranches::firstOrCreate([
-                'service_id' => $query->id,
-                'branch_id' => $bId,
-            ], [
-                'service_price' => $query->default_price,
-                'duration_min' => $query->duration_min,
-            ]);
+        // Assign to branches (Manager's own branch ONLY, or Admin's selected/all branches)
+        if (auth()->check() && auth()->user()->hasRole('manager')) {
+            $managerBranchId = auth()->user()->branch_id;
+            if (!$managerBranchId) {
+                $b = \App\Models\Branch::where('manager_id', auth()->id())->first();
+                $managerBranchId = $b->id ?? null;
+            }
+            if ($managerBranchId) {
+                ServiceBranches::firstOrCreate([
+                    'service_id' => $query->id,
+                    'branch_id' => $managerBranchId,
+                ], [
+                    'service_price' => $query->default_price,
+                    'duration_min' => $query->duration_min,
+                ]);
+            }
+        } else {
+            $branchIds = $request->branch_id;
+            if ($branchIds) {
+                if (!is_array($branchIds)) {
+                    $branchIds = explode(',', $branchIds);
+                }
+            } else {
+                $branchIds = \App\Models\Branch::pluck('id')->toArray();
+            }
+            foreach ($branchIds as $bId) {
+                ServiceBranches::firstOrCreate([
+                    'service_id' => $query->id,
+                    'branch_id' => $bId,
+                ], [
+                    'service_price' => $query->default_price,
+                    'duration_min' => $query->duration_min,
+                ]);
+            }
         }
 
         // Auto-assign to employee if specified

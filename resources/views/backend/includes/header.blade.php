@@ -150,12 +150,14 @@ $notifications_count = optional(auth()->user())->unreadNotifications->count();
                   @endrole
                 </li>
                 @endif
+                @role('admin')
                   <li class="nav-item theme-scheme-dropdown dropdown iq-dropdown">
                       <a href="javascript:void(0)" class="nav-link d-flex align-items-center change-mode" data-change-mode="{{ (auth()->user()->user_setting['theme_scheme'] ?? 'light') ==  'dark' ? 'light' : 'dark' }}" id="mode-drop" style="color: inherit !important;">
                         <i class="fa-solid fa-sun mode-icons light-mode"></i>
                         <i class="fa-solid fa-moon mode-icons dark-mode"></i>
                       </a>
                   </li>
+                @endrole
                   {{-- <li class="nav-item dropdown">
                       <a class="nav-link d-flex align-items-center" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false" style="color: inherit !important;">
                           <i class="fa-solid fa-globe me-1"></i>{{strtoupper(App::getLocale())}}

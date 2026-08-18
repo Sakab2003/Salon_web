@@ -16,6 +16,7 @@ class HairstyleModel extends BaseModel
     protected $fillable = [
         'name',
         'service_id',
+        'commission_id',
         'status',
         'description',
     ];
@@ -24,12 +25,18 @@ class HairstyleModel extends BaseModel
 
     protected $casts = [
         'service_id' => 'integer',
+        'commission_id' => 'integer',
         'status' => 'integer',
     ];
 
     public function service()
     {
         return $this->belongsTo(Service::class, 'service_id');
+    }
+
+    public function commission()
+    {
+        return $this->belongsTo(\Modules\Commission\Models\Commission::class, 'commission_id');
     }
 
     protected function getFeatureImageItemsAttribute()

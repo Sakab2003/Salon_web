@@ -25,35 +25,21 @@
     </div>
 
 
-    <!-- Mot de passe & Confirmation -->
-    <div class="row">
-      <div class="form-group col-md-6">
-        <label class="form-label">Mot de passe <span class="text-danger">*</span></label>
-        <input type="password" v-model="password" class="form-control form-control-sm" placeholder="••••••••" />
-        <span class="text-danger small" v-if="errors['password']">{{ errors['password'] }}</span>
-      </div>
-      <div class="form-group col-md-6">
-        <label class="form-label">Confirmer le mot de passe <span class="text-danger">*</span></label>
-        <input type="password" v-model="password_confirmation" class="form-control form-control-sm" placeholder="••••••••" />
-        <span class="text-danger small" v-if="errors['password_confirmation']">{{ errors['password_confirmation'] }}</span>
-      </div>
-    </div>
-
     <!-- Genre -->
     <div class="form-group col-md-12">
-      <label for="" class="w-100 font-weight-bold mb-2">{{ $t('quick_booking.lbl_gender') }}</label>
+      <label for="" class="w-100 font-weight-bold mb-2">Genre / Sexe</label>
       <div class="d-flex align-items-center gap-3">
         <div class="form-check form-check-inline">
           <input class="form-check-input" type="radio" name="gender" v-model="gender" id="male" value="male" />
-          <label class="form-check-label" for="male"> Male </label>
+          <label class="form-check-label" for="male"> Homme </label>
         </div>
         <div class="form-check form-check-inline">
           <input class="form-check-input" type="radio" name="gender" v-model="gender" id="female" value="female" />
-          <label class="form-check-label" for="female"> Female </label>
+          <label class="form-check-label" for="female"> Femme </label>
         </div>
         <div class="form-check form-check-inline">
           <input class="form-check-input" type="radio" name="gender" v-model="gender" id="intersex" value="intersex" />
-          <label class="form-check-label" for="intersex"> Intersex </label>
+          <label class="form-check-label" for="intersex"> Autre </label>
         </div>
       </div>
     </div>

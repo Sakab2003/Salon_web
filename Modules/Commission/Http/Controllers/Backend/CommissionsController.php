@@ -69,7 +69,7 @@ class CommissionsController extends Controller
         foreach ($query_data as $row) {
             $data[] = [
                 'id' => $row->id,
-                'name' => $row->title,
+                'name' => __($row->title),
                 'type' => $row->commission_type,
                 'value' => $row->commission_value,
 
@@ -79,11 +79,34 @@ class CommissionsController extends Controller
         return response()->json($data);
     }
 
-    public function index_data()
+    public function index_data(\Yajra\DataTables\DataTables $datatable)
     {
-        $data = Commission::get();
+        $module_name = $this->module_name;
+        $query = Commission::with('branches');
 
-        return response()->json(['data' => $data, 'status' => true, 'message' => __('messages.custom_field')]);
+        return $datatable->eloquent($query)
+            ->addColumn('action', function ($data) use ($module_name) {
+                return view('commission::backend.commissions.action_column', compact('module_name', 'data'));
+            })
+            ->editColumn('title', function ($data) {
+                return e($data->title);
+            })
+            ->editColumn('commission_type', function ($data) {
+                return $data->commission_type === 'percentage' ? 'Pourcentage (%)' : 'Montant fixe';
+            })
+            ->editColumn('commission_value', function ($data) {
+                return $data->commission_type === 'percentage' ? $data->commission_value . ' %' : $data->commission_value;
+            })
+            ->addColumn('branches', function ($data) {
+                if ($data->branches->count() > 0) {
+                    return $data->branches->pluck('name')->map(function($n) {
+                        return '<span class="badge bg-soft-info me-1">' . e($n) . '</span>';
+                    })->implode(' ');
+                }
+                return '<span class="badge bg-soft-primary">Tous les salons</span>';
+            })
+            ->rawColumns(['action', 'branches'])
+            ->toJson();
     }
 
     /**
@@ -94,8 +117,9 @@ class CommissionsController extends Controller
     public function create()
     {
         $module_action = 'Create';
+        $branches = \App\Models\Branch::where('status', 1)->get();
 
-        return view('commission::backend.commissions.create', compact('module_action'));
+        return view('commission::backend.commissions.create', compact('module_action', 'branches'));
     }
 
     /**
@@ -105,12 +129,26 @@ class CommissionsController extends Controller
      */
     public function store(Request $request)
     {
-        $data = $request->all();
-        $data = Commission::create($data);
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'commission_type' => 'required|string',
+            'commission_value' => 'required|numeric',
+        ]);
 
-        $message = 'New '.Str::singular('Commissions').' Added';
+        $data = $request->except('branches');
+        $commission = Commission::create($data);
 
-        return response()->json(['message' => $message, 'status' => true], 200);
+        if ($request->has('branches')) {
+            $commission->branches()->sync($request->branches);
+        }
+
+        $message = 'Nouvelle commission ajoutée avec succès';
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => $message, 'status' => true], 200);
+        }
+
+        return redirect()->route('backend.commissions.index')->with('success', $message);
     }
 
     /**
@@ -123,9 +161,9 @@ class CommissionsController extends Controller
     {
         $module_action = 'Show';
 
-        $data = Commission::findOrFail($id);
+        $data = Commission::with('branches')->findOrFail($id);
 
-        return view('commission::backend.commissions.show', compact('module_action', "$data"));
+        return view('commission::backend.commissions.show', compact('module_action', 'data'));
     }
 
     /**
@@ -136,9 +174,16 @@ class CommissionsController extends Controller
      */
     public function edit($id)
     {
-        $data = Commission::findOrFail($id);
+        $data = Commission::with('branches')->findOrFail($id);
+        $branches = \App\Models\Branch::where('status', 1)->get();
 
-        return response()->json(['data' => $data, 'status' => true]);
+        if (request()->wantsJson()) {
+            $data['branch_ids'] = $data->branches->pluck('id')->toArray();
+            return response()->json(['data' => $data, 'status' => true]);
+        }
+
+        $module_action = 'Edit';
+        return view('commission::backend.commissions.edit', compact('module_action', 'data', 'branches'));
     }
 
     /**
@@ -149,19 +194,28 @@ class CommissionsController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $data = Commission::findOrFail($id);
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'commission_type' => 'required|string',
+            'commission_value' => 'required|numeric',
+        ]);
 
-        $data->update($request->all());
+        $commission = Commission::findOrFail($id);
+        $commission->update($request->except('branches'));
 
-        $message = Str::singular('Commissions').' Updated Successfully';
-
-        if (request()->wantsJson()) {
-            return response()->json(['message' => $message, 'status' => true], 200);
+        if ($request->has('branches')) {
+            $commission->branches()->sync($request->branches);
         } else {
-            flash("<i class='fas fa-check'></i> $message")->success()->important();
-
-            return redirect()->route('backend.commissions.show', $data->id);
+            $commission->branches()->detach();
         }
+
+        $message = 'Commission mise à jour avec succès';
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => $message, 'status' => true], 200);
+        }
+
+        return redirect()->route('backend.commissions.index')->with('success', $message);
     }
 
     /**

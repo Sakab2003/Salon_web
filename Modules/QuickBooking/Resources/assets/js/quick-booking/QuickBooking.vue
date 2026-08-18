@@ -76,16 +76,16 @@
           </div>
 
           <div class="modal-body p-4">
-            <!-- ÉTAPE 1 : Vérification d'éligibilité par Téléphone/Email -->
+            <!-- ÉTAPE 1 : Vérification par Téléphone -->
             <div v-if="reviewStep === 'check'" class="text-center py-3">
               <div class="mb-3">
                 <i class="fa-solid fa-user-check fs-1 text-primary mb-2"></i>
-                <h5 class="fw-bold text-dark">Vérification de votre Rendez-vous</h5>
-                <p class="text-muted small">Saisissez votre numéro de téléphone ou votre e-mail pour accéder au formulaire d'évaluation.</p>
+                <h5 class="fw-bold text-dark">Évaluer nos prestations</h5>
+                <p class="text-muted small">Saisissez votre numéro de téléphone pour accéder au formulaire d'évaluation.</p>
               </div>
 
               <div class="form-group max-width-400 mx-auto mb-3" style="max-width: 380px;">
-                <input type="text" v-model="identifier" class="form-control form-control-lg text-center border-primary fw-bold" placeholder="ex: +22605561199 ou client@gmail.com" />
+                <input type="text" v-model="identifier" class="form-control form-control-lg text-center border-primary fw-bold" placeholder="ex: +22670000000" />
               </div>
 
               <div v-if="checkError" class="alert alert-warning alert-dismissible fade show max-width-500 mx-auto text-start mb-3" style="max-width: 480px;">
@@ -265,83 +265,73 @@ const startNewBooking = () => {
 
 onMounted(() => {
   const urlParams = new URLSearchParams(window.location.search);
-  const bId = urlParams.get('branch_id');
+  const bId = urlParams.get('salon_id') || urlParams.get('branch_id');
   if (bId) {
     store.updateBookingValues({ key: 'branch_id', value: parseInt(bId) });
-    setupArray[0].done = true;
-    setupArray[0].is_vissible = false;
-    currentindex.value = 2;
+  } else {
+    store.updateBookingValues({ key: 'branch_id', value: 1 });
   }
+  currentindex.value = 1;
 });
 
-// Setup Array
+// Setup Array (Public Booking without Salon Selection)
 const setupArray = reactive([
   {
     id: 1,
-    title: "Selectionner un salon",
-    type: "select-branch",
+    title: "Sélectionner un service",
+    type: "select-service",
     is_vissible: true,
-    detail: "Choisissez l'agence la plus proche de chez vous.",
+    detail: "Sélectionnez le service souhaité parmi les options disponibles.",
     done: false,
     next: 2,
     prev: null,
   },
   {
     id: 2,
-    title: "Selectionner un service",
-    type: "select-service",
+    title: "Sélectionner le personnel",
+    type: "select-employee",
     is_vissible: true,
-    detail: "Sélectionnez le service souhaité parmi les options disponibles.",
+    detail: "Choisissez votre membre du personnel préféré pour le service.",
     done: false,
     next: 3,
     prev: 1,
   },
   {
     id: 3,
-    title: "Select Staff",
-    type: "select-employee",
+    title: "Sélectionner la date et l'heure",
+    type: "select-date-time",
     is_vissible: true,
-    detail: "Choisissez votre membre du personnel préféré pour le service.",
+    detail: "Choisissez une date et une heure appropriées pour votre réservation.",
     done: false,
     next: 4,
     prev: 2,
   },
   {
     id: 4,
-    title: "Select Date & Time",
-    type: "select-date-time",
+    title: "Détails du client",
+    type: "customer-details",
     is_vissible: true,
-    detail: "Choisissez une date et une heure appropriées pour votre réservation.",
+    detail: "Entrez vos informations personnelles.",
     done: false,
     next: 5,
     prev: 3,
   },
   {
     id: 5,
-    title: "Customer Detail",
-    type: "customer-details",
+    title: "Confirmation",
+    type: "select-confirm",
     is_vissible: true,
-    detail: "Entrez vos informations personnelles.",
+    detail: "Confirmez votre réservation.",
     done: false,
     next: 6,
     prev: 4,
   },
   {
     id: 6,
-    title: "Confirmation",
-    type: "select-confirm",
-    is_vissible: true,
-    detail: "Confirmez votre réservation.",
-    done: false,
-    next: 7,
-    prev: 5,
-  },
-  {
-    id: 7,
     title: "Détails de la confirmation",
     type: "confirmation-detail",
     is_vissible: false,
-    detail: "Confirmation Détails de votre réservation.",
+    detail: "Confirmation des détails de votre réservation.",
     done: false,
     next: null,
     prev: null,

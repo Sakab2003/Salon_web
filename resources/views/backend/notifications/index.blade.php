@@ -1,6 +1,6 @@
 @extends('backend.layouts.app')
 
-@section('title', __($module_action . ' ' . $module_title))
+@section('title', __('messages.list') . ' ' . __($module_title))
 
 @section('content')
 <div class="card mb-4">
@@ -37,15 +37,15 @@
                             <td>
                                 <a href="#">
                                     <span class="{{$span_class}}">
-                                        {{ $module_name_singular->data['subject'] }}
+                                        {{ $module_name_singular->data['subject'] == 'Booking Confirmation Received!' ? __('Confirmation de réservation reçue !') : __($module_name_singular->data['subject']) }}
                                     </span>
                                 </a>
                             </td>
                             <td>
-                                {{ $module_name_singular->data['data']['booking_services_names'] }}
+                                {{ $module_name_singular->data['data']['booking_services_names'] ?? '' }}
                             </td>
                             <td>
-                                {{ $module_name_singular->updated_at->diffForHumans() }}
+                                {{ $module_name_singular->created_at->diffForHumans() }}
                             </td>
                         </tr>
                         @empty

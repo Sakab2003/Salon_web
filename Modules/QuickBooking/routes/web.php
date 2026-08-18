@@ -13,4 +13,5 @@ use Modules\QuickBooking\Http\Controllers\Backend\QuickBookingsController;
 | contains the "web" middleware group. Now create something great!
 |
 */
-Route::get('quick-booking', [QuickBookingsController::class, 'index'])->where('vue_capture', '^(?!storage).*$')->name('app.quick-booking');
+Route::get('reservation-rapide', [QuickBookingsController::class, 'index'])->where('vue_capture', '^(?!storage).*$')->name('app.quick-booking');
+Route::get('quick-booking', function() { return redirect()->route('app.quick-booking'); });

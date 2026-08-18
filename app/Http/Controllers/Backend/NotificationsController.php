@@ -17,7 +17,7 @@ class NotificationsController extends Controller
     public function __construct()
     {
         // Page Title
-        $this->module_title = 'brand.title';
+        $this->module_title = 'notification.title';
 
         // module name
         $this->module_name = 'notifications';
@@ -51,7 +51,7 @@ class NotificationsController extends Controller
         $module_model = $this->module_model;
         $module_name_singular = Str::singular($module_name);
 
-        $module_action = 'List';
+        $module_action = 'list';
 
         $user = auth()->user();
 

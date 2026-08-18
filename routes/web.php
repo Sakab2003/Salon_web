@@ -60,12 +60,13 @@ Route::get('storage-link', function () {
     return Artisan::call('storage:link');
 });
 
-Route::get('client-review', function (\Illuminate\Http\Request $request) {
+Route::get('avis-clients-public', function (\Illuminate\Http\Request $request) {
     $userId = $request->get('user_id', 17);
     $user = \App\Models\User::find($userId) ?? \App\Models\User::where('first_name', 'Samuel')->first();
     $employees = \App\Models\User::role('employee')->get();
     return view('public_review', compact('user', 'employees'));
 })->name('public.client_review');
+Route::get('client-review', function() { return redirect()->route('public.client_review'); });
 
 Route::post('public-save-review', [\Modules\Employee\Http\Controllers\Backend\EmployeesController::class, 'save_review'])->name('public.save_review');
 Route::get('/', function () {
@@ -91,7 +92,8 @@ Route::group(['prefix' => 'app', 'middleware' => 'auth'], function () {
         Route::get('get_search_data', [SearchController::class, 'get_search_data'])->name('get_search_data');
 
         // Sync Role & Permission
-        Route::get('/permission-role', [RolePermission::class, 'index'])->name('permission-role.list')->middleware('password.confirm');
+        Route::get('/droits-et-roles', [RolePermission::class, 'index'])->name('permission-role.list')->middleware('password.confirm');
+        Route::get('/permission-role', function() { return redirect()->route('backend.permission-role.list'); });
         Route::post('/permission-role/store/{role_id}', [RolePermission::class, 'store'])->name('permission-role.store');
         Route::get('/permission-role/reset/{role_id}', [RolePermission::class, 'reset_permission'])->name('permission-role.reset');
         // Role & Permissions Crud
@@ -112,7 +114,8 @@ Route::group(['prefix' => 'app', 'middleware' => 'auth'], function () {
           * ---------------------------------------------------------------------
           */
         Route::group(['middleware' => []], function () {
-            Route::get('settings/{vue_capture?}', [SettingController::class, 'index'])->name('settings')->where('vue_capture', '^(?!storage).*$');
+            Route::get('parametres/{vue_capture?}', [SettingController::class, 'index'])->name('settings')->where('vue_capture', '^(?!storage).*$');
+            Route::get('settings/{vue_capture?}', function() { return redirect()->route('backend.settings'); });
             Route::get('settings-data', [SettingController::class, 'index_data']);
             Route::post('settings', [SettingController::class, 'store'])->name('settings.store');
             Route::post('setting-update', [SettingController::class, 'update'])->name('setting.update');
@@ -146,13 +149,20 @@ Route::group(['prefix' => 'app', 'middleware' => 'auth'], function () {
             Route::get('/delete/{file_name}', [BackupController::class, 'delete'])->name('delete');
         });
 
-        Route::get('daily-booking-report', [ReportsController::class, 'daily_booking_report'])->name('reports.daily-booking-report');
+        Route::get('rapport-reservations-quotidiennes', [ReportsController::class, 'daily_booking_report'])->name('reports.daily-booking-report');
+        Route::get('daily-booking-report', function() { return redirect()->route('backend.reports.daily-booking-report'); });
         Route::get('daily-booking-report-index-data', [ReportsController::class, 'daily_booking_report_index_data'])->name('reports.daily-booking-report.index_data');
-        Route::get('overall-booking-report', [ReportsController::class, 'overall_booking_report'])->name('reports.overall-booking-report');
+
+        Route::get('rapport-reservations-globales', [ReportsController::class, 'overall_booking_report'])->name('reports.overall-booking-report');
+        Route::get('overall-booking-report', function() { return redirect()->route('backend.reports.overall-booking-report'); });
         Route::get('overall-booking-report-index-data', [ReportsController::class, 'overall_booking_report_index_data'])->name('reports.overall-booking-report.index_data');
-        Route::get('payout-report', [ReportsController::class, 'payout_report'])->name('reports.payout-report');
+
+        Route::get('rapport-paiements-personnel', [ReportsController::class, 'payout_report'])->name('reports.payout-report');
+        Route::get('payout-report', function() { return redirect()->route('backend.reports.payout-report'); });
         Route::get('payout-report-index-data', [ReportsController::class, 'payout_report_index_data'])->name('reports.payout-report.index_data');
-        Route::get('staff-report', [ReportsController::class, 'staff_report'])->name('reports.staff-report');
+
+        Route::get('rapport-prestations-personnel', [ReportsController::class, 'staff_report'])->name('reports.staff-report');
+        Route::get('staff-report', function() { return redirect()->route('backend.reports.staff-report'); });
         Route::get('staff-report-index-data', [ReportsController::class, 'staff_report_index_data'])->name('reports.staff-report.index_data');
 
         Route::get('order-report', [ReportsController::class, 'order_report'])->name('reports.order-report');

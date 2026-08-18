@@ -23,13 +23,13 @@
             <label v-for="index in 24" :key="index" class="skeleton skeleton-label-box"></label>
           </div>
       
-          <div class="h-100 d-flex align-items-center justify-content-center" v-else>
-            <p>
+          <div class="h-100 d-flex align-items-center justify-content-center text-center" v-else>
+            <p class="m-0 fw-semibold text-muted">
               <template v-if="!date">
-                Please Select Date
+                Veuillez sélectionner une date
               </template>
               <template v-else-if="timeSlotList.length == 0">
-                No Slots Available! Please Select Diffrent Date.
+                Aucun créneau disponible pour cette date ! Veuillez choisir une autre date.
               </template>
             </p>
           </div>
@@ -38,8 +38,8 @@
 
   </div>
   <div class="card-footer" v-if="timeSlotList.length > 0">
-    <button type="button" class="btn btn-secondary iq-text-uppercase" v-if="wizardPrev" @click="prevTabChange(wizardPrev)">Back</button>
-    <button type="button" v-if="timeSlotList.length > 0 && wizardNext" class="btn btn-primary iq-text-uppercase" :disabled="start_date_time !== null ? false : true" @click="nextTabChange(wizardNext)">Next</button>
+    <button type="button" class="btn btn-secondary iq-text-uppercase" v-if="wizardPrev" @click="prevTabChange(wizardPrev)">Retour</button>
+    <button type="button" v-if="timeSlotList.length > 0 && wizardNext" class="btn btn-primary iq-text-uppercase" :disabled="start_date_time !== null ? false : true" @click="nextTabChange(wizardNext)">Suivant</button>
   </div>
 </template>
 <script setup>
@@ -49,6 +49,7 @@ import {useQuickBooking} from '../../store/quick-booking'
 // Select Options List Request
 import { SLOT_TIME_LIST } from '@/vue/constants/quick_booking'
 import flatPickr from 'vue-flatpickr-component';
+import { French } from 'flatpickr/dist/l10n/fr.js';
 const props = defineProps({
   wizardNext: {
     default: '',
@@ -67,6 +68,7 @@ const config = ref({
     inline: true,
     dateFormat: 'Y-m-d',
     minDate: 'today',
+    locale: French,
 });
 
 const start_date_time = ref(null);

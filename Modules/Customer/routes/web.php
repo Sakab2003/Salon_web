@@ -35,7 +35,7 @@ Route::group(['prefix' => 'app', 'as' => 'backend.', 'middleware' => ['auth']], 
      * ---------------------------------------------------------------------
      */
 
-    Route::group(['prefix' => 'customers', 'as' => 'customers.'], function () {
+    Route::group(['prefix' => 'clients', 'as' => 'customers.'], function () {
         Route::get('index_list', [CustomersController::class, 'index_list'])->name('index_list');
         Route::get('index_data', [CustomersController::class, 'index_data'])->name('index_data');
         Route::get('trashed', [CustomersController::class, 'trashed'])->name('trashed');
@@ -47,5 +47,6 @@ Route::group(['prefix' => 'app', 'as' => 'backend.', 'middleware' => ['auth']], 
         Route::post('verify-customer/{id}', [CustomersController::class, 'verify_customer'])->name('verify-customer');
         Route::get('export', [CustomersController::class, 'export'])->name('export');
     });
+    Route::resource('clients', CustomersController::class, ['names' => 'customers']);
     Route::resource('customers', CustomersController::class);
 });

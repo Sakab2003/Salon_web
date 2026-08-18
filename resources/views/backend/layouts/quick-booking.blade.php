@@ -206,9 +206,9 @@
         }
 
         if (currencyPosition === 'right' || currencyPosition === 'right_with_space') {
-          // Add decimal part and decimal separator if applicable
+          currencyString += integerPart
           if (noOfDecimal > 0) {
-            currencyString += integerPart + decimalSeparator + decimalPart
+            currencyString += decimalSeparator + decimalPart
           }
           if (currencyPosition === 'right_with_space') {
             currencyString += ' '

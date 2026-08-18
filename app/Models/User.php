@@ -163,6 +163,16 @@ class User extends Authenticatable implements HasMedia, MustVerifyEmail
         return $this->hasOne(BranchEmployee::class, 'employee_id')->with('getBranch');
     }
 
+    public function customerBranch()
+    {
+        return $this->belongsTo(Branch::class, 'branch_id');
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
     public function mainBranch()
     {
         return $this->hasManyThrough(Branch::class, BranchEmployee::class, 'employee_id', 'id', 'id', 'branch_id');

@@ -110,6 +110,7 @@
             name: 'email',
             title: "{{ __('employee.lbl_Email') }}"
         },
+        @if(!auth()->user()->hasRole('manager'))
         {
             data: 'branch_id',
             name: 'branch_id',
@@ -117,6 +118,7 @@
             orderable: false,
             searchable: false
         },
+        @endif
         {
             data: 'is_manager',
             name: 'is_manager',

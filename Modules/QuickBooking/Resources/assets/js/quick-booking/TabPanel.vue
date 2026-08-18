@@ -92,7 +92,7 @@ const store = useQuickBooking()
 const booking = computed(() => store.booking)
 const user = computed(() => store.user)
 const nextTabChange = (value) => {
-  if(value == 6){
+  if(value == 5){
     const body = {
       user: user.value,
       booking: booking.value

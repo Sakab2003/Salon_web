@@ -113,6 +113,15 @@
         name: 'mobile',
         title: "{{ __('customer.lbl_phone_number') ?? 'Téléphone' }}"
       },
+      @if($isAdmin ?? false)
+      {
+        data: 'branch_name',
+        name: 'branch_name',
+        title: "{{ __('branch.title') ?? 'Salon' }}",
+        orderable: false,
+        searchable: false
+      },
+      @endif
       {
         data: 'email_verified_at',
         name: 'email_verified_at',

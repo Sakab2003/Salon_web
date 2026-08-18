@@ -112,8 +112,9 @@ class CustomersController extends Controller
             ],
         ];
         $export_url = route('backend.customers.export');
+        $isAdmin = auth()->user()->hasRole('admin');
 
-        return view('customer::backend.customers.index', compact('module_action', 'columns', 'customefield', 'export_import', 'export_columns', 'export_url'));
+        return view('customer::backend.customers.index', compact('module_action', 'columns', 'customefield', 'export_import', 'export_columns', 'export_url', 'isAdmin'));
     }
 
     public function update_status(Request $request, User $id)
@@ -126,7 +127,30 @@ class CustomersController extends Controller
     public function index_data(Datatables $datatable, Request $request)
     {
         $module_name = $this->module_name;
-        $query = User::role('user');
+        $query = User::role('user')->with(['customerBranch', 'booking.branch']);
+
+        $user = auth()->user();
+        if ($user && ($user->hasRole('manager') || $user->hasRole('employee'))) {
+            $managerBranchId = request()->selected_session_branch_id
+                ?: $user->branch_id 
+                ?: optional(\App\Models\Branch::where('manager_id', $user->id)->first())->id
+                ?: optional($user->branch)->branch_id;
+
+            if ($managerBranchId) {
+                $query->where(function ($q) use ($managerBranchId, $user) {
+                    $q->where('users.branch_id', $managerBranchId)
+                        ->orWhere(function ($q2) use ($managerBranchId, $user) {
+                            $q2->whereNull('users.branch_id')
+                                ->where(function ($q3) use ($managerBranchId, $user) {
+                                    $q3->where('users.created_by', $user->id)
+                                        ->orWhereHas('booking', function ($b) use ($managerBranchId) {
+                                            $b->where('branch_id', $managerBranchId);
+                                        });
+                                });
+                        });
+                });
+            }
+        }
 
         $filter = $request->filter;
 
@@ -142,6 +166,16 @@ class CustomersController extends Controller
             })
             ->addColumn('action', function ($data) use ($module_name) {
                 return view('customer::backend.customers.action_column', compact('module_name', 'data'));
+            })
+            ->addColumn('branch_name', function ($data) {
+                if ($data->customerBranch) {
+                    return '<span class="badge bg-soft-primary">' . e($data->customerBranch->name) . '</span>';
+                }
+                $lastBooking = $data->booking->sortByDesc('id')->first();
+                if ($lastBooking && $lastBooking->branch) {
+                    return '<span class="badge bg-soft-info">' . e($lastBooking->branch->name) . '</span>';
+                }
+                return '<span class="badge bg-soft-secondary">-</span>';
             })
 
             ->editColumn('image', function ($data) {
@@ -199,7 +233,7 @@ class CustomersController extends Controller
         // Custom Fields For export
         $customFieldColumns = CustomField::customFieldData($datatable, User::CUSTOM_FIELD_MODEL, null);
 
-        return $datatable->rawColumns(array_merge(['action', 'status', 'is_banned', 'email_verified_at', 'check', 'image'], $customFieldColumns))
+        return $datatable->rawColumns(array_merge(['action', 'status', 'is_banned', 'email_verified_at', 'check', 'image', 'branch_name'], $customFieldColumns))
             ->toJson();
     }
 
@@ -217,7 +251,24 @@ class CustomersController extends Controller
             $data['email'] = ($mobileClean ?: time()) . '@salon.bf';
         }
 
+        if (empty($data['password'])) {
+            $data['password'] = Hash::make(Str::random(16));
+        }
+
         $data['email_verified_at'] = now();
+        $data['created_by'] = auth()->id();
+
+        $user = auth()->user();
+        if ($user && ($user->hasRole('manager') || $user->hasRole('employee'))) {
+            $managerBranchId = $user->branch_id 
+                ?: optional(\App\Models\Branch::where('manager_id', $user->id)->first())->id
+                ?: optional($user->branch)->branch_id
+                ?: request()->selected_session_branch_id;
+
+            if ($managerBranchId) {
+                $data['branch_id'] = $managerBranchId;
+            }
+        }
 
         $data = User::create($data);
 

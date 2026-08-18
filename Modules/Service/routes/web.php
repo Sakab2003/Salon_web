@@ -65,14 +65,16 @@ Route::group(['prefix' => 'app', 'as' => 'backend.', 'middleware' => ['auth']], 
     Route::resource('services', ServicesController::class);
 
     // Hairstyle Models Routes
-    Route::group(['prefix' => 'hairstyle-models', 'as' => 'hairstyle-models.'], function () {
+    Route::group(['prefix' => 'modeles-de-coiffure', 'as' => 'hairstyle-models.'], function () {
         Route::get('/visualize', [HairstyleModelController::class, 'visualize'])->name('visualize');
         Route::get('/index_data', [HairstyleModelController::class, 'index_data'])->name('index_data');
         Route::post('bulk-action', [HairstyleModelController::class, 'bulk_action'])->name('bulk_action');
         Route::post('update-status/{id}', [HairstyleModelController::class, 'update_status'])->name('update_status');
         Route::post('delete-images/{id}', [HairstyleModelController::class, 'delete_images'])->name('delete_images');
     });
-    Route::resource('hairstyle-models', HairstyleModelController::class);
+    Route::get('hairstyle-models/visualize', function() { return redirect()->route('backend.hairstyle-models.visualize'); });
+    Route::get('hairstyle-models', function() { return redirect()->route('backend.hairstyle-models.index'); });
+    Route::resource('modeles-de-coiffure', HairstyleModelController::class, ['names' => 'hairstyle-models']);
 
     // Service Packages
     Route::group(['prefix' => 'service', 'as' => 'service.'], function () {

@@ -101,7 +101,7 @@ class BackendController extends Controller
             ->take(10)
             ->get();
 
-        $data['top_services'] = $totalServices->with('service')->select(
+        $data['top_services'] = $totalServices->whereHas('service')->with('service')->select(
             'service_id',
             \DB::raw('COUNT(*) as total_service_count'),
             \DB::raw('SUM(service_price) as total_service_price')

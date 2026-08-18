@@ -116,7 +116,7 @@
             <div class="form-group col-md-12">
               <label class="form-label" for="commission_id"> {{ $t('employee.lbl_select_commission') }} <span class="text-danger">*</span> </label>
               <Multiselect id="commission_id" v-model="commission_id" :value="commission_id"
-                placeholder="Select Commission" v-bind="singleSelectOption" :options="commissions.options"
+                :placeholder="$t('employee.lbl_select_commission')" v-bind="singleSelectOption" :options="commissions.options"
                 class="form-group"></Multiselect>
               <span v-if="errorMessages['commission_id']">
                 <ul class="text-danger">

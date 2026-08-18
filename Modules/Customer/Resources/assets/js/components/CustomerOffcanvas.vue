@@ -25,16 +25,6 @@
             </div>
 
 
-            <div class="row" v-if="currentId === 0">
-              <InputField type="password" class="col-md-12" :is-required="true" :autocomplete="newpassword" :label="$t('employee.lbl_password')"
-                placeholder="" v-model="password" :error-message="errors['password']"
-                :error-messages="errorMessages['password']"></InputField>
-
-              <InputField type="password" class="col-md-12" :is-required="true" :label="$t('employee.lbl_confirm_password')"
-                placeholder="" v-model="confirm_password" :error-message="errors['confirm_password']"
-                :error-messages="errorMessages['confirm_password']"></InputField>
-            </div>
-
             <div class="form-group col-md-4">
               <label for="" class="w-100">{{ $t('employee.lbl_gender') }}</label>
               <div class="form-check form-check-inline">
@@ -135,8 +125,6 @@ const defaultData = () => {
     first_name: '',
     last_name: '',
     mobile: '',
-    password: '',
-    confirm_password: '',
     gender: 'male',
     profile_image: '',
     custom_fields_data: {}
@@ -152,8 +140,6 @@ const setFormData = (data) => {
       first_name: data.first_name,
       last_name: data.last_name,
       mobile: data.mobile,
-      password: data.password,
-      confirm_password: data.confirm_password,
       gender: data.gender,
       profile_image: data.profile_image,
       custom_fields_data: data.custom_field_data
@@ -162,15 +148,19 @@ const setFormData = (data) => {
 }
 
 const reset_datatable_close_offcanvas = (res) => {
-   IS_SUBMITED.value = false
-  if (res.status) {
+  IS_SUBMITED.value = false
+  if (res && res.status) {
     window.successSnackbar(res.message)
-    renderedDataTable.ajax.reload(null, false)
+    if (typeof renderedDataTable !== 'undefined') {
+      renderedDataTable.ajax.reload(null, false)
+    }
     bootstrap.Offcanvas.getInstance('#form-offcanvas').hide()
     setFormData(defaultData())
   } else {
-    window.errorSnackbar(res.message)
-    errorMessages.value = res.all_message
+    window.errorSnackbar((res && res.message) || 'Erreur de validation')
+    if (res && res.all_message) {
+      errorMessages.value = res.all_message
+    }
   }
 }
 
@@ -195,23 +185,7 @@ const reset_datatable_close_offcanvas = (res) => {
       return !specialCharsRegex.test(value) && !numberRegex.test(value)
     }),
     mobile: yup.string()
-    .required('Phone Number is a required field').matches(/^(\+?\d+)?(\s?\d+)*$/, 'Phone Number must contain only digits'),
-    password: yup.string().test('password', 'Password is required', function(value) {
-      if (currentId.value === 0 && !value) {
-        return false;
-      }
-      return true;
-    }).min(8, 'Password must be at least 8 characters long'),
-    confirm_password: yup.string().test('confirm_password', 'Confirm password is required', function(value) {
-      if (currentId.value === 0 && !value) {
-        return false;
-      }
-      return true;
-    }).test('passwords-match', 'Passwords must match', function(value) {
-      if (!value && !this.parent.password) return true;
-      return value === this.parent.password;
-    }),
-
+    .required('Phone Number is a required field').matches(/^(\+?\d+)?(\s?\d+)*$/, 'Phone Number must contain only digits')
   })
 
 
@@ -225,8 +199,6 @@ const { value: gender } = useField('gender')
 const { value: mobile } = useField('mobile')
 const { value: profile_image } = useField('profile_image')
 const { value: custom_fields_data } = useField('custom_fields_data')
-const { value: password } = useField('password')
-const { value: confirm_password } = useField('confirm_password')
 const errorMessages = ref({})
 
 // phone number
@@ -246,9 +218,13 @@ const formSubmit = handleSubmit((values) => {
   values.custom_fields_data = JSON.stringify(values.custom_fields_data)
 
   if (currentId.value > 0) {
-    updateRequest({ url: UPDATE_URL, id: currentId.value, body: values, type: 'file' }).then((res) => reset_datatable_close_offcanvas(res))
+    updateRequest({ url: UPDATE_URL, id: currentId.value, body: values, type: 'file' })
+      .then((res) => reset_datatable_close_offcanvas(res))
+      .catch((err) => { IS_SUBMITED.value = false })
   } else {
-    storeRequest({ url: STORE_URL, body: values, type: 'file' }).then((res) => reset_datatable_close_offcanvas(res))
+    storeRequest({ url: STORE_URL, body: values, type: 'file' })
+      .then((res) => reset_datatable_close_offcanvas(res))
+      .catch((err) => { IS_SUBMITED.value = false })
   }
 })
 

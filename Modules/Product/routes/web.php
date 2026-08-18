@@ -111,4 +111,14 @@ Route::group(['prefix' => 'app', 'as' => 'backend.', 'middleware' => ['auth']], 
         Route::post('update-delivery-status', [OrdersController::class, 'updateDeliveryStatus'])->name('orders.update_delivery_status');
         Route::get('invoice-download/{id}', [OrdersController::class, 'downloadInvoice'])->name('orders.downloadInvoice');
     });
+
+    // Alias francophones pour la comptabilité des URLs
+    Route::get('produits', function() { return redirect()->route('backend.products.index'); });
+    Route::get('commandes', function() { return redirect()->route('backend.orders.index'); });
+    Route::get('marques', function() { return redirect()->route('backend.brands.index'); });
+    Route::get('categories-de-produits', function() { return redirect()->route('backend.products-categories.index'); });
+    Route::get('unites', function() { return redirect()->route('backend.units.index'); });
+    Route::get('avis-produits', function() { return redirect()->route('backend.reviews.index'); });
 });
+
+

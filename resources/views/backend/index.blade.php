@@ -178,7 +178,7 @@
             <tbody>
               @forelse ($data['top_services'] as $service)
               <tr>
-                <td>{{ $service->service->name }}</td>
+                <td>{{ $service->service->name ?? $service->service_name ?? '-' }}</td>
                 <td>{{ $service->total_service_count }}</td>
                 <td>{{ Currency::format($service->total_service_price) }}</td>
               </tr>

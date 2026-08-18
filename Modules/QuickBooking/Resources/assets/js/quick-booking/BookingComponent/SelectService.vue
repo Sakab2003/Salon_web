@@ -37,18 +37,18 @@
         </div>
       </div>
     </div>
-    <div v-else-if="serviceList.length == 0 && !IS_LOADER" class="h-100 w-75 d-flex align-items-center justify-content-center">
-      We apologize for any inconvenience caused. Unfortunately, the selected salon branch does not offer the service you are looking for at the moment.
+    <div v-else-if="serviceList.length == 0 && !IS_LOADER" class="h-100 w-75 d-flex align-items-center justify-content-center text-center">
+      Le salon sélectionné ne propose aucun service pour le moment.
     </div>
   </div>
   <div class="card-footer">
-    <button type="button" class="btn btn-secondary iq-text-uppercase" v-if="wizardPrev" @click="prevTabChange(wizardPrev)">Back</button>
-    <button type="button" v-if="wizardNext" class="btn btn-primary iq-text-uppercase" :disabled="service_id !== null ? false : true" @click="nextTabChange(wizardNext)">Next</button>
+    <button type="button" class="btn btn-secondary iq-text-uppercase" v-if="wizardPrev" @click="prevTabChange(wizardPrev)">Retour</button>
+    <button type="button" v-if="wizardNext" class="btn btn-primary iq-text-uppercase" :disabled="service_id !== null ? false : true" @click="nextTabChange(wizardNext)">Suivant</button>
   </div>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRequest } from '@/helpers/hooks/useCrudOpration'
 
 // Select Options List Request
@@ -103,6 +103,11 @@ const getBranch = () => {
     })
   }
 }
+onMounted(() => {
+  if (store.booking.branch_id !== null) {
+    getBranch()
+  }
+})
 watch(() => store.booking.branch_id, () => {
   getBranch()
 })

@@ -318,7 +318,7 @@ $('#quick-action-type').change(function() {
       <div class="modal-body py-4">
         @php
           $targetBranchId = auth()->user()->branch_id ?? 1;
-          $publicShareUrl = url('/quick-booking?branch_id=' . $targetBranchId);
+          $publicShareUrl = url('/reservation-rapide?salon_id=' . $targetBranchId);
         @endphp
         <div class="p-3 mb-4 rounded-3 d-flex align-items-center justify-content-between" style="background: rgba(111, 66, 193, 0.05); border: 1px dashed rgba(111, 66, 193, 0.3);">
           <div>
@@ -333,51 +333,51 @@ $('#quick-action-type').change(function() {
         <p class="small text-muted fw-semibold mb-3">Partager directement sur :</p>
         <div class="row g-3 mb-4 text-center">
           <div class="col-3">
-            <a href="https://api.whatsapp.com/send?text={{ urlencode('Bonjour ! Réservez directement vos prestations en suivant ce lien : ' . $publicShareUrl) }}" target="_blank" class="d-flex flex-column align-items-center p-2 rounded-3 text-decoration-none text-white shadow-sm" style="background: linear-gradient(135deg, #25D366, #128C7E);">
-              <i class="fa-brands fa-whatsapp fs-3 mb-1"></i>
-              <span class="small" style="font-size:11px;">WhatsApp</span>
+            <a href="https://api.whatsapp.com/send?text={{ urlencode('Bonjour ! Réservez directement vos prestations en suivant ce lien : ' . $publicShareUrl) }}" target="_blank" class="d-flex flex-column align-items-center p-2 text-decoration-none border-0 bg-transparent">
+              <i class="fa-brands fa-whatsapp mb-1" style="color: #25D366; font-size: 2.3rem;"></i>
+              <span class="small fw-bold text-dark" style="font-size:12px;">WhatsApp</span>
             </a>
           </div>
           <div class="col-3">
-            <a href="javascript:void(0)" onclick="navigator.clipboard.writeText('{{ $publicShareUrl }}'); alert('Lien copié ! Collez-le dans votre profil ou vidéo TikTok.');" class="d-flex flex-column align-items-center p-2 rounded-3 text-decoration-none text-white shadow-sm" style="background: linear-gradient(135deg, #000000, #25F4EE 50%, #FE2C55);">
-              <i class="fa-brands fa-tiktok fs-3 mb-1"></i>
-              <span class="small" style="font-size:11px;">TikTok</span>
+            <a href="javascript:void(0)" onclick="navigator.clipboard.writeText('{{ $publicShareUrl }}'); alert('Lien copié ! Collez-le dans votre profil ou vidéo TikTok.');" class="d-flex flex-column align-items-center p-2 text-decoration-none border-0 bg-transparent">
+              <i class="fa-brands fa-tiktok mb-1" style="color: #000000; font-size: 2.3rem;"></i>
+              <span class="small fw-bold text-dark" style="font-size:12px;">TikTok</span>
             </a>
           </div>
           <div class="col-3">
-            <a href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode($publicShareUrl) }}" target="_blank" class="d-flex flex-column align-items-center p-2 rounded-3 text-decoration-none text-white shadow-sm" style="background: linear-gradient(135deg, #1877F2, #0d52ab);">
-              <i class="fa-brands fa-facebook-f fs-3 mb-1"></i>
-              <span class="small" style="font-size:11px;">Facebook</span>
+            <a href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode($publicShareUrl) }}" target="_blank" class="d-flex flex-column align-items-center p-2 text-decoration-none border-0 bg-transparent">
+              <i class="fa-brands fa-facebook-f mb-1" style="color: #1877F2; font-size: 2.3rem;"></i>
+              <span class="small fw-bold text-dark" style="font-size:12px;">Facebook</span>
             </a>
           </div>
           <div class="col-3">
-            <a href="https://twitter.com/intent/tweet?text={{ urlencode('Bonjour ! Réservez directement vos prestations en suivant ce lien : ' . $publicShareUrl) }}" target="_blank" class="d-flex flex-column align-items-center p-2 rounded-3 text-decoration-none text-white shadow-sm" style="background: linear-gradient(135deg, #14171A, #000000);">
-              <i class="fa-brands fa-x-twitter fs-3 mb-1"></i>
-              <span class="small" style="font-size:11px;">X / Twitter</span>
+            <a href="https://twitter.com/intent/tweet?text={{ urlencode('Bonjour ! Réservez directement vos prestations en suivant ce lien : ' . $publicShareUrl) }}" target="_blank" class="d-flex flex-column align-items-center p-2 text-decoration-none border-0 bg-transparent">
+              <i class="fa-brands fa-x-twitter mb-1" style="color: #000000; font-size: 2.3rem;"></i>
+              <span class="small fw-bold text-dark" style="font-size:12px;">X / Twitter</span>
             </a>
           </div>
           <div class="col-3">
-            <a href="javascript:void(0)" onclick="navigator.clipboard.writeText('{{ $publicShareUrl }}'); alert('Lien copié pour Instagram !');" class="d-flex flex-column align-items-center p-2 rounded-3 text-decoration-none text-white shadow-sm" style="background: linear-gradient(135deg, #f09433, #dc2743);">
-              <i class="fa-brands fa-instagram fs-3 mb-1"></i>
-              <span class="small" style="font-size:11px;">Instagram</span>
+            <a href="javascript:void(0)" onclick="navigator.clipboard.writeText('{{ $publicShareUrl }}'); alert('Lien copié pour Instagram !');" class="d-flex flex-column align-items-center p-2 text-decoration-none border-0 bg-transparent">
+              <i class="fa-brands fa-instagram mb-1" style="color: #E4405F; font-size: 2.3rem;"></i>
+              <span class="small fw-bold text-dark" style="font-size:12px;">Instagram</span>
             </a>
           </div>
           <div class="col-3">
-            <a href="https://www.threads.net/intent/post?text={{ urlencode('Bonjour ! Réservez vos prestations : ' . $publicShareUrl) }}" target="_blank" class="d-flex flex-column align-items-center p-2 rounded-3 text-decoration-none text-white shadow-sm" style="background: linear-gradient(135deg, #101010, #333333);">
-              <i class="fa-brands fa-threads fs-3 mb-1"></i>
-              <span class="small" style="font-size:11px;">Threads</span>
+            <a href="https://www.threads.net/intent/post?text={{ urlencode('Bonjour ! Réservez vos prestations : ' . $publicShareUrl) }}" target="_blank" class="d-flex flex-column align-items-center p-2 text-decoration-none border-0 bg-transparent">
+              <i class="fa-brands fa-threads mb-1" style="color: #000000; font-size: 2.3rem;"></i>
+              <span class="small fw-bold text-dark" style="font-size:12px;">Threads</span>
             </a>
           </div>
           <div class="col-3">
-            <a href="https://www.snapchat.com/scan?attachmentUrl={{ urlencode($publicShareUrl) }}" target="_blank" class="d-flex flex-column align-items-center p-2 rounded-3 text-decoration-none text-dark shadow-sm" style="background: linear-gradient(135deg, #FFFC00, #E0DC00);">
-              <i class="fa-brands fa-snapchat fs-3 mb-1"></i>
-              <span class="small" style="font-size:11px;">Snapchat</span>
+            <a href="https://www.snapchat.com/scan?attachmentUrl={{ urlencode($publicShareUrl) }}" target="_blank" class="d-flex flex-column align-items-center p-2 text-decoration-none border-0 bg-transparent">
+              <i class="fa-brands fa-snapchat mb-1" style="color: #e6c200; font-size: 2.3rem;"></i>
+              <span class="small fw-bold text-dark" style="font-size:12px;">Snapchat</span>
             </a>
           </div>
           <div class="col-3">
-            <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ urlencode($publicShareUrl) }}" target="_blank" class="d-flex flex-column align-items-center p-2 rounded-3 text-decoration-none text-white shadow-sm" style="background: linear-gradient(135deg, #0A66C2, #004182);">
-              <i class="fa-brands fa-linkedin-in fs-3 mb-1"></i>
-              <span class="small" style="font-size:11px;">LinkedIn</span>
+            <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ urlencode($publicShareUrl) }}" target="_blank" class="d-flex flex-column align-items-center p-2 text-decoration-none border-0 bg-transparent">
+              <i class="fa-brands fa-linkedin-in mb-1" style="color: #0A66C2; font-size: 2.3rem;"></i>
+              <span class="small fw-bold text-dark" style="font-size:12px;">LinkedIn</span>
             </a>
           </div>
         </div>

@@ -59,7 +59,7 @@
 
                     @hasPermission('add_hairstyle_model')
                         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#hairstyle-model-modal" id="btn-create-model">
-                            <i class="fa-solid fa-plus me-1"></i> Créer un modèle
+                            <i class="fa-solid fa-plus me-1"></i> Créer un {{ strtolower($module_title) }}
                         </button>
                     @endhasPermission
                 </x-slot>
@@ -70,12 +70,12 @@
         </div>
     </div>
 
-    <!-- Modal Créer / Modifier Modèle de Coiffure -->
+    <!-- Modal Créer / Modifier Modèle -->
     <div class="modal fade" id="hairstyle-model-modal" tabindex="-1" aria-labelledby="hairstyleModelModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold" id="hairstyleModelModalLabel">Créer un modèle de coiffure</h5>
+                    <h5 class="modal-title fw-bold" id="hairstyleModelModalLabel">Créer un {{ strtolower($module_title) }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="hairstyle-model-form" method="POST" enctype="multipart/form-data">
@@ -85,7 +85,7 @@
                     <div id="removed-image-ids-container"></div>
                     <div class="modal-body">
                         <div class="row">
-                            <div class="col-md-6 form-group mb-3">
+                            <div class="col-md-4 form-group mb-3">
                                 <label for="service_id" class="form-label fw-semibold">Service <span class="text-danger">*</span></label>
                                 <select class="form-select" id="service_id" name="service_id" required>
                                     <option value="">Sélectionner un service...</option>
@@ -95,7 +95,17 @@
                                 </select>
                             </div>
 
-                            <div class="col-md-6 form-group mb-3">
+                            <div class="col-md-4 form-group mb-3">
+                                <label for="commission_id" class="form-label fw-semibold">Commission <span class="text-danger">*</span></label>
+                                <select class="form-select" id="commission_id" name="commission_id" required>
+                                    <option value="">Sélectionner une commission...</option>
+                                    @foreach ($commissions as $comm)
+                                        <option value="{{ $comm->id }}">{{ $comm->title }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="col-md-4 form-group mb-3">
                                 <label for="status_select" class="form-label fw-semibold">Statut <span class="text-danger">*</span></label>
                                 <select class="form-select" id="status_select" name="status" required>
                                     <option value="1" selected>Public</option>
@@ -342,6 +352,11 @@
                     title: 'Service'
                 },
                 {
+                    data: 'commission',
+                    name: 'commission.title',
+                    title: 'Commission'
+                },
+                {
                     data: 'name',
                     name: 'name',
                     title: 'Nom du modèle'
@@ -381,6 +396,7 @@
                     return {
                         service_id: $('#column_service').val(),
                         column_status: $('#column_status').val(),
+                        category_id: '{{ $filter['category_id'] ?? '' }}',
                     }
                 }
             });
@@ -448,11 +464,12 @@
             }
 
             function resetHairstyleModelForm() {
-                $('#hairstyleModelModalLabel').text('Créer un modèle de coiffure');
+                $('#hairstyleModelModalLabel').text('Créer un {{ strtolower($module_title) }}');
                 $('#hairstyle-model-form')[0].reset();
                 $('#form-method').val('POST');
                 $('#model-id').val('');
                 $('#service_id').val('');
+                $('#commission_id').val('');
                 $('#status_select').val('1');
                 $('#description').val('');
                 selectedNewFiles = [];
@@ -498,7 +515,7 @@
             $(document).on('click', '[data-crud-id]', function() {
                 const id = $(this).data('crud-id');
                 resetHairstyleModelForm();
-                $('#hairstyleModelModalLabel').text('Modifier le modèle de coiffure');
+                $('#hairstyleModelModalLabel').text('Modifier le modèle de commission');
                 $('.req-img-asterisk').hide();
                 
                 $.ajax({
@@ -510,6 +527,7 @@
                             $('#model-id').val(data.id);
                             $('#name').val(data.name);
                             $('#service_id').val(data.service_id);
+                            $('#commission_id').val(data.commission_id || '');
                             $('#status_select').val(data.status);
                             $('#description').val(data.description || '');
                             $('#form-method').val('PUT');

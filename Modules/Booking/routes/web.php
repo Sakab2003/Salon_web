@@ -35,7 +35,7 @@ Route::group(['prefix' => 'app', 'as' => 'backend.', 'middleware' => ['auth']], 
      *
      * ---------------------------------------------------------------------
      */
-    Route::group(['prefix' => 'bookings', 'as' => 'bookings.'], function () {
+    Route::group(['prefix' => 'reservations', 'as' => 'bookings.'], function () {
         Route::get('/index_data', [BookingsController::class, 'index_data'])->name('index_data');
         Route::get('/list_view', [BookingsController::class, 'list_view'])->name('list_view');
         Route::get('/index_list', [BookingsController::class, 'index_list'])->name('index_list');
@@ -56,6 +56,8 @@ Route::group(['prefix' => 'app', 'as' => 'backend.', 'middleware' => ['auth']], 
         Route::get('export', [BookingsController::class, 'export'])->name('export');
     });
     Route::get('booking-invoice', [BookingsController::class, 'viewInvoice'])->name('bookings.invoice');
-    Route::get('bookings-table-view', [BookingsController::class, 'datatable_view'])->name('bookings.datatable_view');
-    Route::resource('bookings', BookingsController::class);
+    Route::get('vue-tableau-reservations', [BookingsController::class, 'datatable_view'])->name('bookings.datatable_view');
+    Route::get('bookings-table-view', function() { return redirect()->route('backend.bookings.datatable_view'); });
+    Route::resource('reservations', BookingsController::class, ['names' => 'bookings']);
+    Route::get('bookings', function() { return redirect()->route('backend.bookings.index'); });
 });

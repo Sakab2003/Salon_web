@@ -3,7 +3,7 @@
         <div class="row">
             <div class="col-sm-6">
                 <div class="confirmation-info-section mb-5">
-                    <h6 class="text-primary text-uppercase fw-bold mb-3">Salon info</h6>
+                    <h6 class="text-primary text-uppercase fw-bold mb-3">Informations du salon</h6>
                     <div class="iq-card bg-soft-primary text-body p-3">
                         <div class="iq-card-body">
                             <table class="iq-table-border mb-0" style="border:0;">
@@ -24,14 +24,14 @@
                     </div>
                 </div>
                 <div class="confirmation-info-section">
-                    <h6 class="text-primary text-uppercase fw-bold mb-3">INFORMATIONS CONCERNANT LE CLIENT</h6>
+                    <h6 class="text-primary text-uppercase fw-bold mb-3">INFORMATIONS DU CLIENT</h6>
                     <div class="iq-card bg-soft-primary text-body p-3">
                         <div class="iq-card-body">
                             <table class="iq-table-border mb-0" style="border:0;">
                                 <tbody>
                                     <tr>
                                         <td>
-                                            <h6 class="mb-2">Name:</h6>
+                                            <h6 class="mb-2">Nom :</h6>
                                         </td>
                                         <td>
                                             <p class="mb-2">{{ booking.user.full_name }}</p>
@@ -39,15 +39,15 @@
                                     </tr>
                                     <tr>
                                         <td>
-                                            <h6 class="mb-2">Number:</h6>
+                                            <h6 class="mb-2">Téléphone :</h6>
                                         </td>
                                         <td>
                                             <p class="mb-2">{{ booking.user.mobile }}</p>
                                         </td>
                                     </tr>
-                                    <tr>
+                                    <tr v-if="booking.user.email">
                                         <td>
-                                            <h6 class="mb-2">Email:</h6>
+                                            <h6 class="mb-2">Email :</h6>
                                         </td>
                                         <td>
                                             <p class="mb-2">{{ booking.user.email }}</p>
@@ -60,27 +60,27 @@
                 </div>
             </div>
             <div class="col-sm-6">
-                <h6 class="text-primary text-uppercase fw-bold mb-3">RÉSUMÉ DE RENDEZ-VOUS</h6>
+                <h6 class="text-primary text-uppercase fw-bold mb-3">RÉSUMÉ DU RENDEZ-VOUS</h6>
                 <div class="iq-card iq-card-border p-3">
                     <div class="d-flex justify-content-between align-items-center">
-                        <p class="m-0">Staff :</p>
+                        <p class="m-0">Personnel :</p>
                         <h6 class="m-0">{{ booking.services[0].employee.full_name }}</h6>
                     </div>
                     <div class="d-flex justify-content-between align-items-center mt-3">
-                        <p class="m-0">Date  :</p>
+                        <p class="m-0">Date :</p>
                         <h6><span id="dateOfAppointment">{{ booking.start_date_time }}</span></h6>
                     </div>
                     <div class="d-flex justify-content-between align-items-center mt-3">
-                        <p class="m-0">Time  :</p>
+                        <p class="m-0">Heure :</p>
                         <h6 class="m-0"><span>{{ booking.services[0].start_date_time }}</span></h6>
                     </div>
                     <div class="iq-card bg-soft-primary text-body p-3 mt-4 mb-0 shadow-none">
                         <div class="iq-card-body">
-                            <h6>Services</h6>
+                            <h6>Services / Prestations</h6>
                             <div class="services_list">
                                 <div class="d-flex justify-content-between align-items-center mt-2" v-for="service in booking.services" :key="service">
                                     <p class="m-0"> {{ service.service_name }}</p>
-                                    <h6 class="m-0">{{ formatCurrencyVue(service.service_price) }}/-</h6>
+                                    <h6 class="m-0">{{ formatCurrencyVue(service.service_price) }}</h6>
                                 </div>
                             </div>
                         </div>

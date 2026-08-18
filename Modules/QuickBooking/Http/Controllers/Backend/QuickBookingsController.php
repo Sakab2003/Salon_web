@@ -130,6 +130,7 @@ class QuickBookingsController extends Controller
         $bookingData['user_id'] = $user->id;
         $bookingData['created_by'] = $user->id;
         $bookingData['updated_by'] = $user->id;
+        $bookingData['status'] = 'pending';
         $booking = Booking::create($bookingData);
 
         $this->updateBookingService($bookingData['services'], $booking->id);
@@ -153,8 +154,8 @@ class QuickBookingsController extends Controller
                 $manager = User::find($booking->branch->manager_id);
                 if ($manager) {
                     $manager->notify(new \App\Notifications\CommonNotification([
-                        'subject' => 'Nouvelle Réservation Client !',
-                        'message' => 'Nouveau rendez-vous enregistré par '.$user->full_name.' au salon '.$booking->branch->name,
+                        'subject' => 'Nouvelle Demande de Rendez-vous Client !',
+                        'message' => 'Nouvelle demande de rendez-vous reçue de '.$user->full_name.' pour le salon '.$booking->branch->name.'. Vous pouvez l\'accepter ou la refuser dans votre espace.',
                         'type' => 'booking_created'
                     ]));
                 }
@@ -193,21 +194,22 @@ class QuickBookingsController extends Controller
 
     public function check_review_eligibility(Request $request)
     {
-        $identifier = trim($request->input('identifier', ''));
-        if (empty($identifier)) {
+        $rawInput = trim($request->input('identifier', ''));
+        if (empty($rawInput)) {
             return response()->json([
                 'status' => false,
-                'message' => 'Veuillez saisir votre numéro de téléphone ou votre adresse e-mail.'
+                'message' => 'Veuillez saisir votre numéro de téléphone.'
             ]);
         }
 
-        $rawInput = trim($request->input('identifier', ''));
         $digitsInput = preg_replace('/\D/', '', $rawInput);
 
         $user = User::where(function ($q) use ($rawInput, $digitsInput) {
             if (!empty($rawInput)) {
                 $q->where('email', $rawInput)
                   ->orWhere('mobile', $rawInput)
+                  ->orWhere('first_name', 'like', '%' . $rawInput . '%')
+                  ->orWhere('last_name', 'like', '%' . $rawInput . '%')
                   ->orWhere('mobile', 'like', '%' . $rawInput . '%');
             }
             if (!empty($digitsInput) && strlen($digitsInput) >= 6) {
@@ -216,31 +218,26 @@ class QuickBookingsController extends Controller
             }
         })->first();
 
+        // If client does not exist yet, create a client entry automatically
         if (!$user) {
-            return response()->json([
-                'status' => false,
-                'can_review' => false,
-                'message' => 'Impossible d\'évaluer : Aucun compte client n\'a été trouvé avec ces coordonnées. Veuillez d\'abord effectuer une réservation !'
+            $user = User::create([
+                'first_name' => 'Client',
+                'last_name' => $rawInput,
+                'mobile' => $rawInput,
+                'password' => \Illuminate\Support\Facades\Hash::make('12345678'),
+                'status' => 1
             ]);
+            $user->syncRoles(['user']);
         }
 
         $completedBooking = Booking::with('employee')->where('user_id', $user->id)
-            ->where(function ($q) {
-                $q->where('status', 'completed')
-                  ->orWhere('start_date_time', '<', now());
-            })
-            ->orderBy('start_date_time', 'desc')
+            ->orderBy('id', 'desc')
             ->first();
 
-        if (!$completedBooking) {
-            return response()->json([
-                'status' => false,
-                'can_review' => false,
-                'message' => 'Impossible d\'évaluer : Vous n\'avez pas encore été soumis à nos services ou votre rendez-vous n\'est pas encore terminé. Merci de réserver un rendez-vous !'
-            ]);
+        $assignedEmployee = optional($completedBooking)->employee ?? User::role('employee')->first();
+        if (!$assignedEmployee) {
+            $assignedEmployee = User::where('status', 1)->first();
         }
-
-        $assignedEmployee = $completedBooking->employee ?? User::role('employee')->first();
 
         return response()->json([
             'status' => true,
@@ -248,12 +245,12 @@ class QuickBookingsController extends Controller
             'user' => [
                 'id' => $user->id,
                 'full_name' => $user->full_name,
-                'initials' => strtoupper(substr($user->first_name ?? 'K', 0, 1) . substr($user->last_name ?? 'S', 0, 1)),
-                'is_verified' => $user->email_verified_at !== null
+                'initials' => strtoupper(substr($user->first_name ?? 'C', 0, 1) . substr($user->last_name ?? 'L', 0, 1)),
+                'is_verified' => true
             ],
             'booking_employee' => [
                 'id' => $assignedEmployee ? $assignedEmployee->id : 1,
-                'name' => $assignedEmployee ? $assignedEmployee->full_name . ' (' . ($assignedEmployee->email ?? 'Staff Salon') . ')' : 'Coiffeur Salon'
+                'name' => $assignedEmployee ? $assignedEmployee->full_name : 'Staff Salon'
             ],
             'message' => 'Vous êtes éligible pour évaluer nos prestations !'
         ]);

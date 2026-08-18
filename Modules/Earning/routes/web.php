@@ -37,9 +37,10 @@ Route::group(['prefix' => 'app', 'as' => 'backend.', 'middleware' => ['auth']], 
        * ---------------------------------------------------------------------
        */
 
-    Route::group(['prefix' => 'earnings', 'as' => 'earnings.'], function () {
+    Route::group(['prefix' => 'gains', 'as' => 'earnings.'], function () {
         Route::get('index_data', [EarningsController::class, 'index_data'])->name('index_data');
         Route::get('get_search_data', [SearchController::class, 'get_search_data'])->name('get_search_data');
     });
-    Route::resource('earnings', EarningsController::class);
+    Route::resource('gains', EarningsController::class, ['names' => 'earnings']);
+    Route::get('earnings', function() { return redirect()->route('backend.earnings.index'); });
 });

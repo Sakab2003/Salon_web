@@ -23,7 +23,7 @@
         </div>
         <div class="offcanvas-body border-top">
           <!-- Sélection du Salon -->
-          <div class="form-group" v-if="bookingType !== 'CALENDER_BOOKING' && branch.options.length > 1">
+          <div class="form-group" v-if="bookingType !== 'CALENDER_BOOKING' && branch.options.length > 1 && !isManagerOnly">
             <Multiselect id="branch_id" placeholder="Selectionner un salon" v-model="branch_id" :disabled="is_paid || filterStatus(status).is_disabled" :value="branch_id" v-bind="singleSelectOption" :options="branch.options" @select="branchSelect" @change="removeBranch" class="form-group mb-0"></Multiselect>
             <span class="text-danger small" v-if="errors.branch_id">{{ errors.branch_id }}</span>
           </div>
@@ -552,6 +552,16 @@ const saveCustomService = async () => {
 const selectedBranchName = computed(() => {
   const b = branch.value.list.find((item) => item.id == branch_id.value)
   return b ? b.name : ''
+})
+
+const isManagerOnly = computed(() => {
+  try {
+    const rolesMeta = document.querySelector('meta[name="auth_user_roles"]')?.getAttribute('content')
+    const roles = rolesMeta ? (typeof rolesMeta === 'string' ? JSON.parse(rolesMeta) : rolesMeta) : []
+    return roles.includes('manager') && !roles.includes('admin') && !roles.includes('super-admin')
+  } catch (e) {
+    return false
+  }
 })
 
 const handleOpenShareModal = () => {

@@ -133,6 +133,12 @@ class EmployeesController extends Controller
 
         $branchId = $request->branch_id;
 
+        if (empty($branchId) || $branchId == '0' || $branchId == 0) {
+            if (auth()->check() && auth()->user()->hasRole('manager')) {
+                $branchId = auth()->user()->branch_id ?: optional(\App\Models\Branch::where('manager_id', auth()->id())->first())->id;
+            }
+        }
+
         $role = $request->role;
 
         // Need To Add Role Base
@@ -151,7 +157,7 @@ class EmployeesController extends Controller
             $query_data->role($role);
         }
 
-        if (isset($branchId) && ! empty($branchId)) {
+        if (isset($branchId) && ! empty($branchId) && $branchId != 0) {
             $query_data->whereHas('branches', function ($q) use ($branchId) {
                 $q->where('branch_id', $branchId);
             });
@@ -668,15 +674,10 @@ class EmployeesController extends Controller
             }
             if (!empty($branchIds)) {
                 $employeeIds = \Modules\Employee\Models\BranchEmployee::whereIn('branch_id', $branchIds)->pluck('employee_id')->toArray();
-                $query->where(function ($q) use ($employeeIds, $branchIds, $managerId) {
-                    if (!empty($employeeIds)) {
-                        $q->whereIn('employee_id', $employeeIds);
-                    }
-                    $q->orWhereHas('employee', function ($eq) use ($branchIds) {
-                        $eq->whereIn('branch_id', $branchIds);
-                    });
-                    $q->orWhere('employee_id', $managerId);
-                });
+                if (!in_array($managerId, $employeeIds)) {
+                    $employeeIds[] = $managerId;
+                }
+                $query->whereIn('employee_id', $employeeIds);
             }
         }
 

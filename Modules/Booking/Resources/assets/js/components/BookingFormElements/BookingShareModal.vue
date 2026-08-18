@@ -174,7 +174,7 @@ const shareUrl = computed(() => {
     origin = h.replace(/\/$/, '')
   }
   const bId = selectedBranchId.value || 1
-  return `${origin}/quick-booking?branch_id=${bId}`
+  return `${origin}/reservation-rapide?salon_id=${bId}`
 })
 
 const shareMessage = computed(() => {
@@ -269,26 +269,49 @@ const nativeShare = () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 10px 6px;
+  justify-content: center;
+  padding: 12px 6px;
   border-radius: 14px;
   text-decoration: none;
+  background: transparent !important;
+  border: 1px solid transparent;
   transition: all 0.25s ease;
-  color: #fff;
 }
 
 .social-btn:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.18);
-  color: #fff;
+  background: rgba(111, 66, 193, 0.06) !important;
+  border-color: rgba(111, 66, 193, 0.2);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
 }
 
-.social-btn.whatsapp { background: linear-gradient(135deg, #25D366, #128C7E); }
-.social-btn.tiktok { background: linear-gradient(135deg, #000000, #25F4EE 50%, #FE2C55); }
-.social-btn.facebook { background: linear-gradient(135deg, #1877F2, #0d52ab); }
-.social-btn.x-twitter { background: linear-gradient(135deg, #14171A, #000000); }
-.social-btn.instagram { background: linear-gradient(135deg, #f09433, #dc2743 50%, #bc1888); }
-.social-btn.threads { background: linear-gradient(135deg, #101010, #333333); }
-.social-btn.snapchat { background: linear-gradient(135deg, #FFFC00, #E0DC00); color: #000 !important; }
-.social-btn.linkedin { background: linear-gradient(135deg, #0A66C2, #004182); }
+.social-btn i {
+  font-size: 2.5rem !important;
+  transition: transform 0.25s ease;
+  margin-bottom: 4px;
+}
+
+.social-btn:hover i {
+  transform: scale(1.15);
+}
+
+.social-btn span {
+  color: #2d3748 !important;
+  font-weight: 700 !important;
+  font-size: 0.82rem !important;
+}
+
+.social-btn.whatsapp i { color: #25D366; }
+.social-btn.tiktok i { color: #000000; }
+.social-btn.facebook i { color: #1877F2; }
+.social-btn.x-twitter i { color: #000000; }
+.social-btn.instagram i {
+  background: -webkit-linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.social-btn.threads i { color: #000000; }
+.social-btn.snapchat i { color: #FFFC00; text-shadow: 0 0 2px rgba(0,0,0,0.4); }
+.social-btn.linkedin i { color: #0A66C2; }
 </style>
 

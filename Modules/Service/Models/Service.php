@@ -18,7 +18,7 @@ class Service extends BaseModel
 
     protected $table = 'services';
 
-    protected $fillable = ['slug', 'name', 'description', 'duration_min', 'default_price', 'category_id', 'sub_category_id', 'status'];
+    protected $fillable = ['slug', 'name', 'description', 'duration_min', 'default_price', 'category_id', 'sub_category_id', 'commission_id', 'status'];
 
     protected $appends = ['feature_image'];
     
@@ -28,9 +28,15 @@ class Service extends BaseModel
         'default_price' => 'double',
         'category_id' => 'integer',
         'sub_category_id' => 'integer',
+        'commission_id' => 'integer',
         'status' => 'integer',
 
     ];
+
+    public function commission()
+    {
+        return $this->belongsTo(\Modules\Commission\Models\Commission::class, 'commission_id');
+    }
 
     const CUSTOM_FIELD_MODEL = 'Modules\Service\Models\Service';
 
