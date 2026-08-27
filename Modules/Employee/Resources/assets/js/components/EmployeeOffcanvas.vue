@@ -78,7 +78,7 @@
               </div>
             </div>
 
-            <div class="form-group m-0 col-md-4">
+            <div class="form-group m-0 col-md-4" v-if="!isCurrentUserManager">
               <div class="form-check">
                 <input class="form-check-input" type="checkbox" :true-value="1" :false-value="0" v-model="is_manager"
                   id="is-manager" :checked="is_manager">
@@ -87,6 +87,19 @@
                 </label>
               </div>
             </div>
+
+            <div class="form-group col-md-12">
+              <label class="form-label d-block fw-bold">Rôle dans le salon :</label>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="staff_role_type" id="role_provider" value="provider" v-model="staff_role_type" @change="onRoleTypeChange">
+                <label class="form-check-label fw-bold" for="role_provider">Prestataire (Coiffeur, Masseur, etc.)</label>
+              </div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="staff_role_type" id="role_receptionist" value="receptionist" v-model="staff_role_type" @change="onRoleTypeChange">
+                <label class="form-check-label fw-bold" for="role_receptionist">Réceptionniste (Accueil & Encaissement)</label>
+              </div>
+            </div>
+
             <div class="form-group col-md-12" v-if="branch.options.length > 1 && selectedSessionBranchId == ''">
               <label class="form-label" for="branch">{{ $t('employee.lbl_select_branch') }}</label><span class="text-danger">*</span>
               <Multiselect id="branch_id" v-model="branch_id" :value="branch_id" placeholder="Selectionner un salon"
@@ -100,10 +113,10 @@
               <span class="text-danger">{{ errors.branch_id }}</span>
             </div>
 
-            <div class="form-group">
+            <div class="form-group" v-if="staff_role_type !== 'receptionist'">
               <label class="form-label" for="service">{{ $t('employee.lbl_select_service') }}</label>
               <Multiselect id="service_id" v-model="service_id" :multiple="true" :value="service_id"
-                placeholder="Selectionner un service" v-bind="multiSelectOption" :options="services.options" class="form-group">
+                placeholder="Selectionner un service" v-bind="multiSelectOption" :options="services.options" @select="onServiceSelect" class="form-group">
               </Multiselect>
               <span v-if="errorMessages['service_id']">
                 <ul class="text-danger">
@@ -189,8 +202,36 @@ const props = defineProps({
   editTitle: { type: String, default: '' },
   defaultImage: { type: String, default: 'https://dummyimage.com/600x300/cfcfcf/000000.png' },
   customefield: { type: Array, default: () => [] },
-  selectedSessionBranchId: {type: Number, default: null}
+  selectedSessionBranchId: {type: Number, default: null},
+  isCurrentUserManager: { type: Boolean, default: false }
 })
+
+const staff_role_type = ref('provider')
+
+const onRoleTypeChange = () => {
+  if (staff_role_type.value === 'receptionist') {
+    service_id.value = []
+    // Auto find receptionist commission
+    const foundRec = commissions.value.options.find(c => c.label.toLowerCase().includes('réceptionniste') || c.label.toLowerCase().includes('receptionist'))
+    if (foundRec) {
+      commission_id.value = foundRec.value
+    } else if (commissions.value.options.length > 0) {
+      commission_id.value = commissions.value.options[0].value
+    }
+  }
+}
+
+const onServiceSelect = (val) => {
+  if (!val || val.length === 0) return
+  // Auto find commission matching service
+  const selectedSvc = services.value.options.find(s => val.includes(s.value))
+  if (selectedSvc) {
+    const matchedComm = commissions.value.options.find(c => c.label.toLowerCase().includes(selectedSvc.label.toLowerCase()))
+    if (matchedComm) {
+      commission_id.value = matchedComm.value
+    }
+  }
+}
 
 // Select Options
 const singleSelectOption = ref({
@@ -236,10 +277,12 @@ const services = ref({ options: [], list: [] })
 
 onMounted(() => {
   setFormData(defaultData())
+  branchSelect()
 })
 
 const branchSelect = () => {
-  useSelect({ url: SERVICE_LIST, data: { branch_id: branch_id.value } }, { value: 'id', label: 'name' }).then((data) => (services.value = data))
+  const bId = (branch_id.value && branch_id.value !== 0) ? branch_id.value : (props.selectedSessionBranchId || '')
+  useSelect({ url: SERVICE_LIST, data: { branch_id: bId } }, { value: 'id', label: 'name' }).then((data) => (services.value = data))
 }
 
 // File Upload Function

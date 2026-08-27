@@ -344,3 +344,71 @@ const nextTabChange = (val) => {
   currentindex.value = val;
 };
 </script>
+
+<style scoped>
+.booking-wizard {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.widget-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .widget-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .widget-tabs {
+    overflow-x: auto;
+  }
+
+  .tab-list {
+    display: flex;
+    gap: .5rem;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: .5rem;
+  }
+
+  .tab-item {
+    flex: 0 0 auto;
+  }
+
+  .widget-pannel,
+  .tab-content {
+    min-width: 0;
+  }
+
+  .booking-wizard .container-fluid {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+
+  .booking-wizard .d-flex.align-items-center.justify-content-between.p-3 {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 0.75rem;
+  }
+
+  .booking-wizard .d-flex.align-items-center.justify-content-between.p-3 .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 576px) {
+  .booking-wizard {
+    font-size: 13px;
+  }
+
+  .card-list-data {
+    min-height: auto;
+    max-height: none;
+  }
+}
+</style>

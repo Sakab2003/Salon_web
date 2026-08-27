@@ -67,9 +67,6 @@
                         <x-buttons.offcanvas target='#form-offcanvas' title="{{ __('messages.create') }} {{ __($module_title) }}">
                         {{ __('messages.create') }} {{ __('service.singular_title') }}</x-buttons.offcanvas>
                     @endhasPermission
-                    <button class="btn btn-outline-primary btn-group" data-bs-toggle="offcanvas"
-                        data-bs-target="#offcanvasExample" aria-controls="offcanvasExample"><i
-                            class="fa-solid fa-filter"></i>{{__('messages.advance_filter')}}</button>
                 </x-slot>
             </x-backend.section-header>
             <table id="datatable" class="table table-striped border table-responsive">
@@ -84,33 +81,6 @@
         <assign-branch-form-offcanvas></assign-branch-form-offcanvas>
         <gallery-form-offcanvas></gallery-form-offcanvas>
     </div>
-    <x-backend.advance-filter>
-        <x-slot name="title">
-            <h4>{{ __('service.lbl_advanced_filter') }}</h4>
-        </x-slot>
-        <div class="form-group datatable-filter">
-            <label class="form-label" for="column_category">{{ __('service.lbl_category') }}</label>
-            <select name="column_category" id="column_category" class="form-control select2" data-filter="select">
-                <option value="">All Categories</option>
-                @foreach ($categories as $category)
-                    <option value="{{ $category->id }}">{{ $category->name }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div class="form-group datatable-filter">
-            <label class="form-label" for="column_subcategory">{{ __('service.lbl_sub_category') }}</label>
-            <select name="column_subcategory" id="column_subcategory" class="form-control select2" data-filter="select">
-                <option value="">All Sub-Categories</option>
-                @foreach ($subcategories as $subcategory)
-                    <option value="{{ $subcategory->id }}">{{ $subcategory->name }}</option>
-                @endforeach
-            </select>
-        </div>
-        <button type="reset" class="btn btn-danger" id="reset-filter">{{ __('messages.reset') }}</button>
-        <div class="form-group custom-range">
-            <div class="filter-slider slider-secondary"></div>
-        </div>
-    </x-backend.advance-filter>
 @endsection
 
 @push('after-styles')
@@ -159,11 +129,7 @@
                 title: "{{ __('service.lbl_duration') }}"
             },
 
-            {
-                data: 'category_id',
-                name: 'category_id',
-                title: "{{ __('service.lbl_category_id') }}"
-            },
+
             @if (!$is_single_branch)
                 {
                     data: 'branches_count',

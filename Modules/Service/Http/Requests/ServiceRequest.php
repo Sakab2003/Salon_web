@@ -20,7 +20,7 @@ class ServiceRequest extends FormRequest
                 return [
                     'name' => 'required|string|max:255',
                     'duration_min' => 'required|integer',
-                    'category_id' => 'required|integer',
+                    'category_id' => 'nullable|integer',
                     'default_price' => 'required',
                     'status' => 'boolean',
                 ];
@@ -29,9 +29,8 @@ class ServiceRequest extends FormRequest
             case 'patch':
                 return [
                     'name' => 'required|string|max:255',
-
                     'duration_min' => 'required|integer',
-                    'category_id' => 'required|integer',
+                    'category_id' => 'nullable|integer',
                     'default_price' => 'required',
                     'status' => 'boolean',
                 ];

@@ -102,7 +102,12 @@ Route::group(['prefix' => 'app', 'as' => 'backend.', 'middleware' => ['auth']], 
     });
     Route::resource('reviews', ReviewController::class);
 
-    // orders
+    // orders & POS Sales
+    Route::get('ventes/nouvelle-vente', [OrdersController::class, 'pos'])->name('orders.pos');
+    Route::post('ventes/store-pos', [OrdersController::class, 'store_pos'])->name('orders.pos_store');
+    Route::get('ventes/historique', [OrdersController::class, 'index'])->name('orders.sales_history');
+    Route::get('bilan-financier', [OrdersController::class, 'financial_balance'])->name('reports.financial_balance');
+
     Route::get('orders-detail', [OrdersController::class, 'show'])->name('orders.show');
     Route::group(['prefix' => 'orders'], function () {
         Route::get('/', [OrdersController::class, 'index'])->name('orders.index');
@@ -112,7 +117,7 @@ Route::group(['prefix' => 'app', 'as' => 'backend.', 'middleware' => ['auth']], 
         Route::get('invoice-download/{id}', [OrdersController::class, 'downloadInvoice'])->name('orders.downloadInvoice');
     });
 
-    // Alias francophones pour la comptabilité des URLs
+    // Alias francophones pour la compatibilité des URLs
     Route::get('produits', function() { return redirect()->route('backend.products.index'); });
     Route::get('commandes', function() { return redirect()->route('backend.orders.index'); });
     Route::get('marques', function() { return redirect()->route('backend.brands.index'); });

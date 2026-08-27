@@ -124,4 +124,54 @@ class ProductsController extends Controller
             'message' => __('product.product_gallery'),
         ], 200);
     }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:191',
+        ]);
+
+        $sellPrice = $request->selling_price ?? $request->price ?? $request->amount ?? 0;
+        $buyPrice = $request->purchase_price ?? $request->min_price ?? $request->amount ?? $sellPrice;
+        $stockQty = $request->quantity ?? $request->stock_qty ?? $request->stock ?? 1;
+
+        $product = new Product;
+        $product->name = $request->name;
+        $product->slug = \Illuminate\Support\Str::slug($request->name, '-').'-'.strtolower(\Illuminate\Support\Str::random(5));
+        $product->description = $request->description;
+        $product->short_description = $request->description;
+        $product->min_price = $buyPrice;
+        $product->max_price = $sellPrice;
+        $product->stock_qty = $stockQty;
+        $product->status = 1;
+        $product->has_variation = 0;
+        $product->save();
+
+        $location = \Modules\Location\Models\Location::where('is_default', 1)->first();
+        $locationId = $location ? $location->id : 1;
+
+        $variation = new \Modules\Product\Models\ProductVariation;
+        $variation->product_id = $product->id;
+        $variation->sku = 'SKU-' . strtoupper(\Illuminate\Support\Str::random(6));
+        $variation->code = 'PRD-' . rand(1000, 9999);
+        $variation->price = $sellPrice;
+        $variation->save();
+
+        $productVariationStock = new \Modules\Product\Models\ProductVariationStock;
+        $productVariationStock->product_variation_id = $variation->id;
+        $productVariationStock->location_id = $locationId;
+        $productVariationStock->stock_qty = $stockQty;
+        $productVariationStock->save();
+
+        if ($request->hasFile('feature_image')) {
+            storeMediaFile($product, $request->file('feature_image'));
+        }
+
+        return response()->json([
+            'status' => true,
+            'data' => $product,
+            'message' => 'Produit ajouté avec succès',
+        ], 200);
+    }
 }
+

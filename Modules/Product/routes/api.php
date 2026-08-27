@@ -13,6 +13,8 @@ use Modules\Product\Http\Controllers\Backend\API\WishListController;
 
 Route::get('get-product-category', [CategoryController::class, 'categoryList']);
 Route::get('get-product-list', [ProductsController::class, 'ProductList']);
+Route::post('add-product', [ProductsController::class, 'store']);
+Route::post('product', [ProductsController::class, 'store']);
 Route::get('product_detail', [ProductsController::class, 'product_detail']);
 Route::get('product-brand', [BrandsController::class, 'product_brand']);
 Route::get('product-unit', [UnitsController::class, 'product_unit']);
@@ -35,6 +37,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::post('update-review', [ReviewController::class, 'UpdateReview']);
 
     Route::post('place-order', [OrdersController::class, 'store']);
+    Route::post('pos-sale', [OrdersController::class, 'posSale']);
 
     Route::get('get-order-list', [OrdersController::class, 'orderList']);
     Route::get('cancle-order', [OrdersController::class, 'cancleOrder']);

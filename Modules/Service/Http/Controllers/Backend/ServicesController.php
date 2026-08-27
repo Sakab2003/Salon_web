@@ -126,13 +126,17 @@ class ServicesController extends Controller
             $data->where('category_id', $category_id);
         }
 
-        if (isset($branch_id) && !empty($branch_id)) {
+        if (isset($branch_id) && !empty($branch_id) && $branch_id != '0' && $branch_id != 0) {
             $data = $data->whereHas('branches', function ($q) use ($branch_id) {
                 $q->where('branch_id', $branch_id);
             });
         }
 
-        $services = $data->get();
+        $services = $data->where('status', 1)->get();
+
+        if ($services->isEmpty() && (empty($branch_id) || $branch_id == '0' || $branch_id == 0)) {
+            $services = Service::where('status', 1)->get();
+        }
 
         $formatted = $services->map(function ($s) {
             return [
@@ -365,6 +369,10 @@ class ServicesController extends Controller
         }
 
         $data = $request->except(['feature_image', 'employee_id']);
+        if (empty($data['category_id'])) {
+            $defaultCat = \Modules\Category\Models\Category::first();
+            $data['category_id'] = $defaultCat ? $defaultCat->id : null;
+        }
 
         $query = Service::create($data);
 

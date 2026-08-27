@@ -24,9 +24,12 @@ class GenerateMenus
 
             $needsRebuild = (count($menuArray) == 0) 
                 || MenuBuilder::where('title', 'sidebar.models')->exists()
+                || MenuBuilder::where('title', 'sidebar.orders')->exists()
                 || MenuBuilder::where('title', 'sidebar.categories')->exists()
                 || !MenuBuilder::where('title', 'sidebar.commissions')->exists()
-                || !MenuBuilder::where('title', 'sidebar.hairstyle_models')->whereNull('parent_id')->exists();
+                || !MenuBuilder::where('title', 'sidebar.hairstyle_models')->whereNull('parent_id')->exists()
+                || !MenuBuilder::where('title', 'sidebar.pos_sale')->exists()
+                || !MenuBuilder::where('title', 'sidebar.financial_balance')->exists();
 
             if ($needsRebuild) {
                 MenuBuilder::where('menu_type', $type)->delete();
@@ -100,6 +103,15 @@ class GenerateMenus
                                 || (isset($item->nickname) && $item->nickname == 'hairstyle_models')
                                 || ($item->url() && str_contains($item->url(), 'hairstyle-models'));
                             if ($isModelSection) {
+                                return true;
+                            }
+                            $isShopOrFinance = ($item->title == __('sidebar.pos_sale'))
+                                || ($item->title == __('sidebar.products_stock'))
+                                || ($item->title == __('sidebar.sales_history'))
+                                || ($item->title == __('sidebar.financial_balance'))
+                                || ($item->title == __('sidebar.shop'))
+                                || ($item->url() && (str_contains($item->url(), 'ventes') || str_contains($item->url(), 'products') || str_contains($item->url(), 'orders') || str_contains($item->url(), 'bilan-financier')));
+                            if ($isShopOrFinance) {
                                 return true;
                             }
                         }

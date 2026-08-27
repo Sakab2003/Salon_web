@@ -59,7 +59,7 @@
 </div>
 
 <div data-render="app" class="{{$selected_branch_id}}">
-    <employee-offcanvas :selected-session-branch-id="{{$selected_branch_id !== '' ? $selected_branch_id : null}}" default-image="{{user_avatar()}}" create-title="{{ __('messages.create') }} {{ __('messages.new') }} {{ __($module_title) }}" edit-title="{{ __('messages.edit') }} {{ __($module_title) }}" :customefield="{{ json_encode($customefield) }}">
+    <employee-offcanvas :is-current-user-manager="{{ auth()->user()->hasRole('manager') ? 'true' : 'false' }}" :selected-session-branch-id="{{$selected_branch_id !== '' ? $selected_branch_id : null}}" default-image="{{user_avatar()}}" create-title="{{ __('messages.create') }} {{ __('messages.new') }} {{ __($module_title) }}" edit-title="{{ __('messages.edit') }} {{ __($module_title) }}" :customefield="{{ json_encode($customefield) }}">
     </employee-offcanvas>
     <change-password create-title="{{ __('messages.change_password') }} "></change-password>
 </div>

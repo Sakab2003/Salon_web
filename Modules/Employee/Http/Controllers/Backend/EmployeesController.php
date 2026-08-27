@@ -136,30 +136,35 @@ class EmployeesController extends Controller
         if (empty($branchId) || $branchId == '0' || $branchId == 0) {
             if (auth()->check() && auth()->user()->hasRole('manager')) {
                 $branchId = auth()->user()->branch_id ?: optional(\App\Models\Branch::where('manager_id', auth()->id())->first())->id;
+            } elseif (request()->filled('selected_session_branch_id')) {
+                $branchId = request()->selected_session_branch_id;
             }
         }
 
         $role = $request->role;
 
-        // Need To Add Role Base
-        $query_data = User::role('employee')->with('media', 'branches')->where(function ($q) use ($term) {
+        $query_data = User::whereHas('roles', function($q) use ($role) {
+            if (!empty($role)) {
+                $q->where('name', $role);
+            } else {
+                $q->whereIn('name', ['employee', 'manager']);
+            }
+        })->where('status', 1)->with('media', 'branches')->where(function ($q) use ($term) {
             if (! empty($term)) {
                 $q->orWhere('first_name', 'LIKE', "%$term%");
                 $q->orWhere('last_name', 'LIKE', "%$term%");
             }
         });
 
-        if ($request->show_in_calender) {
-            $query_data->CalenderResource();
+        if ($request->filled('show_in_calender') && $request->show_in_calender == '1') {
+            $query_data->where('show_in_calender', 1);
         }
 
-        if (! empty($role)) {
-            $query_data->role($role);
-        }
-
-        if (isset($branchId) && ! empty($branchId) && $branchId != 0) {
-            $query_data->whereHas('branches', function ($q) use ($branchId) {
-                $q->where('branch_id', $branchId);
+        if (isset($branchId) && ! empty($branchId) && $branchId != 0 && $branchId != '0') {
+            $query_data->where(function ($q) use ($branchId) {
+                $q->whereHas('branches', function ($b) use ($branchId) {
+                    $b->where('branch_id', $branchId);
+                })->orWhere('branch_id', $branchId);
             });
         }
 
@@ -214,7 +219,7 @@ class EmployeesController extends Controller
     public function index_data(Datatables $datatable, Request $request)
     {
         $module_name = $this->module_name;
-        $query = User::select('users.*')->role(['employee', 'manager'])->branch()->with('media', 'mainBranch');
+        $query = User::select('users.*')->role(['employee', 'manager'])->branch()->with('media', 'mainBranch', 'services.service');
 
         $filter = $request->filter;
 
@@ -245,10 +250,59 @@ class EmployeesController extends Controller
             })
             ->editColumn('is_manager', function ($data) {
                 if ($data->is_manager) {
-                    return '<span class="badge bg-soft-danger">Manager</span>';
+                    return '<span class="badge bg-soft-danger"><i class="fa-solid fa-user-tie me-1"></i>Manager</span>';
+                }
+                if ($data->is_receptionist) {
+                    return '<span class="badge bg-soft-warning text-dark"><i class="fa-solid fa-user-check me-1"></i>Réceptionniste</span>';
+                }
+                
+                $roles = [];
+                if ($data->services && $data->services->count() > 0) {
+                    foreach ($data->services as $sEmp) {
+                        $service = $sEmp->service;
+                        if (!$service) continue;
+
+                        $catName = mb_strtolower(optional($service->category)->name ?? '');
+                        $subCatName = mb_strtolower(optional($service->sub_category)->name ?? '');
+                        $sName = mb_strtolower($service->name ?? '');
+                        $textToMatch = "$catName $subCatName $sName";
+
+                        if (str_contains($textToMatch, 'coiff') || str_contains($textToMatch, 'coup') || str_contains($textToMatch, 'cheveu') || str_contains($textToMatch, 'barb') || str_contains($textToMatch, 'degrad') || str_contains($textToMatch, 'tress') || str_contains($textToMatch, 'brushing') || str_contains($textToMatch, 'shamp') || str_contains($textToMatch, 'color')) {
+                            $roles['coiffeur'] = 'Coiffeur';
+                        } elseif (str_contains($textToMatch, 'massag') || str_contains($textToMatch, 'relax') || str_contains($textToMatch, 'bien-être') || str_contains($textToMatch, 'spa')) {
+                            $roles['masseur'] = 'Masseur';
+                        } elseif (str_contains($textToMatch, 'ongl') || str_contains($textToMatch, 'manucur') || str_contains($textToMatch, 'pedicur') || str_contains($textToMatch, 'vernis')) {
+                            $roles['prothesiste'] = 'Prothésiste Ongulaire';
+                        } elseif (str_contains($textToMatch, 'soin') || str_contains($textToMatch, 'esthet') || str_contains($textToMatch, 'visage') || str_contains($textToMatch, 'peau') || str_contains($textToMatch, 'gommag') || str_contains($textToMatch, 'epil')) {
+                            $roles['estheticienne'] = 'Esthéticienne';
+                        } elseif (str_contains($textToMatch, 'maquill') || str_contains($textToMatch, 'makeup')) {
+                            $roles['maquilleur'] = 'Maquilleur';
+                        } elseif (str_contains($textToMatch, 'tatou') || str_contains($textToMatch, 'pierc')) {
+                            $roles['tatoueur'] = 'Tatoueur';
+                        } else {
+                            $catClean = optional($service->category)->name;
+                            if ($catClean) {
+                                $roles[mb_strtolower($catClean)] = $catClean;
+                            }
+                        }
+                    }
+                }
+                
+                if (count($roles) > 0) {
+                    $badges = [];
+                    foreach ($roles as $r) {
+                        $icon = 'fa-scissors';
+                        if ($r === 'Masseur') $icon = 'fa-spa';
+                        elseif ($r === 'Prothésiste Ongulaire') $icon = 'fa-hand-sparkles';
+                        elseif ($r === 'Esthéticienne') $icon = 'fa-wand-magic-sparkles';
+                        elseif ($r === 'Maquilleur') $icon = 'fa-brush';
+
+                        $badges[] = '<span class="badge bg-soft-primary me-1"><i class="fa-solid '.$icon.' me-1"></i>'.$r.'</span>';
+                    }
+                    return implode(' ', $badges);
                 }
 
-                return '<span class="badge bg-soft-info">Staff</span>';
+                return '<span class="badge bg-soft-info">Prestataire</span>';
             })
             ->addColumn('branch_id', function ($data) {
                 return optional($data->mainBranch)->pluck('name')->toArray() ?? '-';
@@ -308,6 +362,17 @@ class EmployeesController extends Controller
     {
         $data = $request->all();
 
+        // Enforce: Manager cannot create another Manager
+        if (auth()->check() && auth()->user()->hasRole('manager')) {
+            $data['is_manager'] = 0;
+        }
+
+        if (isset($data['is_receptionist']) && $data['is_receptionist']) {
+            $data['is_receptionist'] = 1;
+        } else {
+            $data['is_receptionist'] = 0;
+        }
+
         $data['password'] = Hash::make($data['password']);
 
         if ($request->confirmed == 1) {
@@ -343,7 +408,7 @@ class EmployeesController extends Controller
 
         $roles = ['employee'];
 
-        if ($request->is_manager) {
+        if ($data['is_manager']) {
             array_push($roles, 'manager');
             if ($request->has('branch_id')) {
                 $branch = Branch::where('id', $request->branch_id)->first();

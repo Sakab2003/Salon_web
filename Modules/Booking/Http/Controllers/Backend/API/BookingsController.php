@@ -45,7 +45,7 @@ class BookingsController extends Controller
 
     public function update(Request $request)
     {
-        $booking = Booking::findOrFail($request->id);
+        $booking = $this->accessibleBookings()->whereKey($request->id)->firstOrFail();
 
         if($request->has('status') && $request->status=='cancelled'){
 
@@ -90,7 +90,7 @@ class BookingsController extends Controller
     {
         $user = \Auth::user();
 
-        $booking = Booking::where('user_id', $user->id)->with('booking_service', 'bookingTransaction');
+        $booking = $this->accessibleBookings()->with('booking_service', 'bookingTransaction');
 
         if($request->has('status') && isset($request->status)) {
 
@@ -148,7 +148,10 @@ class BookingsController extends Controller
     {
         $id = $request->id;
 
-        $booking_data = Booking::with(['branch', 'user', 'booking_service', 'payment', 'products'])->where('id', $id)->first();
+        $booking_data = $this->accessibleBookings()
+            ->with(['branch', 'user', 'booking_service', 'payment', 'products'])
+            ->where('id', $id)
+            ->first();
 
 
         if ($booking_data == null) {
@@ -172,7 +175,8 @@ class BookingsController extends Controller
     {
         $keyword = $request->input('keyword');
 
-        $bookings = Booking::where('note', 'like', "%{$keyword}%")
+        $bookings = $this->accessibleBookings()
+            ->where('note', 'like', "%{$keyword}%")
             ->with('branch', 'user')
             ->get();
 
@@ -181,6 +185,23 @@ class BookingsController extends Controller
             'data' => BookingResource::collection($bookings),
             'message' => __('booking.search_booking'),
         ], 200);
+    }
+
+    private function accessibleBookings()
+    {
+        $user = auth()->user();
+
+        if ($user->hasRole('manager')) {
+            $branchId = $user->branch_id ?: optional(\App\Models\Branch::where('manager_id', $user->id)->first())->id;
+        } elseif ($user->hasRole('employee')) {
+            $branchId = optional($user->branch()->first())->branch_id;
+        } else {
+            return Booking::where('user_id', $user->id);
+        }
+
+        abort_unless($branchId, 403, 'Aucun salon n’est affecté à ce compte.');
+
+        return Booking::where('branch_id', $branchId);
     }
 
     public function statusList()

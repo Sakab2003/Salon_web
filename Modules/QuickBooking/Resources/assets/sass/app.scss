@@ -33,10 +33,12 @@ $border-color: #eee;
     font-family: custom-var('body-font-family');
     font-size: 14px;
     color: custom-var('body-color');
-    min-width: 980px;
-    width: 980px;
+    width: 100%;
+    max-width: 980px;
+    min-width: 0;
     height: 100%;
     margin: auto;
+    box-sizing: border-box;
 
     // Helpers
     @import "./helper/colors";

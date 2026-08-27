@@ -217,7 +217,7 @@ return [
     'order_code' => 'Code de commande',
     'items' => 'Articles',
     'placed_on' => 'Passé le',
-    'type' => 'Taper',
+    'type' => 'Type',
     'customer' => 'Client',
     'currency' => 'Devise',
     'commission' => 'Commission',

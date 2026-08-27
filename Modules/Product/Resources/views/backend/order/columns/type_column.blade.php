@@ -1,9 +1,19 @@
-@if ($data->orderGroup->type == 'booking')
-    <span class="badge bg-soft-danger rounded-pill text-capitalize">
-         Booking 
-    </span>
-@else
-    <span class="badge bg-soft-primary rounded-pill text-capitalize">
-       Online
-    </span>
-@endif
+@php
+    $type = strtolower($data->orderGroup->type ?? '');
+    $label = 'En ligne';
+    $badgeClass = 'bg-soft-primary';
+
+    if ($type === 'booking' || $type === 'reservation') {
+        $label = 'Réservation';
+        $badgeClass = 'bg-soft-danger';
+    } elseif ($type === 'pos' || $type === 'direct') {
+        $label = 'Vente directe (POS)';
+        $badgeClass = 'bg-soft-success';
+    } else {
+        $label = 'En ligne';
+        $badgeClass = 'bg-soft-primary';
+    }
+@endphp
+<span class="badge {{ $badgeClass }} rounded-pill text-capitalize">
+    {{ $label }}
+</span>

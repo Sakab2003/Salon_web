@@ -20,13 +20,10 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
-        $user = $this->registerTrait($request);
-        $success['token'] = $user->createToken(setting('app_name'))->plainTextToken;
-        $success['name'] = $user->name;
-
-        $userResource = new RegisterResource($user);
-
-        return $this->sendResponse($userResource, __('messages.register_successfull'));
+        return response()->json([
+            'status' => false,
+            'message' => 'Les comptes mobiles sont créés uniquement par un administrateur.',
+        ], 403);
     }
 
     /**
@@ -52,8 +49,17 @@ class AuthController extends Controller
             // Save the user
             $user->save();
 
-            if (! $user->hasRole('user')) {
-                return $this->sendError(__('messages.role_not_matched'), ['error' => __('messages.unauthorised')], 200);
+            if (! $user->hasAnyRole(['manager', 'employee'])) {
+                return $this->sendError(
+                    'Seuls les managers et les membres du staff peuvent utiliser l’application mobile.',
+                    ['error' => __('messages.unauthorised')],
+                    403
+                );
+            }
+
+            if ($user->mobile_trial_started_at === null) {
+                $user->mobile_trial_started_at = now();
+                $user->save();
             }
             $user['api_token'] = $user->createToken(setting('app_name'))->plainTextToken;
 
@@ -68,7 +74,12 @@ class AuthController extends Controller
 
     public function socialLogin(Request $request)
     {
-        $input = $request->all();
+        return $this->sendError(
+            'Les comptes mobiles sont créés et activés uniquement par un administrateur.',
+            403
+        );
+
+        /*$input = $request->all();
 
         if ($input['login_type'] === 'mobile') {
             $user_data = User::where('username', $input['username'])->where('login_type', 'mobile')->first();
@@ -156,7 +167,7 @@ class AuthController extends Controller
 
         $socialLogin = new SocialLoginResource($user_data);
 
-        return $this->sendResponse($socialLogin, $message);
+        return $this->sendResponse($socialLogin, $message);*/
     }
 
     public function logout(Request $request)
@@ -285,13 +296,13 @@ class AuthController extends Controller
 
     public function userDetails(Request $request)
     {
-        $userID = $request->id;
+        $userID = $request->id ?: \Auth::id();
         $user = User::find($userID);
         if (! $user) {
             return response()->json(['status' => false, 'message' => __('messages.user_notfound')], 404);
         }
 
-        return response()->json(['status' => true, 'data' => $user, 'message' => __('messages.user_details_successfull')]);
+        return response()->json(['status' => true, 'data' => new LoginResource($user), 'message' => __('messages.user_details_successfull')]);
     }
 
     public function deleteAccount(Request $request)

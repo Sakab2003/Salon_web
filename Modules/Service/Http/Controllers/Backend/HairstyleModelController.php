@@ -47,7 +47,14 @@ class HairstyleModelController extends Controller
         ];
         $module_action = 'Liste des';
 
-        $services = Service::active()->select('id', 'name', 'commission_id')->get();
+        $branchId = request()->selected_session_branch_id;
+        $servicesQuery = Service::active()->select('id', 'name', 'commission_id');
+        if ($branchId && !auth()->user()->hasRole('admin')) {
+            $servicesQuery->whereHas('branches', function ($q) use ($branchId) {
+                $q->where('branch_id', $branchId);
+            });
+        }
+        $services = $servicesQuery->get();
         $commissions = \Modules\Commission\Models\Commission::where('status', 1)->get();
 
         return view('service::backend.hairstyle_models.index_datatable', compact('module_action', 'module_title', 'filter', 'services', 'commissions'));
@@ -61,21 +68,24 @@ class HairstyleModelController extends Controller
         $module_title = 'modèles de commission';
         $module_action = 'Visualiser les';
 
+        $branchId = request()->selected_session_branch_id;
         $commissions = \Modules\Commission\Models\Commission::where('status', 1)->get();
         
-        $services = Service::active()
+        $servicesQuery = Service::active()
             ->with(['hairstyle_models' => function($q) {
                 $q->active()->orderBy('id', 'desc');
-            }, 'commission'])
-            ->has('hairstyle_models')
-            ->get();
+            }, 'commission']);
+
+        if ($branchId && !auth()->user()->hasRole('admin')) {
+            $servicesQuery->whereHas('branches', function ($q) use ($branchId) {
+                $q->where('branch_id', $branchId);
+            });
+        }
+
+        $services = (clone $servicesQuery)->has('hairstyle_models')->get();
 
         if ($services->isEmpty()) {
-            $services = Service::active()
-                ->with(['hairstyle_models' => function($q) {
-                    $q->active()->orderBy('id', 'desc');
-                }, 'commission'])
-                ->get();
+            $services = $servicesQuery->get();
         }
 
         return view('service::backend.hairstyle_models.visualize', compact('module_action', 'module_title', 'services', 'commissions'));
@@ -101,6 +111,13 @@ class HairstyleModelController extends Controller
     {
         $module_name = $this->module_name;
         $query = HairstyleModel::query()->with(['service', 'commission']);
+
+        $branchId = request()->selected_session_branch_id;
+        if ($branchId && !auth()->user()->hasRole('admin')) {
+            $query->whereHas('service.branches', function ($q) use ($branchId) {
+                $q->where('branch_id', $branchId);
+            });
+        }
 
         $filter = $request->filter;
 

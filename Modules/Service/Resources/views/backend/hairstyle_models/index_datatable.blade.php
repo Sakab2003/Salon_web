@@ -59,7 +59,7 @@
 
                     @hasPermission('add_hairstyle_model')
                         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#hairstyle-model-modal" id="btn-create-model">
-                            <i class="fa-solid fa-plus me-1"></i> Créer un {{ strtolower($module_title) }}
+                            <i class="fa-solid fa-plus me-1"></i> Créer un modèle de service
                         </button>
                     @endhasPermission
                 </x-slot>
@@ -75,7 +75,7 @@
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold" id="hairstyleModelModalLabel">Créer un {{ strtolower($module_title) }}</h5>
+                    <h5 class="modal-title fw-bold" id="hairstyleModelModalLabel">Créer un modèle de service</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="hairstyle-model-form" method="POST" enctype="multipart/form-data">
@@ -85,7 +85,7 @@
                     <div id="removed-image-ids-container"></div>
                     <div class="modal-body">
                         <div class="row">
-                            <div class="col-md-4 form-group mb-3">
+                            <div class="col-md-6 form-group mb-3">
                                 <label for="service_id" class="form-label fw-semibold">Service <span class="text-danger">*</span></label>
                                 <select class="form-select" id="service_id" name="service_id" required>
                                     <option value="">Sélectionner un service...</option>
@@ -95,17 +95,7 @@
                                 </select>
                             </div>
 
-                            <div class="col-md-4 form-group mb-3">
-                                <label for="commission_id" class="form-label fw-semibold">Commission <span class="text-danger">*</span></label>
-                                <select class="form-select" id="commission_id" name="commission_id" required>
-                                    <option value="">Sélectionner une commission...</option>
-                                    @foreach ($commissions as $comm)
-                                        <option value="{{ $comm->id }}">{{ $comm->title }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            <div class="col-md-4 form-group mb-3">
+                            <div class="col-md-6 form-group mb-3">
                                 <label for="status_select" class="form-label fw-semibold">Statut <span class="text-danger">*</span></label>
                                 <select class="form-select" id="status_select" name="status" required>
                                     <option value="1" selected>Public</option>
@@ -350,11 +340,6 @@
                     data: 'service',
                     name: 'service.name',
                     title: 'Service'
-                },
-                {
-                    data: 'commission',
-                    name: 'commission.title',
-                    title: 'Commission'
                 },
                 {
                     data: 'name',

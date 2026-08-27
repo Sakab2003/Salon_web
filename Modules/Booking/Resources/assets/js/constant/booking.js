@@ -9,12 +9,23 @@ export const PAYMENT_CREATE_URL = ({ booking_id }) => {return {path: `${MODULE}/
 export const PAYMENT_PUT_URL = (booking_id) => {return {path: `${MODULE}/booking-payment/${booking_id}`, method: 'PUT'}}
 export const UPDATE_STATUS = (id) => {return {path: `${MODULE}/update-status/${id}`, method: 'POST'}}
 export const CUSTOMER_LIST = () => {return {path: `users/user-list?role=user`, method: 'GET'}}
-export const EMPLOYEE_LIST = ({branch_id, show_in_calender = 1}) => {return {path: ` employees/employee_list?branch_id=${branch_id}&show_in_calender=${show_in_calender}`, method: 'GET'}}
-export const SERVICE_LIST = ({id: employee_id, branch_id}) => {return {path: `${MODULE}/services-index_list?employee_id=${employee_id}&branch_id=${branch_id}`, method: 'GET'}}
-export const SLOT_LIST = ({date, branch_id}) => {return { path: `${MODULE}/slots?date=${date}&branch_id=${branch_id}`, method: 'GET',}}
+export const EMPLOYEE_LIST = ({branch_id, show_in_calender}) => {
+    let query = []
+    if (branch_id) query.push(`branch_id=${branch_id}`)
+    if (show_in_calender !== undefined && show_in_calender !== '') query.push(`show_in_calender=${show_in_calender}`)
+    const qStr = query.length > 0 ? `?${query.join('&')}` : ''
+    return {path: `employees/employee_list${qStr}`, method: 'GET'}
+}
+export const SERVICE_LIST = ({id: employee_id, branch_id}) => {
+    let query = []
+    if (employee_id) query.push(`employee_id=${employee_id}`)
+    if (branch_id) query.push(`branch_id=${branch_id}`)
+    const qStr = query.length > 0 ? `?${query.join('&')}` : ''
+    return {path: `${MODULE}/services-index_list${qStr}`, method: 'GET'}
+}
+export const SLOT_LIST = ({date, branch_id}) => {return { path: `${MODULE}/slots?date=${date || ''}&branch_id=${branch_id || ''}`, method: 'GET'}}
 export const UPDATE_PAYMENT_DATA = (booking_transaction_id) => {return {path: `${MODULE}/booking-payment-update/${booking_transaction_id}`, method: 'PUT'}}
 export const STRIPE_PAYMENT_DATA = () => {return {path: `${MODULE}/stripe-payment`, method: 'POST'}}
-
 
 // Product Module
 export const PRODUCT_LIST = () => {return {path: `products/index_list_with_varient`, method: 'GET'}}

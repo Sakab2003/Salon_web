@@ -1,9 +1,19 @@
-@if ($data->payment_status == 'unpaid')
-    <span class="badge bg-soft-danger rounded-pill text-capitalize">
-        {{ $data->payment_status }}
-    </span>
-@else
-    <span class="badge bg-soft-primary rounded-pill text-capitalize">
-        {{ $data->payment_status }}
-    </span>
-@endif
+@php
+    $status = strtolower($data->payment_status ?? '');
+    $label = 'Payé';
+    $badgeClass = 'bg-soft-success';
+
+    if ($status === 'unpaid' || $status === 'non_paye' || $status === 'non payé') {
+        $label = 'Non payé';
+        $badgeClass = 'bg-soft-danger';
+    } elseif ($status === 'pending' || $status === 'en attente') {
+        $label = 'En attente';
+        $badgeClass = 'bg-soft-warning text-dark';
+    } elseif ($status === 'paid' || $status === 'paye' || $status === 'payé') {
+        $label = 'Payé';
+        $badgeClass = 'bg-soft-success';
+    }
+@endphp
+<span class="badge {{ $badgeClass }} rounded-pill text-capitalize">
+    {{ $label }}
+</span>

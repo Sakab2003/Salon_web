@@ -167,6 +167,19 @@ class CustomersController extends Controller
             ->addColumn('action', function ($data) use ($module_name) {
                 return view('customer::backend.customers.action_column', compact('module_name', 'data'));
             })
+            ->addColumn('staff_name', function ($data) {
+                $lastBooking = $data->booking->sortByDesc('id')->first();
+                if ($lastBooking && $lastBooking->employee) {
+                    return '<span class="badge bg-soft-primary"><i class="fa-solid fa-user-tie me-1"></i>' . e($lastBooking->employee->full_name) . '</span>';
+                }
+                if ($data->created_by) {
+                    $creator = User::find($data->created_by);
+                    if ($creator) {
+                        return '<span class="badge bg-soft-info"><i class="fa-solid fa-user me-1"></i>' . e($creator->full_name) . '</span>';
+                    }
+                }
+                return '<span class="badge bg-soft-secondary">-</span>';
+            })
             ->addColumn('branch_name', function ($data) {
                 if ($data->customerBranch) {
                     return '<span class="badge bg-soft-primary">' . e($data->customerBranch->name) . '</span>';

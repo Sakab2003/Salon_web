@@ -18,16 +18,12 @@ use Yajra\DataTables\DataTables;
 
 class OrdersController extends Controller
 {
-    use  OrderTrait;
+    use OrderTrait;
 
     public function __construct()
     {
-        // Page Title
-        $this->module_title = 'orders.title';
-        // module name
+        $this->module_title = 'sidebar.orders';
         $this->module_name = 'orders';
-
-        // module icon
         $this->module_icon = 'fa-solid fa-clipboard-list';
 
         view()->share([
@@ -38,362 +34,493 @@ class OrdersController extends Controller
     }
 
     /**
-     * Display a listing of the resource.
-     *
-     * @return Renderable
+     * Display sales history listing with mobile-like KPIs and stats.
      */
     public function index(Request $request)
     {
         $export_import = false;
-
-        $locations = Location::where('status', 1)->latest()->get();
-
-        return view('product::backend.order.index_datatable', compact('export_import', 'locations'));
-    }
-
-    public function index_data(DataTables $datatable, Request $request)
-    {
-        $orders = Order::with('orderGroup');
-
-        $filter = $request->filter;
-
-        $posOrder = [];
-
-        if (isset($filter)) {
-            if (isset($filter['code'])) {
-                $orders = $orders->where(function ($q) use ($filter) {
-                    $orderGroup = OrderGroup::where('order_code', $filter['code'])->pluck('id');
-                    $q->orWhereIn('order_group_id', $orderGroup);
-                });
-            }
-
-            if (isset($filter['delivery_status'])) {
-                $orders = $orders->where('delivery_status', $filter['delivery_status']);
-            }
-
-            if (isset($filter['payment_status'])) {
-                $orders = $orders->where('payment_status', $filter['payment_status']);
-            }
-
-            if (isset($filter['location_id'])) {
-                $orders = $orders->where('location_id', $filter['location_id']);
+        $user = auth()->user();
+        $branchId = request()->selected_session_branch_id;
+        if (empty($branchId) && $user) {
+            if ($user->hasRole('manager')) {
+                $branchId = $user->branch_id ?: optional(\App\Models\Branch::where('manager_id', $user->id)->first())->id;
+            } elseif ($user->hasRole('employee')) {
+                $branchId = optional($user->mainBranch()->first())->id ?: optional($user->branch()->first()?->getBranch)->id ?: $user->branch_id;
             }
         }
 
-        $orders = $orders->where(function ($q) {
-            $orderGroup = OrderGroup::pluck('id');
-            $q->orWhereIn('order_group_id', $orderGroup);
-        });
+        $ordersQuery = Order::query()->where('payment_status', 'paid');
+        if (!empty($branchId) && (!$user || !$user->hasRole('admin'))) {
+            $ordersQuery->where(function($q) use ($branchId, $user) {
+                $q->where('location_id', $branchId)->orWhere('user_id', $user ? $user->id : 0);
+            });
+        }
+
+        $totalSalesAmount = (float) (clone $ordersQuery)->sum('total_admin_earnings');
+        $totalOrdersCount = (int) (clone $ordersQuery)->count();
+        $averageTicket = $totalOrdersCount > 0 ? ($totalSalesAmount / $totalOrdersCount) : 0;
+        $todaySalesAmount = (float) (clone $ordersQuery)->whereDate('created_at', Carbon::today())->sum('total_admin_earnings');
+        $todayOrdersCount = (int) (clone $ordersQuery)->whereDate('created_at', Carbon::today())->count();
+
+        $locations = Location::where('status', 1)->latest()->get();
+
+        return view('product::backend.order.index_datatable', compact(
+            'export_import', 'locations', 'totalSalesAmount', 'totalOrdersCount',
+            'averageTicket', 'todaySalesAmount', 'todayOrdersCount'
+        ));
+    }
+
+    /**
+     * DataTables endpoint for sales history.
+     */
+    public function index_data(DataTables $datatable, Request $request)
+    {
+        $user = auth()->user();
+        $branchId = request()->selected_session_branch_id;
+        if (empty($branchId) && $user) {
+            if ($user->hasRole('manager')) {
+                $branchId = $user->branch_id ?: optional(\App\Models\Branch::where('manager_id', $user->id)->first())->id;
+            } elseif ($user->hasRole('employee')) {
+                $branchId = optional($user->mainBranch()->first())->id ?: optional($user->branch()->first()?->getBranch)->id ?: $user->branch_id;
+            }
+        }
+
+        $orders = Order::with(['orderGroup', 'orderItems.product_variation.product', 'user']);
+
+        if (!empty($branchId) && (!$user || !$user->hasRole('admin'))) {
+            $orders->where(function ($q) use ($branchId, $user) {
+                $q->where('location_id', $branchId)
+                  ->orWhere('user_id', $user ? $user->id : 0);
+            });
+        }
+
+        $filter = $request->filter;
+
+        if (isset($filter)) {
+            if (!empty($filter['code'])) {
+                $code = $filter['code'];
+                $orders->whereHas('orderGroup', function ($q) use ($code) {
+                    $q->where('order_code', 'LIKE', "%{$code}%");
+                });
+            }
+
+            if (!empty($filter['delivery_status'])) {
+                $orders->where('delivery_status', $filter['delivery_status']);
+            }
+
+            if (!empty($filter['payment_status'])) {
+                $orders->where('payment_status', $filter['payment_status']);
+            }
+
+            if (!empty($filter['payment_method'])) {
+                $method = $filter['payment_method'];
+                $orders->whereHas('orderGroup', function ($q) use ($method) {
+                    $q->where('payment_method', $method);
+                });
+            }
+
+            if (!empty($filter['location_id'])) {
+                $orders->where('location_id', $filter['location_id']);
+            }
+        }
 
         return $datatable->eloquent($orders)
-              ->addColumn('check', function ($row) {
-                  return '<input type="checkbox" class="form-check-input select-table-row "  id="datatable-row-'.$row->id.'"  name="datatable_ids[]" value="'.$row->id.'" onclick="dataTableRowCheck('.$row->id.')">';
-              })
-              ->addColumn('action', function ($data) {
-                  return view('product::backend.order.columns.action_column', compact('data'));
-              })
-              ->editColumn('order_code', function ($data) {
-                  return setting('inv_prefix').$data->orderGroup->order_code;
-              })
-              ->editColumn('customer_name', function ($data) {
-                  return view('product::backend.order.columns.customer_column', compact('data'));
-              })
-              ->editColumn('placed_on', function ($data) {
-                  return customDate($data->created_at);
-              })
-              ->editColumn('items', function ($data) {
-                  return $data->orderItems()->count();
-              })
-              ->editColumn('type', function ($data) {
-                  return view('product::backend.order.columns.type_column', compact('data'));
-              })
-              ->editColumn('payment', function ($data) {
-                  return view('product::backend.order.columns.payment_column', compact('data'));
-              })
-              ->editColumn('status', function ($data) {
-                  return view('product::backend.order.columns.status_column', compact('data'));
-              })
-              ->editColumn('location', function ($data) {
-                  return $data->location ? $data->location->name : 'N/A';
-              })
-              ->filterColumn('customer_name', function ($query, $keyword) {
-                  if (! empty($keyword)) {
-                      $query->whereHas('user', function ($q) use ($keyword) {
-                          $q->where('first_name', 'like', '%'.$keyword.'%');
-                          $q->orWhere('last_name', 'like', '%'.$keyword.'%');
-                      });
-                  }
-              })
-              ->editColumn('updated_at', function ($data) {
-                  $diff = Carbon::now()->diffInHours($data->updated_at);
-                  if ($diff < 25) {
-                      return $data->updated_at->diffForHumans();
-                  } else {
-                      return $data->updated_at->isoFormat('llll');
-                  }
-              })
-              ->orderColumns(['id'], '-:column $1')
-              ->rawColumns(['action', 'check'])
-              ->toJson();
+            ->addColumn('check', function ($row) {
+                return '<input type="checkbox" class="form-check-input select-table-row" id="datatable-row-'.$row->id.'" name="datatable_ids[]" value="'.$row->id.'" onclick="dataTableRowCheck('.$row->id.')">';
+            })
+            ->editColumn('order_code', function ($data) {
+                $prefix = setting('inv_prefix') ?: '#';
+                $code = optional($data->orderGroup)->order_code ?: str_pad($data->id, 6, '0', STR_PAD_LEFT);
+                return '<span class="badge bg-soft-primary fw-bold fs-6">'.$prefix.$code.'</span>';
+            })
+            ->editColumn('customer_name', function ($data) {
+                $customer = $data->user;
+                $name = $customer ? trim($customer->first_name . ' ' . $customer->last_name) : 'Client de passage';
+                $phone = $customer ? ($customer->mobile ?: $customer->email) : '-';
+                return '
+                    <div>
+                        <strong class="d-block text-dark">'.$name.'</strong>
+                        <small class="text-muted"><i class="fa-solid fa-phone me-1"></i>'.$phone.'</small>
+                    </div>
+                ';
+            })
+            ->editColumn('placed_on', function ($data) {
+                return '
+                    <div>
+                        <span class="d-block fw-semibold text-dark">'.$data->created_at->isoFormat('D MMMM YYYY').'</span>
+                        <small class="text-muted"><i class="fa-regular fa-clock me-1"></i>'.$data->created_at->format('H:i').'</small>
+                    </div>
+                ';
+            })
+            ->addColumn('items_detail', function ($data) {
+                $items = $data->orderItems;
+                $count = $items ? $items->sum('qty') : 0;
+                $badges = [];
+                foreach ($items->take(2) as $item) {
+                    $prodName = optional(optional($item->product_variation)->product)->name ?: 'Prestation';
+                    $badges[] = '<span class="badge bg-light text-dark border me-1 mb-1">'.$item->qty.'x '.$prodName.'</span>';
+                }
+                if ($items->count() > 2) {
+                    $badges[] = '<span class="badge bg-secondary-subtle text-secondary">+'.$items->count() - 2 .'</span>';
+                }
+                return '<div class="d-flex flex-wrap align-items-center">'.implode('', $badges).'</div>';
+            })
+            ->editColumn('payment_method', function ($data) {
+                $method = optional($data->orderGroup)->payment_method ?: 'Paiement Cash';
+                $icon = 'fa-money-bill-wave';
+                $badgeClass = 'bg-soft-success text-success';
+                if (str_contains($method, 'Orange')) {
+                    $icon = 'fa-mobile-screen';
+                    $badgeClass = 'bg-soft-warning text-warning';
+                } elseif (str_contains($method, 'Moov')) {
+                    $icon = 'fa-signal';
+                    $badgeClass = 'bg-soft-primary text-primary';
+                } elseif (str_contains($method, 'Wave')) {
+                    $icon = 'fa-water';
+                    $badgeClass = 'bg-soft-info text-info';
+                }
+                return '<span class="badge '.$badgeClass.' px-2 py-1 rounded-pill"><i class="fa-solid '.$icon.' me-1"></i>'.$method.'</span>';
+            })
+            ->addColumn('total_amount_formatted', function ($data) {
+                $amount = $data->total_admin_earnings ?: optional($data->orderGroup)->grand_total_amount;
+                return '<strong class="text-primary fs-6">'.number_format($amount, 0, ',', ' ').' FCFA</strong>';
+            })
+            ->editColumn('status', function ($data) {
+                return '<span class="badge bg-success-subtle text-success px-2 py-1 rounded-pill"><i class="fa-solid fa-circle-check me-1"></i>Payé / Livré</span>';
+            })
+            ->addColumn('action', function ($data) {
+                $orderJson = e(json_encode([
+                    'id' => $data->id,
+                    'order_code' => optional($data->orderGroup)->order_code ?: $data->id,
+                    'customer_name' => optional($data->user)->full_name ?: 'Client de passage',
+                    'customer_phone' => optional($data->user)->mobile ?: '-',
+                    'date' => $data->created_at->isoFormat('LLLL'),
+                    'total' => number_format($data->total_admin_earnings ?: optional($data->orderGroup)->grand_total_amount, 0, ',', ' ') . ' FCFA',
+                    'payment_method' => optional($data->orderGroup)->payment_method ?: 'Paiement Cash',
+                    'items' => $data->orderItems->map(function($item) {
+                        return [
+                            'name' => optional(optional($item->product_variation)->product)->name ?: 'Article',
+                            'qty' => $item->qty,
+                            'price' => number_format($item->unit_price, 0, ',', ' ') . ' FCFA',
+                            'total' => number_format($item->total_price, 0, ',', ' ') . ' FCFA',
+                        ];
+                    })->toArray(),
+                ]));
+
+                return '
+                    <div class="d-flex gap-2 justify-content-end">
+                        <button type="button" class="btn btn-sm btn-outline-primary rounded-circle view-receipt-btn" data-order-data="'.$orderJson.'" title="Voir le ticket">
+                            <i class="fa-solid fa-receipt"></i>
+                        </button>
+                        <a href="'.route('backend.orders.show', ['id' => $data->id]).'" class="btn btn-sm btn-outline-secondary rounded-circle" target="_blank" title="Facture">
+                            <i class="fa-solid fa-file-invoice"></i>
+                        </a>
+                    </div>
+                ';
+            })
+            ->rawColumns(['action', 'check', 'order_code', 'customer_name', 'placed_on', 'items_detail', 'payment_method', 'total_amount_formatted', 'status'])
+            ->orderColumns(['id'], '-:column $1')
+            ->toJson();
     }
 
     /**
      * Show the specified resource.
-     *
-     * @param  int  $id
-     * @return Renderable
      */
     public function show(Request $request)
     {
-        $order = Order::find($request->id);
+        $order = Order::with(['orderItems.product_variation.product', 'orderGroup', 'user'])->find($request->id);
         if ($order == null) {
-            return abort(500);
+            return abort(404);
         }
 
         return view('product::backend.order.show', compact('order'));
     }
 
-    // update payment status
-    public function updatePaymentStatus(Request $request)
+    /**
+     * POS Direct Sale Interface.
+     */
+    public function pos(Request $request)
     {
-        $order = Order::findOrFail((int) $request->order_id);
-        $order->payment_status = $request->status;
-        $order->save();
-
-        OrderUpdate::create([
-            'order_id' => $order->id,
-            'user_id' => auth()->user()->id,
-            'note' => 'Payment status updated to '.ucwords(str_replace('_', ' ', $request->status)).'.',
-        ]);
-
-        // todo::['mail notification']
-        return response()->json(['status' => true, 'message' => 'Payment Status Has Been Updated']);
-    }
-
-    // update delivery status
-    public function updateDeliveryStatus(Request $request)
-    {
-        $order = Order::findOrFail((int) $request->order_id);
-
-        if ($order->delivery_status != 'cancelled' && $request->status == 'cancelled') {
-            $this->addQtyToStock($order);
-        }
-
-        if ($order->delivery_status == 'cancelled' && $request->status != 'cancelled') {
-            $this->removeQtyFromStock($order);
-        }
-
-        $order->delivery_status = $request->status;
-        $order->save();
-
-        OrderUpdate::create([
-            'order_id' => $order->id,
-            'user_id' => auth()->user()->id,
-            'note' => 'Delivery status updated to '.ucwords(str_replace('_', ' ', $request->status)).'.',
-        ]);
-
-        $order_prefix_data = Setting::where('name', 'inv_prefix')->first();
-        $order_prefix = $order_prefix_data ? $order_prefix_data->val : '';
-
-        $notify_type = null;
-
-        $status = $request->status;
-
-        switch ($status) {
-            case 'processing':
-                $notify_type = 'order_proccessing';
-                break;
-            case 'delivered':
-                $notify_type = 'order_delivered';
-                break;
-            case 'cancelled':
-                $notify_type = 'order_cancelled';
-                break;
-        }
-
-        try {
-            $notification_data = [
-
-                'id' => $order->id,
-                'order_code' => $order_prefix.optional($order->orderGroup)->order_code,
-                'user_id' => $order->user_id,
-                'user_name' => optional($order->user)->first_name.' '.optional($order->user)->last_name ?? default_user_name(),
-                'order_date' => $order->updated_at->format('d/m/Y'),
-                'order_time' => $order->updated_at->format('h:i A'),
-            ];
-
-            $this->sendNotificationOnOrderUpdate($notify_type, $notification_data);
-        } catch (\Exception $e) {
-            \Log::error($e->getMessage());
-        }
-
-        // todo::['mail notification']
-        return response()->json(['status' => true, 'message' => 'Order delivery status has been updated']);
-    }
-
-    // add qty to stock
-    private function addQtyToStock($order)
-    {
-        $orderItems = OrderItem::where('order_id', $order->id)->get();
-        foreach ($orderItems as $orderItem) {
-            $stock = $orderItem->product_variation->product_variation_stock;
-            $stock->stock_qty += $orderItem->qty;
-            $stock->save();
-
-            $product = $orderItem->product_variation->product;
-            $product->total_sale_count += $orderItem->qty;
-            $product->save();
-
-            if ($product->categories()->count() > 0) {
-                foreach ($product->categories as $category) {
-                    $category->total_sale_count += $orderItem->qty;
-                    $category->save();
-                }
-            }
-        }
-    }
-
-    // remove qty from stock
-    private function removeQtyFromStock($order)
-    {
-        $orderItems = OrderItem::where('order_id', $order->id)->get();
-        foreach ($orderItems as $orderItem) {
-            $stock = $orderItem->product_variation->product_variation_stock;
-            $stock->stock_qty -= $orderItem->qty;
-            $stock->save();
-
-            $product = $orderItem->product_variation->product;
-            $product->total_sale_count -= $orderItem->qty;
-            $product->save();
-
-            if ($product->categories()->count() > 0) {
-                foreach ($product->categories as $category) {
-                    $category->total_sale_count -= $orderItem->qty;
-                    $category->save();
-                }
-            }
-        }
-    }
-
-    // Order Creation
-    public function complete(Request $request)
-    {
+        $branchId = request()->selected_session_branch_id;
         $user = auth()->user();
+        if (empty($branchId) && $user) {
+            if ($user->hasRole('manager')) {
+                $branchId = $user->branch_id ?: optional(\App\Models\Branch::where('manager_id', $user->id)->first())->id;
+            } elseif ($user->hasRole('employee')) {
+                $branchId = optional($user->mainBranch()->first())->id ?: optional($user->branch()->first()?->getBranch)->id ?: $user->branch_id;
+            }
+        }
 
-        $userId = $user->id;
+        $products = \Modules\Product\Models\Product::where('status', 1)
+            ->with(['media', 'product_variations.product_variation_stock'])
+            ->get();
 
-        $location_id = $request->location_id;
+        $servicesQuery = \Modules\Service\Models\Service::active()->with('media');
+        if (!empty($branchId) && (!$user || !$user->hasRole('admin'))) {
+            $servicesQuery->whereHas('branches', function ($q) use ($branchId) {
+                $q->where('branch_id', $branchId);
+            });
+        }
+        $services = $servicesQuery->get();
 
-        $carts = Cart::where('user_id', $userId)->where('location_id', $location_id)->get();
+        $customers = \App\Models\User::whereHas('roles', function ($q) {
+            $q->where('name', 'user');
+        })->select('id', 'first_name', 'last_name', 'email', 'mobile')->get();
 
-        if (count($carts) > 0) {
-            // check carts available stock -- todo::[update version] -> run this check while storing OrderItems
-            foreach ($carts as $cart) {
-                $productVariationStock = $cart->product_variation->product_variation_stock ? $cart->product_variation->product_variation_stock->stock_qty : 0;
-                if ($cart->qty > $productVariationStock) {
-                    $message = $cart->product_variation->product->name.' is out of stock';
+        if ($customers->isEmpty()) {
+            $customers = \App\Models\User::select('id', 'first_name', 'last_name', 'email', 'mobile')->get();
+        }
 
-                    return response()->json(['message' => $message, 'status' => false]);
-                }
+        $paymentMethods = [
+            'Paiement Cash' => 'Paiement Cash',
+            'Orange Money' => 'Orange Money',
+            'Moov Money' => 'Moov Money',
+            'Wave' => 'Wave',
+            'Carte Bancaire' => 'Carte Bancaire',
+            'Virement' => 'Virement'
+        ];
+
+        return view('product::backend.order.pos', compact('products', 'services', 'customers', 'paymentMethods'));
+    }
+
+    /**
+     * Store POS Sale.
+     */
+    public function store_pos(Request $request)
+    {
+        $request->validate([
+            'items' => 'required|array|min:1',
+            'total_amount' => 'required|numeric|min:0',
+        ]);
+
+        $user = auth()->user();
+        $branchId = $request->branch_id ?: request()->selected_session_branch_id;
+        if (empty($branchId) && $user) {
+            if ($user->hasRole('manager')) {
+                $branchId = $user->branch_id ?: optional(\App\Models\Branch::where('manager_id', $user->id)->first())->id;
+            } elseif ($user->hasRole('employee')) {
+                $branchId = optional($user->mainBranch()->first())->id ?: optional($user->branch()->first()?->getBranch)->id;
+            }
+        }
+        if (empty($branchId)) {
+            $location = \Modules\Location\Models\Location::where('is_default', 1)->first();
+            $branchId = $location ? $location->id : 1;
+        }
+
+        $customerId = $request->customer_id;
+        if (empty($customerId) && (!empty($request->new_customer_first_name) || !empty($request->new_customer_name) || !empty($request->full_name))) {
+            $fullName = trim($request->full_name ?? $request->new_customer_name ?? '');
+            $firstName = trim($request->new_customer_first_name ?? '');
+            $lastName = trim($request->new_customer_last_name ?? '');
+            if (empty($firstName) && !empty($fullName)) {
+                $nameParts = explode(' ', $fullName, 2);
+                $firstName = $nameParts[0];
+                $lastName = $nameParts[1] ?? '';
             }
 
-            // create new order group
-            $orderGroup = new OrderGroup;
-            $orderGroup->user_id = $userId;
-            $orderGroup->shipping_address_id = $request->shipping_address_id;
-            $orderGroup->billing_address_id = $request->billing_address_id;
-            $orderGroup->location_id = $location_id;
-            $orderGroup->phone_no = $request->phone;
-            $orderGroup->alternative_phone_no = $request->alternative_phone;
-            $orderGroup->sub_total_amount = getSubTotal($carts, false, '', false);
-            $orderGroup->total_tax_amount = 0;
-            $orderGroup->total_coupon_discount_amount = 0;
-            $orderGroup->type = 'online';
-            $logisticZone = LogisticZone::where('id', $request->chosen_logistic_zone_id)->first();
-            // todo::[for eCommerce] handle exceptions for standard & express
-            $orderGroup->total_shipping_cost = $logisticZone->standard_delivery_charge;
-            $orderGroup->total_tips_amount = $request->tips;
+            $custPhone = $request->new_customer_phone ?: ($request->mobile ?: ($request->phone ?: null));
+            $newCust = \App\Models\User::create([
+                'first_name' => $firstName ?: 'Client',
+                'last_name' => $lastName ?: 'Passage',
+                'email' => $request->new_customer_email ?: ('client_' . time() . rand(100, 999) . '@salon.local'),
+                'mobile' => $custPhone,
+                'password' => bcrypt('12345678'),
+            ]);
+            $newCust->assignRole('user');
+            $customerId = $newCust->id;
+        }
 
-            $orderGroup->grand_total_amount = $orderGroup->sub_total_amount + $orderGroup->total_tax_amount + $orderGroup->total_shipping_cost + $orderGroup->total_tips_amount - $orderGroup->total_coupon_discount_amount;
-            $orderGroup->save();
+        $userId = $customerId ?: ($user ? $user->id : 1);
 
-            // order -> todo::[update version] make array for each vendor, create order in loop
-            $order = new Order;
-            $order->order_group_id = $orderGroup->id;
-            $order->user_id = $userId;
-            $order->location_id = $location_id;
-            $order->total_admin_earnings = $orderGroup->grand_total_amount;
-            $order->logistic_id = $logisticZone->logistic_id;
-            $order->logistic_name = optional($logisticZone->logistic)->name;
-
-            $order->shipping_cost = $orderGroup->total_shipping_cost; // todo::[update version] calculate for each vendors
-            $order->tips_amount = $orderGroup->total_tips_amount; // todo::[update version] calculate for each vendors
-
-            $order->save();
-
-            // order items
-            $total_points = 0;
-            foreach ($carts as $cart) {
-                $orderItem = new OrderItem;
-                $orderItem->order_id = $order->id;
-                $orderItem->product_variation_id = $cart->product_variation_id;
-                $orderItem->qty = $cart->qty;
-                $orderItem->location_id = $location_id;
-                $orderItem->unit_price = variationDiscountedPrice($cart->product_variation->product, $cart->product_variation);
-                $orderItem->total_tax = 0;
-                $orderItem->total_price = $orderItem->unit_price * $orderItem->qty;
-                $orderItem->save();
-
-                $product = $cart->product_variation->product;
-                $product->total_sale_count += $orderItem->qty;
-
-                // minus stock qty
-                try {
-                    $productVariationStock = $cart->product_variation->product_variation_stock;
-                    $productVariationStock->stock_qty -= $orderItem->qty;
-                    $productVariationStock->save();
-                } catch (\Throwable $th) {
-                    //throw $th;
-                }
-
-                $product->stock_qty -= $orderItem->qty;
-                $product->save();
-
-                // category sales count
-                if ($product->categories()->count() > 0) {
-                    foreach ($product->categories as $category) {
-                        $category->total_sale_count += $orderItem->qty;
-                        $category->save();
+        // Verify stock for products only
+        foreach ($request->items as $item) {
+            if (!empty($item['type']) && $item['type'] === 'service') {
+                continue;
+            }
+            if (!empty($item['product_id'])) {
+                $product = \Modules\Product\Models\Product::find($item['product_id']);
+                if ($product) {
+                    $requestedQty = (int) ($item['quantity'] ?? $item['qty'] ?? 1);
+                    $availableStock = (int) $product->stock_qty;
+                    if ($requestedQty > $availableStock) {
+                        return response()->json([
+                            'status' => false,
+                            'message' => "Stock insuffisant pour '{$product->name}'. Restant: {$availableStock} (demandé: {$requestedQty})"
+                        ], 422);
                     }
                 }
-                $cart->delete();
             }
-
-            $order->save();
-            // payment gateway integration & redirection
-            $orderGroup->payment_method = $request->payment_method;
-            $orderGroup->save();
-
-            return true;
         }
+
+        $amountPaid = (float) ($request->amount_paid ?? $request->total_amount);
+        $totalAmount = (float) $request->total_amount;
+        $change = max(0, $amountPaid - $totalAmount);
+
+        $orderGroup = new OrderGroup;
+        $orderGroup->user_id = $userId;
+        $orderGroup->location_id = $branchId;
+        $orderGroup->order_code = (string) rand(100000, 999999);
+        $orderGroup->sub_total_amount = $totalAmount;
+        $orderGroup->total_tax_amount = 0;
+        $orderGroup->total_coupon_discount_amount = 0;
+        $orderGroup->total_shipping_cost = 0;
+        $orderGroup->total_tips_amount = 0;
+        $orderGroup->grand_total_amount = $totalAmount;
+        $orderGroup->payment_method = $request->payment_method ?: 'Paiement Cash';
+        $orderGroup->payment_status = 'paid';
+        $orderGroup->type = 'pos';
+        $orderGroup->payment_details = json_encode([
+            'amount_paid' => $amountPaid,
+            'change' => $change,
+            'payment_method' => $request->payment_method ?: 'Paiement Cash',
+            'notes' => $request->notes ?? ''
+        ]);
+        $orderGroup->save();
+
+        $order = new Order;
+        $order->order_group_id = $orderGroup->id;
+        $order->user_id = $userId;
+        $order->location_id = $branchId;
+        $order->delivery_status = 'delivered';
+        $order->payment_status = 'paid';
+        $order->total_admin_earnings = $totalAmount;
+        $order->save();
+
+        foreach ($request->items as $item) {
+            $isService = (!empty($item['type']) && $item['type'] === 'service') || !empty($item['service_id']);
+            $qty = (int) ($item['quantity'] ?? $item['qty'] ?? 1);
+            $price = (float) ($item['price'] ?? 0);
+
+            if ($isService) {
+                $serviceName = $item['name'] ?? ($item['service_name'] ?? 'Prestation Service');
+                $serviceProduct = \Modules\Product\Models\Product::firstOrCreate(
+                    ['name' => $serviceName],
+                    [
+                        'slug' => \Str::slug($serviceName),
+                        'min_price' => $price,
+                        'max_price' => $price,
+                        'stock_qty' => 999999,
+                        'status' => 1,
+                        'is_featured' => 0,
+                    ]
+                );
+                $variation = $serviceProduct->product_variations->first();
+                if (!$variation) {
+                    $variation = \Modules\Product\Models\ProductVariation::create([
+                        'product_id' => $serviceProduct->id,
+                        'price' => $price,
+                        'sku' => 'SRV-' . ($item['service_id'] ?? rand(100, 999)),
+                        'code' => 'SRV-' . ($item['service_id'] ?? rand(100, 999)),
+                    ]);
+                }
+
+                $orderItem = new OrderItem;
+                $orderItem->order_id = $order->id;
+                $orderItem->product_variation_id = $variation->id;
+                $orderItem->qty = $qty;
+                $orderItem->location_id = $branchId;
+                $orderItem->unit_price = $price;
+                $orderItem->total_tax = 0;
+                $orderItem->total_price = $price * $qty;
+                $orderItem->save();
+            } else {
+                $product = \Modules\Product\Models\Product::find($item['product_id'] ?? $item['id'] ?? null);
+                if ($product) {
+                    $variation = $product->product_variations->first();
+                    if (!$variation) {
+                        $variation = \Modules\Product\Models\ProductVariation::create([
+                            'product_id' => $product->id,
+                            'price' => $product->max_price ?: $product->min_price,
+                            'sku' => 'PRD-' . $product->id,
+                            'code' => 'PRD-' . $product->id,
+                        ]);
+                    }
+
+                    $orderItem = new OrderItem;
+                    $orderItem->order_id = $order->id;
+                    $orderItem->product_variation_id = $variation->id;
+                    $orderItem->qty = $qty;
+                    $orderItem->location_id = $branchId;
+                    $orderItem->unit_price = $price ?: ($product->max_price ?: $product->min_price);
+                    $orderItem->total_tax = 0;
+                    $orderItem->total_price = ($price ?: ($product->max_price ?: $product->min_price)) * $qty;
+                    $orderItem->save();
+
+                    $variationStock = $variation->product_variation_stock_without_location()->where('location_id', $branchId)->first();
+                    if ($variationStock) {
+                        $variationStock->stock_qty = max(0, $variationStock->stock_qty - $qty);
+                        $variationStock->save();
+                    }
+
+                    $product->stock_qty = max(0, (int) $product->stock_qty - $qty);
+                    $product->total_sale_count = (int) $product->total_sale_count + $qty;
+                    $product->save();
+                }
+            }
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Vente validée avec succès !',
+            'data' => [
+                'order_id' => $order->id,
+                'order_code' => $orderGroup->order_code,
+                'total_amount' => $totalAmount,
+                'amount_paid' => $amountPaid,
+                'change' => $change,
+                'invoice_url' => route('backend.orders.show', ['id' => $order->id]),
+            ]
+        ], 200);
     }
 
-    // download invoice
-    public function downloadInvoice($id)
+    /**
+     * Financial balance reporting.
+     */
+    public function financial_balance(Request $request)
     {
-        if (session()->has('locale')) {
-            $language_code = session()->get('locale', config('app.locale'));
-        } else {
-            $language_code = env('DEFAULT_LANGUAGE');
+        $today = Carbon::today();
+        $now = Carbon::now();
+
+        $todayOrders = Order::whereDate('created_at', $today)->where('payment_status', 'paid')->get();
+        $dailyTotal = $todayOrders->sum('total_admin_earnings');
+        $todaySalesCount = $todayOrders->count();
+
+        $weeklyOrders = Order::where('created_at', '>=', Carbon::now()->subDays(7))->where('payment_status', 'paid')->get();
+        $weeklyTotal = $weeklyOrders->sum('total_admin_earnings');
+
+        $monthlyOrders = Order::whereMonth('created_at', $now->month)->whereYear('created_at', $now->year)->where('payment_status', 'paid')->get();
+        $monthlyTotal = $monthlyOrders->sum('total_admin_earnings');
+
+        $allOrders = Order::where('payment_status', 'paid')->get();
+        $overallTotal = $allOrders->sum('total_admin_earnings');
+
+        $dailyRevenueLast7Days = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $d = Carbon::today()->subDays($i);
+            $daySum = Order::whereDate('created_at', $d)->where('payment_status', 'paid')->sum('total_admin_earnings');
+            $dailyRevenueLast7Days[] = [
+                'date' => $d->format('d/m'),
+                'day_name' => $d->locale('fr')->isoFormat('ddd'),
+                'total' => (float) $daySum,
+            ];
         }
 
-        $font_family = "'Roboto','sans-serif'";
+        $orderGroups = OrderGroup::where('payment_status', 'paid')->get();
+        $paymentMethodsRevenue = [];
+        foreach ($orderGroups as $og) {
+            $m = $og->payment_method ?: 'Paiement Cash';
+            $paymentMethodsRevenue[$m] = ($paymentMethodsRevenue[$m] ?? 0) + (float) $og->grand_total_amount;
+        }
 
-        $order = Order::findOrFail((int) $id);
+        $topSellingProducts = \Modules\Product\Models\Product::where('total_sale_count', '>', 0)
+            ->orderBy('total_sale_count', 'desc')
+            ->take(10)
+            ->get();
 
-        return PDF::loadView('product::backend.order.invoice', [
-            'order' => $order,
-            'font_family' => $font_family,
-        ], [], [])->stream(setting('order_code_prefix').$order->orderGroup->order_code.'.pdf');
+        return view('product::backend.order.financial_balance', compact(
+            'dailyTotal', 'weeklyTotal', 'monthlyTotal', 'overallTotal',
+            'todaySalesCount', 'dailyRevenueLast7Days', 'paymentMethodsRevenue',
+            'topSellingProducts'
+        ));
     }
 }

@@ -1,13 +1,25 @@
-@if ($data->delivery_status == 'delivered')
-    <span class="badge bg-soft-primary rounded-pill text-capitalize">
-        {{ $data->delivery_status }}
-    </span>
-@elseif($data->delivery_status == 'cancelled')
-    <span class="badge bg-soft-danger rounded-pill text-capitalize">
-        {{ Str::title(Str::replace('_', ' ', $data->delivery_status)) }}
-    </span>
-@else
-    <span class="badge bg-soft-info rounded-pill text-capitalize">
-        {{ Str::title(Str::replace('_', ' ', $data->delivery_status))  }}
-    </span>
-@endif
+@php
+    $dStatus = strtolower($data->delivery_status ?? '');
+    $label = 'Livré';
+    $badgeClass = 'bg-soft-success';
+
+    if ($dStatus === 'delivered' || $dStatus === 'livre' || $dStatus === 'livré') {
+        $label = 'Livré';
+        $badgeClass = 'bg-soft-success';
+    } elseif ($dStatus === 'cancelled' || $dStatus === 'annule' || $dStatus === 'annulé') {
+        $label = 'Annulé';
+        $badgeClass = 'bg-soft-danger';
+    } elseif ($dStatus === 'order_placed' || $dStatus === 'pending' || $dStatus === 'en_attente') {
+        $label = 'Commande passée';
+        $badgeClass = 'bg-soft-info';
+    } elseif ($dStatus === 'processing' || $dStatus === 'en_cours') {
+        $label = 'En cours';
+        $badgeClass = 'bg-soft-warning text-dark';
+    } else {
+        $label = Str::title(Str::replace('_', ' ', $data->delivery_status));
+        $badgeClass = 'bg-soft-info';
+    }
+@endphp
+<span class="badge {{ $badgeClass }} rounded-pill text-capitalize">
+    {{ $label }}
+</span>

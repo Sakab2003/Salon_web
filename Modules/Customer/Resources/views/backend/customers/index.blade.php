@@ -113,6 +113,7 @@
         name: 'mobile',
         title: "{{ __('customer.lbl_phone_number') ?? 'Téléphone' }}"
       },
+
       @if($isAdmin ?? false)
       {
         data: 'branch_name',

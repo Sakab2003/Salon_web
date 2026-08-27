@@ -268,10 +268,22 @@ class ProductsController extends Controller
                             });
                         })
                         ->editColumn('min_price', function ($data) {
-                            if ($data->max_price != $data->min_price) {
-                                return \Currency::format($data->min_price).' - '.\Currency::format($data->max_price);
+                            $selling = $data->max_price ?: $data->min_price;
+                            $purchase = $data->min_price;
+                            $html = '<div class="fw-bold text-success">' . \Currency::format($selling) . '</div>';
+                            if ($purchase && $purchase != $selling) {
+                                $html .= '<small class="text-muted">Achat: ' . \Currency::format($purchase) . '</small>';
+                            }
+                            return $html;
+                        })
+                        ->editColumn('stock_qty', function ($data) {
+                            $qty = (int) $data->stock_qty;
+                            if ($qty > 5) {
+                                return '<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 rounded-pill"><i class="fa-solid fa-boxes-stacked me-1"></i> ' . $qty . '</span>';
+                            } elseif ($qty > 0) {
+                                return '<span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1 rounded-pill"><i class="fa-solid fa-triangle-exclamation me-1"></i> ' . $qty . ' (Faible)</span>';
                             } else {
-                                return \Currency::format($data->min_price);
+                                return '<span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 rounded-pill"><i class="fa-solid fa-ban me-1"></i> Rupture</span>';
                             }
                         })
                         ->editColumn('brand', function ($data) {
@@ -303,7 +315,7 @@ class ProductsController extends Controller
                                 return $data->updated_at->isoFormat('llll');
                             }
                         })
-                        ->rawColumns(['action', 'status', 'image', 'check', 'categories', 'is_featured'])
+                        ->rawColumns(['action', 'status', 'image', 'check', 'categories', 'is_featured', 'min_price', 'stock_qty'])
                         ->make(true);
     }
 
@@ -326,16 +338,20 @@ class ProductsController extends Controller
         $product->sell_target = $request->sell_target ?? 0;
 
         $product->description = $request->description;
-        $product->short_description = $request->short_description;
+        $product->short_description = $request->short_description ?: $request->description;
+
+        $sellPrice = $request->selling_price ?? $request->price ?? 0;
+        $buyPrice = $request->purchase_price ?? $request->min_price ?? $sellPrice;
+        $stockQty = $request->stock_qty ?? $request->stock ?? 0;
 
         if ($request->has('has_variation') && $request->has('combinations') && $request->has_variation && $request->combinations != 'undefined') {
-            $request->combinations = json_decode($request->combinations, true);
+            $request->combinations = is_array($request->combinations) ? $request->combinations : json_decode($request->combinations, true);
 
             $product->min_price = min(array_column($request->combinations, 'price'));
             $product->max_price = max(array_column($request->combinations, 'price'));
         } else {
-            $product->min_price = $request->price;
-            $product->max_price = $request->price;
+            $product->min_price = $buyPrice;
+            $product->max_price = $sellPrice;
         }
 
         // discount
@@ -357,10 +373,10 @@ class ProductsController extends Controller
             $request->has_variation == 1 && $request->has('combinations') && is_array($request->combinations) && ! empty($request->combinations)) {
             $product->stock_qty = array_sum(array_column($request->combinations, 'stock'));
         } else {
-            $product->stock_qty = $request->stock;
+            $product->stock_qty = $stockQty;
         }
 
-        $product->status = $request->status;
+        $product->status = $request->status ?? 1;
         $product->has_variation = ($request->has_variation == 1 && count($request->combinations) > 0) ? 1 : 0;
 
         // shipping info
@@ -369,7 +385,7 @@ class ProductsController extends Controller
         $product->min_purchase_qty = $request->min_purchase_qty ?? 1;
         $product->max_purchase_qty = $request->max_purchase_qty ?? 1;
 
-        $product->is_featured = $request->is_featured;
+        $product->is_featured = $request->is_featured ?? 0;
         $product->save();
 
         // tags
@@ -378,24 +394,28 @@ class ProductsController extends Controller
         if (! empty($request->tags) && is_string($request->tags) && $request->taxes !== 'undefined') {
             $request->tags = json_decode($request->tags, true);
 
-            foreach ($request->tags as $key => $value) {
-                $tag = Tag::updateOrCreate(['name' => $value], ['name' => $value]);
-                $tag_ids[] = $tag->id;
+            if (is_array($request->tags)) {
+                foreach ($request->tags as $key => $value) {
+                    $tag = Tag::updateOrCreate(['name' => $value], ['name' => $value]);
+                    $tag_ids[] = $tag->id;
+                }
             }
         }
 
         $product->tags_data()->sync($tag_ids);
 
         // category
-
         $category_ids = [];
-
         if (! empty($request->category_ids) && is_string($request->category_ids) && $request->category_ids !== 'undefined') {
-            $request->category_ids = json_decode($request->category_ids, true);
-            $product->categories()->sync($request->category_ids);
+            $decoded = json_decode($request->category_ids, true);
+            if (is_array($decoded) && count($decoded) > 0) {
+                $product->categories()->sync($decoded);
+            }
         }
 
         $location = Location::where('is_default', 1)->first();
+        $locationId = $location ? $location->id : 1;
+
         if ($request->has_variation == 1) {
             if ($request->has('combinations') && is_array($request->combinations) && ! empty($request->combinations)) {
                 foreach ($request->combinations as $variation) {
@@ -409,7 +429,7 @@ class ProductsController extends Controller
 
                     $product_variation_stock = new ProductVariationStock;
                     $product_variation_stock->product_variation_id = $product_variation->id;
-                    $product_variation_stock->location_id = $location->id;
+                    $product_variation_stock->location_id = $locationId;
                     $product_variation_stock->stock_qty = $variation['stock'];
                     $product_variation_stock->save();
 
@@ -426,14 +446,15 @@ class ProductsController extends Controller
         } else {
             $variation = new ProductVariation;
             $variation->product_id = $product->id;
-            $variation->sku = $request->sku;
-            $variation->code = $request->code;
-            $variation->price = $request->price;
+            $variation->sku = $request->sku ?: ('SKU-' . strtoupper(Str::random(6)));
+            $variation->code = $request->code ?: ('PRD-' . rand(1000, 9999));
+            $variation->price = $sellPrice;
             $variation->save();
+
             $product_variation_stock = new ProductVariationStock;
             $product_variation_stock->product_variation_id = $variation->id;
-            $product_variation_stock->location_id = $location->id;
-            $product_variation_stock->stock_qty = $request->stock;
+            $product_variation_stock->location_id = $locationId;
+            $product_variation_stock->stock_qty = $stockQty;
             $product_variation_stock->save();
         }
 
@@ -504,10 +525,14 @@ class ProductsController extends Controller
         } else {
             $variation = $data->product_variations->first();
             $location = Location::where('is_default', 1)->first();
-            $data['stock'] = $variation->product_variation_stock()->where('location_id', $location->id)->first()->stock_qty;
-            $data['code'] = $variation->code;
-            $data['price'] = $variation->price;
-            $data['sku'] = $variation->sku;
+            $locationId = $location ? $location->id : 1;
+            $stockObj = $variation ? $variation->product_variation_stock()->where('location_id', $locationId)->first() : null;
+            $data['stock'] = $stockObj ? $stockObj->stock_qty : $data->stock_qty;
+            $data['code'] = $variation ? $variation->code : null;
+            $data['price'] = $variation ? $variation->price : ($data->max_price ?: $data->min_price);
+            $data['selling_price'] = $data->max_price ?: ($variation ? $variation->price : $data->min_price);
+            $data['purchase_price'] = $data->min_price;
+            $data['sku'] = $variation ? $variation->sku : null;
         }
 
         return response()->json(['data' => $data, 'status' => true]);
@@ -521,7 +546,7 @@ class ProductsController extends Controller
      */
     public function update(ProductRequest $request, $id)
     {
-        if ($request->has('has_variation') && ! $request->has('combinations')) {
+        if ($request->has('has_variation') && $request->has_variation == 1 && ! $request->has('combinations')) {
             return response()->json(['message' => 'Invalid product variations, please check again', 'status' => false], 402);
         }
         $product = Product::findOrFail($id);
@@ -531,19 +556,23 @@ class ProductsController extends Controller
         $product->name = $request->name;
         $product->slug = (! is_null($request->slug)) ? Str::slug($request->slug, '-') : Str::slug($request->name, '-').'-'.strtolower(Str::random(5));
         $product->description = $request->description;
-        $product->sell_target = $request->sell_target;
+        $product->sell_target = $request->sell_target ?? 0;
         $product->brand_id = $request->brand_id;
         $product->unit_id = $request->unit_id;
-        $product->short_description = $request->short_description;
+        $product->short_description = $request->short_description ?: $request->description;
+
+        $sellPrice = $request->selling_price ?? $request->price ?? $product->max_price ?? 0;
+        $buyPrice = $request->purchase_price ?? $request->min_price ?? $product->min_price ?? $sellPrice;
+        $stockQty = $request->stock_qty ?? $request->stock ?? $product->stock_qty ?? 0;
 
         if ($request->has('has_variation') && $request->has('combinations') && $request->has_variation && $request->combinations != 'undefined') {
-            $request->combinations = json_decode($request->combinations, true);
+            $request->combinations = is_array($request->combinations) ? $request->combinations : json_decode($request->combinations, true);
 
             $product->min_price = min(array_column($request->combinations, 'price'));
             $product->max_price = max(array_column($request->combinations, 'price'));
         } else {
-            $product->min_price = $request->price;
-            $product->max_price = $request->price;
+            $product->min_price = $buyPrice;
+            $product->max_price = $sellPrice;
         }
 
         // discount
@@ -706,30 +735,27 @@ class ProductsController extends Controller
             }
 
             $variation = $product->product_variations->first();
-            $variation->product_id = $product->id;
+            if (! $variation) {
+                $variation = new ProductVariation;
+                $variation->product_id = $product->id;
+            }
             $variation->variation_key = null;
-            $variation->sku = $request->sku;
-            $variation->code = $request->code;
-            $variation->price = $request->price;
+            $variation->sku = $request->sku ?: ($variation->sku ?: 'SKU-' . strtoupper(Str::random(6)));
+            $variation->code = $request->code ?: ($variation->code ?: 'PRD-' . rand(1000, 9999));
+            $variation->price = $sellPrice;
             $variation->save();
 
-            if ($variation->product_variation_stock) {
-                $productVariationStock = $variation->product_variation_stock_without_location()->where('location_id', $location->id)->first();
+            $locId = $location ? $location->id : 1;
+            $productVariationStock = $variation->product_variation_stock_without_location()->where('location_id', $locId)->first();
 
-                if (is_null($productVariationStock)) {
-                    $productVariationStock = new ProductVariationStock;
-                }
-
+            if (is_null($productVariationStock)) {
+                $productVariationStock = new ProductVariationStock;
                 $productVariationStock->product_variation_id = $variation->id;
-                $productVariationStock->stock_qty = $request->stock;
-                $productVariationStock->location_id = $location->id;
-                $productVariationStock->save();
-            } else {
-                $product_variation_stock = new ProductVariationStock;
-                $product_variation_stock->product_variation_id = $variation->id;
-                $product_variation_stock->stock_qty = $request->stock;
-                $product_variation_stock->save();
+                $productVariationStock->location_id = $locId;
             }
+
+            $productVariationStock->stock_qty = $stockQty;
+            $productVariationStock->save();
         }
 
         if ($request->feature_image == null) {

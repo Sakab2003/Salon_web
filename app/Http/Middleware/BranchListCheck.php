@@ -22,7 +22,23 @@ class BranchListCheck
             $selected_branch = $branches->where('id', $branchId)->first();
             $auth = auth()->user();
 
-            if (auth()->user()->hasRole('admin')) {
+            if (auth()->user()->hasRole('manager')) {
+                $mgrBranch = Branch::where('manager_id', auth()->id())->first() ?: (auth()->user()->branch_id ? Branch::find(auth()->user()->branch_id) : null);
+                if ($mgrBranch) {
+                    $selected_branch = $mgrBranch;
+                    $branches = collect([$mgrBranch]);
+                }
+            } elseif (auth()->user()->hasRole('employee')) {
+                try {
+                    $empBranch = optional(auth()->user()->mainBranch()->first()) ?: (auth()->user()->branch ? Branch::find(auth()->user()->branch->branch_id) : null);
+                    if ($empBranch) {
+                        $selected_branch = $empBranch;
+                        $branches = collect([$empBranch]);
+                    }
+                } catch (\Exception $e) {
+                    \Log::error($e->getMessage());
+                }
+            } elseif (auth()->user()->hasRole('admin')) {
                 if (str_contains($request->route()->getName(), 'backend.bookings')
                       && $request->route()->getName() !== 'backend.bookings.index_data'
                       && $request->route()->getName() !== 'backend.bookings.datatable_view'
@@ -33,19 +49,11 @@ class BranchListCheck
                 }
             }
 
-            if (auth()->user()->hasRole('employee')) {
-                try {
-                    $selected_branch = Branch::find(auth()->user()->branch->branch_id);
-                } catch (\Exception $e) {
-                    \Log::error($e->getMessage());
-                }
-            }
-
             $isSingleBranch = false;
 
             if (count($branches) == 1) {
                 $isSingleBranch = true;
-                $selected_branch = $branches[0];
+                $selected_branch = $branches[0] ?? $branches->first();
             }
 
             $data = [

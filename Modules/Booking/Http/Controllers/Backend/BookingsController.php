@@ -162,15 +162,25 @@ class BookingsController extends Controller
     {
         $employee_id = $request->employee_id;
         $branch_id = $request->branch_id;
+
+        if (empty($branch_id) || $branch_id == '0' || $branch_id == 0) {
+            if (auth()->check() && auth()->user()->hasRole('manager')) {
+                $branch_id = auth()->user()->branch_id ?: optional(\App\Models\Branch::where('manager_id', auth()->id())->first())->id;
+            } elseif (request()->filled('selected_session_branch_id')) {
+                $branch_id = request()->selected_session_branch_id;
+            }
+        }
+
         $data = Service::select('services.name as service_name', 'service_branches.*')
             ->with('employee')
             ->leftJoin('service_branches', 'service_branches.service_id', 'services.id')
-            ->whereHas('category', function ($q) {
-                $q->active();
-            })
-            ->where('branch_id', $branch_id);
+            ->where('services.status', 1);
 
-        if (isset($employee_id)) {
+        if (!empty($branch_id) && $branch_id != '0') {
+            $data->where('service_branches.branch_id', $branch_id);
+        }
+
+        if (isset($employee_id) && !empty($employee_id)) {
             $data = $data->whereHas('employee', function ($q) use ($employee_id) {
                 $q->where('employee_id', $employee_id);
             });

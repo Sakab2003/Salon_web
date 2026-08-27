@@ -18,27 +18,7 @@
         <InputField class="col-md-12" type="text" :is-required="true" :label="`${$t('service.lbl_default_price')} (${CURRENCY_SYMBOL})`"  placeholder="" v-model="default_price" :error-message="errors['default_price']" :error-messages="errorMessages['default_price']"></InputField>
 
 
-        <div class="form-group">
-          <label class="form-label" for="category_id">{{ $t('service.lbl_category') }} <span class="text-danger">*</span> </label>
-          <Multiselect v-model="category_id" :value="category_id" v-bind="categories" id="category_id" @select="changeCategory"></Multiselect>
-          <span v-if="errorMessages['category_id']">
-            <ul class="text-danger">
-              <li v-for="err in errorMessages['category_id']" :key="err">{{ err }}</li>
-            </ul>
-          </span>
-          <span class="text-danger">{{ errors.category_id }}</span>
-        </div>
 
-        <div class="form-group" v-if="subCategories.options.length > 0">
-          <label class="form-label" for="sub_category_id">{{ $t('service.lbl_sub_category') }} </label>
-          <Multiselect v-model="sub_category_id" :value="sub_category_id" v-bind="subCategories" id="sub_category_id"></Multiselect>
-          <span v-if="errorMessages['sub_category_id']">
-            <ul class="text-danger">
-              <li v-for="err in errorMessages['sub_category_id']" :key="err">{{ err }}</li>
-            </ul>
-          </span>
-          <span class="text-danger">{{ errors.sub_category_id }}</span>
-        </div>
 
         <div v-for="field in customefield" :key="field.id">
           <FormElement v-model="custom_fields_data" :name="field.name" :label="field.label" :type="field.type" :required="field.required" :options="field.value" :field_id="field.id"></FormElement>
@@ -190,8 +170,7 @@ const validationSchema = yup.object({
   name: yup.string().required('Name is a required field'),
   duration_min: yup.string().required('Service Duration ( Mins ) is a required field').matches(/^\d+$/, 'Only numbers are allowed'),
   default_price: yup.string().required('Default Price is a required field').matches(/^\d+$/, 'Only numbers are allowed'),
-  category_id: yup.string().required('Category is a required field').matches(/^\d+$/, 'Only numbers are allowed'),
-   description:yup.string().test('no-script-tags', 'The Description field cannot contain script tags.', function(value) {
+  description:yup.string().test('no-script-tags', 'The Description field cannot contain script tags.', function(value) {
     const scriptTagRegex = /<script\b[^>]*>(.*?)/is;
     return !scriptTagRegex.test(value);
   }),

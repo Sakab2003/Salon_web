@@ -34,7 +34,7 @@ trait AuthTrait
             'last_name' => ['required', 'string', 'max:191'],
             'email' => ['required', 'string', 'email', 'max:191', 'unique:users'],
             'password' => ['required', Rules\Password::defaults()],
-            'gender' => ['required'],
+            'gender' => ['nullable'],
         ]);
 
         $arr = [
@@ -43,7 +43,7 @@ trait AuthTrait
             'name' => $request->first_name.' '.$request->last_name,
             'email' => $request->email,
             'mobile' => $request->mobile,
-            'gender' => $request->gender,
+            'gender' => $request->input('gender'),
             'password' => Hash::make($request->password),
         ];
 

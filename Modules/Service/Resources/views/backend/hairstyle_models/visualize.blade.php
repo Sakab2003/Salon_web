@@ -235,12 +235,19 @@
 @section('content')
 <div class="container-fluid">
     <div class="row mb-4 align-items-center">
-        <div class="col-md-7">
-            <h3 class="fw-bold mb-1"><i class="fa-solid fa-scissors text-primary me-2"></i>Visualiser les Modèles de Coiffure</h3>
-            <p class="text-muted m-0">Parcourez les modèles de coiffure regroupés par service de prestation.</p>
+        <div class="col-md-5">
+            <h3 class="fw-bold mb-1"><i class="fa-solid fa-layer-group text-primary me-2"></i>Modèles de service</h3>
         </div>
-        <div class="col-md-5 mt-3 mt-md-0">
-            <div class="input-group shadow-sm rounded-pill overflow-hidden">
+        <div class="col-md-7 mt-3 mt-md-0 d-flex flex-wrap gap-2 justify-content-md-end">
+            <div style="min-width: 200px;">
+                <select id="filter-service-select" class="form-select shadow-sm rounded-pill py-2">
+                    <option value="">Tous les services</option>
+                    @foreach($services as $s)
+                        <option value="{{ strtolower($s->name) }}">{{ $s->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="input-group shadow-sm rounded-pill overflow-hidden flex-grow-1" style="max-width: 320px;">
                 <span class="input-group-text bg-white dark:bg-dark border-0 ps-3"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
                 <input type="text" id="search-service-input" class="form-control border-0 py-2" placeholder="Rechercher un service ou un modèle...">
             </div>
@@ -250,8 +257,8 @@
     @if($services->isEmpty())
         <div class="card p-5 text-center shadow-sm rounded-4">
             <div class="my-4">
-                <i class="fa-solid fa-scissors fa-4x text-muted opacity-50 mb-3"></i>
-                <h4 class="fw-semibold">Aucun modèle de coiffure disponible</h4>
+                <i class="fa-solid fa-layer-group fa-4x text-muted opacity-50 mb-3"></i>
+                <h4 class="fw-semibold">Aucun modèle disponible</h4>
                 <p class="text-muted">Commencez par ajouter des modèles dans la section <a href="{{ route('backend.hairstyle-models.index') }}" class="fw-bold text-primary">Liste des modèles</a>.</p>
             </div>
     @else
@@ -284,6 +291,20 @@
                     $firstItem = $flatItems->first();
                     $coverImage = !empty($service->feature_image) ? $service->feature_image : ($firstItem ? $firstItem->image : asset('dummy-images/common/Service 8.webp'));
                     $serviceName = $service->name;
+                    $sNameLower = strtolower($serviceName);
+
+                    // Dynamic icon selection per service type
+                    $serviceIcon = 'fa-scissors';
+                    if (str_contains($sNameLower, 'massage') || str_contains($sNameLower, 'détente') || str_contains($sNameLower, 'relax')) {
+                        $serviceIcon = 'fa-spa';
+                    } elseif (str_contains($sNameLower, 'maquillage') || str_contains($sNameLower, 'makeup') || str_contains($sNameLower, 'visage')) {
+                        $serviceIcon = 'fa-wand-magic-sparkles';
+                    } elseif (str_contains($sNameLower, 'ongle') || str_contains($sNameLower, 'manucure') || str_contains($sNameLower, 'pédicure')) {
+                        $serviceIcon = 'fa-hand-sparkles';
+                    } elseif (str_contains($sNameLower, 'soin') || str_contains($sNameLower, 'peau')) {
+                        $serviceIcon = 'fa-heart-pulse';
+                    }
+
                     $totalPhotosCount = $flatItems->count();
                 @endphp
                 <div class="col-12 col-sm-6 col-lg-4 service-card-item" data-search="{{ strtolower($serviceName . ' ' . implode(' ', $flatItems->pluck('model_name')->toArray())) }}">
@@ -298,7 +319,7 @@
                             <div>
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <span class="badge bg-soft-primary rounded-pill px-3 py-1">Service</span>
-                                    <small class="text-muted"><i class="fa-solid fa-scissors me-1"></i>Coiffure</small>
+                                    <small class="text-muted"><i class="fa-solid {{ $serviceIcon }} me-1"></i>{{ $serviceName }}</small>
                                 </div>
                                 <h5 class="fw-bold card-title mb-2 text-dark dark:text-light">{{ $serviceName }}</h5>
                                 <p class="text-muted small line-clamp-2 mb-3">
@@ -425,23 +446,30 @@
 @push('after-scripts')
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // Recherche en direct
+        // Recherche et filtre par service en direct
         const searchInput = document.getElementById('search-service-input');
-        if (searchInput) {
-            searchInput.addEventListener('input', function() {
-                const query = this.value.toLowerCase().trim();
-                const items = document.querySelectorAll('.service-card-item');
-                
-                items.forEach(item => {
-                    const searchData = item.getAttribute('data-search') || '';
-                    if (searchData.includes(query)) {
-                        item.style.display = '';
-                    } else {
-                        item.style.display = 'none';
-                    }
-                });
+        const serviceSelect = document.getElementById('filter-service-select');
+        
+        function applyCombinedFilter() {
+            const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+            const selectedSvc = serviceSelect ? serviceSelect.value.toLowerCase().trim() : '';
+            const items = document.querySelectorAll('.service-card-item');
+
+            items.forEach(item => {
+                const searchData = item.getAttribute('data-search') || '';
+                const matchesQuery = !query || searchData.includes(query);
+                const matchesSvc = !selectedSvc || searchData.includes(selectedSvc);
+
+                if (matchesQuery && matchesSvc) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
             });
         }
+
+        if (searchInput) searchInput.addEventListener('input', applyCombinedFilter);
+        if (serviceSelect) serviceSelect.addEventListener('change', applyCombinedFilter);
 
         // Lightbox Logic
         const lightbox = document.getElementById('image-lightbox');

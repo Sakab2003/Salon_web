@@ -761,8 +761,14 @@ const slots = ref([])
 
 useOnOffcanvasHide('booking-form', () => setFormData(defaultData()))
 useOnOffcanvasShow('booking-form', () => {
-  useSelect({ url: BRANCH_LIST }, { value: 'id', label: 'name' }).then((data) => (branch.value = data))
-  branch_id.value = props.bookingData.branch_id
+  useSelect({ url: BRANCH_LIST }, { value: 'id', label: 'name' }).then((data) => {
+    branch.value = data
+    if (!branch_id.value && data.options && data.options.length > 0) {
+      branch_id.value = data.options[0].value
+    }
+    branchSelect(branch_id.value)
+  })
+  branch_id.value = props.bookingData.branch_id || branch_id.value
   getCustomers()
   branchSelect(branch_id.value)
   getProducts()
@@ -782,6 +788,7 @@ const dateChange = () => {
 }
 
 const getSlots = () => {
+  if (!branch_id.value) return
   listingRequest({ url: SLOT_LIST, data: { branch_id: branch_id.value, date: current_date.value } }).then((res) => {
     if (res.status) {
       slots.value = res.data
@@ -790,7 +797,13 @@ const getSlots = () => {
 }
 // On Select
 const branchSelect = (value) => {
-  useSelect({ url: EMPLOYEE_LIST, data: { branch_id: value } }, { value: 'id', label: 'name' }).then((data) => (employee.value = data))
+  if (!value) return
+  useSelect({ url: EMPLOYEE_LIST, data: { branch_id: value } }, { value: 'id', label: 'name' }).then((data) => {
+    employee.value = data
+    if (employee_id.value) {
+      employeeSelect(employee_id.value)
+    }
+  })
   getSlots()
 }
 const removeBranch = (value) => {
@@ -801,6 +814,7 @@ const removeBranch = (value) => {
   resetServices()
 }
 const employeeSelect = (value) => {
+  if (!value) return
   useSelect({ url: SERVICE_LIST, data: { id: value, branch_id: branch_id.value } }, { value: 'service_id', label: 'service_name' }).then((data) => (service.value = data))
 }
 const removeEmployee = () => {

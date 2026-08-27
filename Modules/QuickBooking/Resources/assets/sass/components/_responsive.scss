@@ -58,10 +58,17 @@
 }
 @media (max-width: 576px) {
     .card-list-data{
-        min-height: calc(100vh - 21rem);
-        max-height: calc(100vh - 21rem);
+        min-height: auto;
+        max-height: none;
     }
     .card-list {
         grid-template-columns: repeat(1, minmax(0, 1fr));
+    }
+    .booking-wizard {
+        padding: .5rem;
+        border-radius: .75rem;
+    }
+    .widget-tabs .tab-item {
+        min-width: 44px;
     }
 }

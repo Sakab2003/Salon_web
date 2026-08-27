@@ -113,7 +113,29 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
 
     <style>
-        /* width */
+        body {
+            overflow-x: hidden;
+        }
+
+        .main-content.wrapper,
+        #page_layout {
+            min-height: 100vh;
+            width: 100%;
+            overflow-x: hidden;
+        }
+
+        .quick-booking-page {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        @media (max-width: 768px) {
+            .quick-booking-page {
+                padding-left: 0.5rem !important;
+                padding-right: 0.5rem !important;
+            }
+        }
         ::-webkit-scrollbar {
           width: 10px;
         }

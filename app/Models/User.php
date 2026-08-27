@@ -49,6 +49,7 @@ class User extends Authenticatable implements HasMedia, MustVerifyEmail
         'deleted_at',
         'date_of_birth',
         'email_verified_at',
+        'mobile_trial_started_at',
     ];
 
     /**
@@ -62,6 +63,7 @@ class User extends Authenticatable implements HasMedia, MustVerifyEmail
 
     protected $casts = [
         'user_setting' => 'array',
+        'mobile_trial_started_at' => 'datetime',
     ];
 
     protected $appends = ['full_name', 'profile_image'];
@@ -108,6 +110,32 @@ class User extends Authenticatable implements HasMedia, MustVerifyEmail
     public function subscriptionPackage()
     {
         return $this->hasOne(Subscription::class, 'user_id', 'id')->where('status', config('constant.SUBSCRIPTION_STATUS.ACTIVE'));
+    }
+
+    public const MOBILE_TRIAL_DAYS = 3;
+
+    public function hasMobileAccess(): bool
+    {
+        if (! $this->hasAnyRole(['admin', 'manager', 'employee'])) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public function mobileTrialDaysRemaining(): int
+    {
+        if ($this->subscriptionPackage()->exists() || $this->mobile_trial_started_at === null) {
+            return 0;
+        }
+
+        $expiresAt = $this->mobile_trial_started_at->copy()->addDays(self::MOBILE_TRIAL_DAYS);
+
+        if (now()->greaterThan($expiresAt)) {
+            return 0;
+        }
+
+        return (int) now()->diffInDays($expiresAt) + 1;
     }
 
     public function address()

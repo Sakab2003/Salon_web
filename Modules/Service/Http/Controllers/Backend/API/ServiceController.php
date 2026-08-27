@@ -138,7 +138,7 @@ class ServiceController extends Controller
         $branchId = $request->input('branch_id');
 
         $services = Service::with(['media', 'branches', 'employee']);
-        if ($request->has('branch_id')) {
+        if ($request->has('branch_id') && !empty($branchId) && $branchId != '0' && $branchId != 0) {
             $services = $services->whereHas('branches', function ($query) use ($branchId) {
                 $query->where('branch_id', $branchId);
             });
@@ -205,6 +205,125 @@ class ServiceController extends Controller
         } else {
             return response()->json(['status' => true, 'data' => $filteredServices, 'message' => __('service.service_detail')]);
         }
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:191',
+            'default_price' => 'required|numeric',
+            'duration_min' => 'required|integer',
+            'category_id' => 'nullable|integer',
+        ]);
+
+        $existing = Service::where('name', 'LIKE', trim($request->name))->first();
+        if ($existing) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Un service avec le nom "' . $request->name . '" existe déjà.',
+            ], 422);
+        }
+
+        $data = $request->only([
+            'name', 'description', 'duration_min', 'default_price', 
+            'category_id', 'sub_category_id', 'commission_id', 'status'
+        ]);
+        if (!isset($data['status'])) {
+            $data['status'] = 1;
+        }
+
+        $service = Service::create($data);
+
+        if ($request->hasFile('feature_image')) {
+            storeMediaFile($service, $request->file('feature_image'));
+        }
+
+        $user = auth()->user();
+        if ($user && $user->hasRole('manager')) {
+            $managerBranchId = $user->branch_id ?: optional(\App\Models\Branch::where('manager_id', $user->id)->first())->id;
+            if ($managerBranchId) {
+                ServiceBranches::firstOrCreate([
+                    'service_id' => $service->id,
+                    'branch_id' => $managerBranchId,
+                ], [
+                    'service_price' => $service->default_price,
+                    'duration_min' => $service->duration_min,
+                ]);
+            }
+        } else {
+            $branchIds = $request->branch_id ? (is_array($request->branch_id) ? $request->branch_id : explode(',', $request->branch_id)) : \App\Models\Branch::pluck('id')->toArray();
+            foreach ($branchIds as $bId) {
+                ServiceBranches::firstOrCreate([
+                    'service_id' => $service->id,
+                    'branch_id' => $bId,
+                ], [
+                    'service_price' => $service->default_price,
+                    'duration_min' => $service->duration_min,
+                ]);
+            }
+        }
+
+        if ($request->employee_id) {
+            $empIds = is_array($request->employee_id) ? $request->employee_id : explode(',', $request->employee_id);
+            foreach ($empIds as $eId) {
+                ServiceEmployee::firstOrCreate([
+                    'service_id' => $service->id,
+                    'employee_id' => $eId,
+                ]);
+            }
+        }
+
+        return response()->json([
+            'status' => true,
+            'data' => $service,
+            'message' => __('service.singular_title') . ' créé avec succès.',
+        ], 200);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $service = Service::findOrFail($id);
+
+        $data = $request->only([
+            'name', 'description', 'duration_min', 'default_price', 
+            'category_id', 'sub_category_id', 'commission_id', 'status'
+        ]);
+
+        $service->update(array_filter($data, fn($v) => !is_null($v)));
+
+        if ($request->hasFile('feature_image')) {
+            storeMediaFile($service, $request->file('feature_image'));
+        }
+
+        if ($request->has('employee_id')) {
+            ServiceEmployee::where('service_id', $service->id)->delete();
+            $empIds = is_array($request->employee_id) ? $request->employee_id : explode(',', $request->employee_id);
+            foreach ($empIds as $eId) {
+                if ($eId) {
+                    ServiceEmployee::create([
+                        'service_id' => $service->id,
+                        'employee_id' => $eId,
+                    ]);
+                }
+            }
+        }
+
+        return response()->json([
+            'status' => true,
+            'data' => $service,
+            'message' => __('service.singular_title') . ' mis à jour avec succès.',
+        ], 200);
+    }
+
+    public function destroy($id)
+    {
+        $service = Service::findOrFail($id);
+        $service->delete();
+
+        return response()->json([
+            'status' => true,
+            'message' => __('service.singular_title') . ' supprimé avec succès.',
+        ], 200);
     }
 
     public function searchServices(Request $request)
