@@ -49,4 +49,13 @@ return [
         'redirect' => env('GOOGLE_REDIRECT'),
     ],
 
+    'cinetpay' => [
+        'api_key' => env('CINETPAY_API_KEY'),
+        'site_id' => env('CINETPAY_SITE_ID'),
+        'currency' => env('CINETPAY_CURRENCY', 'XOF'),
+        'subscription_amount' => env('CINETPAY_SUBSCRIPTION_AMOUNT', 0),
+        'subscription_duration_days' => env('CINETPAY_SUBSCRIPTION_DURATION_DAYS', 30),
+        'return_url' => env('CINETPAY_RETURN_URL'),
+    ],
+
 ];

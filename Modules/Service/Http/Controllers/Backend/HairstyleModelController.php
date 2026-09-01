@@ -68,13 +68,7 @@ class HairstyleModelController extends Controller
         $module_title = 'modèles de commission';
         $module_action = 'Visualiser les';
 
-        $branchId = request()->selected_session_branch_id;
-
-        // Pour les managers : récupérer la branche si non définie en session
-        if (!$branchId && !auth()->user()->hasRole('admin') && auth()->user()->hasRole('manager')) {
-            $branchId = auth()->user()->branch_id 
-                ?: \App\Models\Branch::where('manager_id', auth()->id())->value('id');
-        }
+        $branchId = $this->currentBranchId();
 
         $commissions = \Modules\Commission\Models\Commission::where('status', 1)->get();
         
@@ -109,7 +103,7 @@ class HairstyleModelController extends Controller
      */
     public function show($id)
     {
-        $data = HairstyleModel::with(['service', 'commission'])->findOrFail($id);
+        $data = $this->findAccessibleModel($id, ['service', 'commission']);
         $data->feature_image_url = $data->feature_image;
         $data->feature_images = $data->feature_images;
         $data->feature_image_items = $data->feature_image_items;
@@ -126,16 +120,14 @@ class HairstyleModelController extends Controller
         $query = HairstyleModel::query()->with(['service', 'commission']);
 
         // Filtre par branche : les managers ne voient que les modèles de leur salon
-        $branchId = request()->selected_session_branch_id;
+        $branchId = $this->currentBranchId();
         if (!auth()->user()->hasRole('admin')) {
-            // Pour les managers : récupérer la branche depuis la session ou depuis le profil
-            if (!$branchId && auth()->user()->hasRole('manager')) {
-                $branchId = auth()->user()->branch_id 
-                    ?: \App\Models\Branch::where('manager_id', auth()->id())->value('id');
-            }
             if ($branchId) {
                 // Filtre strict : uniquement les modèles avec ce branch_id exact
                 $query->where('branch_id', $branchId);
+            } else {
+                // Sans salon courant, ne jamais exposer les modèles d'un autre salon.
+                $query->whereRaw('1 = 0');
             }
         }
         // Les admins voient tous les modèles (aucun filtre de branche)
@@ -230,7 +222,7 @@ class HairstyleModelController extends Controller
         $data = $request->except(['feature_image', 'remove_image_ids']);
 
         // Store branch_id for model isolation
-        $branchId = request()->selected_session_branch_id;
+        $branchId = $this->currentBranchId();
         if (!isset($data['branch_id']) && $branchId) {
             $data['branch_id'] = $branchId;
         }
@@ -240,10 +232,6 @@ class HairstyleModelController extends Controller
         }
 
         $model = HairstyleModel::create($data);
-
-        if ($request->filled('service_id') && $request->filled('commission_id')) {
-            Service::where('id', $request->service_id)->update(['commission_id' => $request->commission_id]);
-        }
 
         if ($request->hasFile('feature_image')) {
             $files = $request->file('feature_image');
@@ -267,7 +255,7 @@ class HairstyleModelController extends Controller
      */
     public function edit($id)
     {
-        $data = HairstyleModel::with(['service', 'commission'])->findOrFail($id);
+        $data = $this->findAccessibleModel($id, ['service', 'commission']);
         $data->feature_image_url = $data->feature_image;
         $data->feature_images = $data->feature_images;
         $data->feature_image_items = $data->feature_image_items;
@@ -280,13 +268,9 @@ class HairstyleModelController extends Controller
      */
     public function update(HairstyleModelRequest $request, $id)
     {
-        $model = HairstyleModel::findOrFail($id);
+        $model = $this->findAccessibleModel($id);
         $request_data = $request->except(['feature_image', 'remove_image_ids']);
         $model->update($request_data);
-
-        if ($request->filled('service_id') && $request->filled('commission_id')) {
-            Service::where('id', $request->service_id)->update(['commission_id' => $request->commission_id]);
-        }
 
         // Remove media items marked for deletion
         if ($request->has('remove_image_ids')) {
@@ -325,7 +309,7 @@ class HairstyleModelController extends Controller
      */
     public function delete_images(Request $request, $id)
     {
-        $model = HairstyleModel::findOrFail($id);
+        $model = $this->findAccessibleModel($id);
         $mediaIds = $request->input('media_ids', []);
 
         if (is_array($mediaIds) && !empty($mediaIds)) {
@@ -363,7 +347,7 @@ class HairstyleModelController extends Controller
      */
     public function update_status(Request $request, $id)
     {
-        $model = HairstyleModel::findOrFail($id);
+        $model = $this->findAccessibleModel($id);
         $model->update(['status' => $request->status]);
 
         return response()->json(['status' => true, 'message' => 'Statut du modèle mis à jour']);
@@ -374,7 +358,7 @@ class HairstyleModelController extends Controller
      */
     public function destroy($id)
     {
-        $model = HairstyleModel::findOrFail($id);
+        $model = $this->findAccessibleModel($id);
         $model->delete();
 
         if (request()->ajax() || request()->wantsJson()) {
@@ -394,11 +378,11 @@ class HairstyleModelController extends Controller
 
         switch ($actionType) {
             case 'change-status':
-                HairstyleModel::whereIn('id', $ids)->update(['status' => $request->status]);
+                $this->scopedModelQuery()->whereIn('id', $ids)->update(['status' => $request->status]);
                 $message = __('messages.bulk_update');
                 break;
             case 'delete':
-                HairstyleModel::whereIn('id', $ids)->delete();
+                $this->scopedModelQuery()->whereIn('id', $ids)->delete();
                 $message = __('messages.bulk_delete');
                 break;
             default:
@@ -406,5 +390,34 @@ class HairstyleModelController extends Controller
         }
 
         return response()->json(['status' => true, 'message' => $message]);
+    }
+
+    protected function currentBranchId(): ?int
+    {
+        $branchId = request()->selected_session_branch_id;
+
+        if (! $branchId && auth()->user()->hasRole('manager')) {
+            $branchId = auth()->user()->branch_id
+                ?: \App\Models\Branch::where('manager_id', auth()->id())->value('id');
+        }
+
+        return $branchId ? (int) $branchId : null;
+    }
+
+    protected function scopedModelQuery()
+    {
+        $query = HairstyleModel::query();
+
+        if (! auth()->user()->hasRole('admin')) {
+            $branchId = $this->currentBranchId();
+            $branchId ? $query->where('branch_id', $branchId) : $query->whereRaw('1 = 0');
+        }
+
+        return $query;
+    }
+
+    protected function findAccessibleModel($id, array $with = []): HairstyleModel
+    {
+        return $this->scopedModelQuery()->with($with)->findOrFail($id);
     }
 }

@@ -203,7 +203,7 @@
             initDatatable({
                 url: '{{ route("backend.$module_name.index_data") }}',
                 finalColumns,
-                orderColumn: [[ 'updated_at', "desc" ]],
+                orderColumn: [[ 0, "desc" ]],
                 advanceFilter: () => {
                     return {
                         category_id: $('#column_category').val(), // Add category filter value

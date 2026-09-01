@@ -12,7 +12,10 @@ use App\Models\User;
 use Auth;
 use Hash;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
+use App\Models\Branch;
+use Modules\Employee\Models\BranchEmployee;
 
 class AuthController extends Controller
 {
@@ -20,10 +23,56 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
-        return response()->json([
-            'status' => false,
-            'message' => 'Les comptes mobiles sont créés uniquement par un administrateur.',
-        ], 403);
+        $request->validate([
+            'first_name' => 'required|string|max:191',
+            'last_name' => 'required|string|max:191',
+            'salon_name' => 'required|string|max:191',
+            'email' => 'required|email|max:191|unique:users,email',
+            'mobile' => 'required|string|max:191',
+            'password' => 'required|string|min:8',
+            'gender' => 'nullable|in:male,female,other',
+        ]);
+
+        $user = DB::transaction(function () use ($request) {
+            $user = User::create([
+                'first_name' => trim($request->first_name),
+                'last_name' => trim($request->last_name),
+                'email' => strtolower(trim($request->email)),
+                'mobile' => trim($request->mobile),
+                'password' => Hash::make($request->password),
+                'gender' => $request->gender,
+                'email_verified_at' => now(),
+                'status' => 1,
+                'is_manager' => 1,
+                'show_in_calender' => 1,
+                'mobile_trial_started_at' => now(),
+            ]);
+            $user->syncRoles(['employee', 'manager']);
+
+            $branch = Branch::create([
+                'name' => trim($request->salon_name),
+                'manager_id' => $user->id,
+                'contact_email' => $user->email,
+                'contact_number' => $user->mobile,
+                'status' => 1,
+                'branch_for' => 'both',
+            ]);
+
+            $user->update(['branch_id' => $branch->id]);
+            BranchEmployee::firstOrCreate([
+                'employee_id' => $user->id,
+                'branch_id' => $branch->id,
+            ], ['is_primary' => 1]);
+
+            return $user->fresh();
+        });
+
+        $user['api_token'] = $user->createToken(setting('app_name'))->plainTextToken;
+
+        return $this->sendResponse(
+            new LoginResource($user),
+            'Compte créé. Votre essai gratuit de 3 jours est maintenant actif.'
+        );
     }
 
     /**

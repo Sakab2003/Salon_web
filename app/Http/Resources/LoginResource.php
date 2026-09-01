@@ -16,6 +16,7 @@ class LoginResource extends JsonResource
      */
     public function toArray($request)
     {
+        $mobileAccess = $this->mobileAccessSummary();
         $roles = $this->getRoleNames()->values()->all();
         $branch = null;
         if ($this->hasRole('manager')) {
@@ -50,10 +51,10 @@ class LoginResource extends JsonResource
                 'public_booking_url' => $publicBookingUrl,
             ] : null,
             'permissions' => $this->getAllPermissions()->pluck('name')->values()->all(),
-            'subscription' => $this->subscriptionPackage ? [
-                'status' => $this->subscriptionPackage->status,
-                'start_date' => $this->subscriptionPackage->start_date,
-                'end_date' => $this->subscriptionPackage->end_date,
+            'subscription' => $mobileAccess['subscription'] ? [
+                'status' => $mobileAccess['subscription']->status,
+                'start_date' => $mobileAccess['subscription']->start_date,
+                'end_date' => $mobileAccess['subscription']->end_date,
             ] : null,
             'user_type' => $roles[0] ?? ($isManager ? 'manager' : ($this->hasRole('employee') ? 'employee' : 'user')),
             'is_manager' => $isManager,
@@ -69,10 +70,12 @@ class LoginResource extends JsonResource
                 'instagram' => $publicBookingUrl,
             ],
             'display_name' => trim($this->first_name . ' ' . $this->last_name),
-            'mobile_trial_started_at' => $this->mobile_trial_started_at,
+            'mobile_trial_started_at' => $this->mobileSubscriptionOwner()->mobile_trial_started_at,
             'mobile_trial_days' => User::MOBILE_TRIAL_DAYS,
-            'mobile_trial_days_remaining' => $this->mobileTrialDaysRemaining(),
-            'mobile_access' => $this->hasMobileAccess(),
+            'mobile_trial_days_remaining' => $mobileAccess['trial_days_remaining'],
+            'mobile_access' => $mobileAccess['active'],
+            'mobile_access_owner_id' => $mobileAccess['owner_id'],
+            'mobile_access_is_trial' => $mobileAccess['is_trial'],
             'api_token' => $this->api_token,
             'login_type' => $this->login_type,
             'profile_image' => $this->media->pluck('original_url')->first() ?: $this->avatar,

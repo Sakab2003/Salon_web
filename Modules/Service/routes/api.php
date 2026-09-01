@@ -5,17 +5,16 @@ use Modules\Service\Http\Controllers\Backend\API\ServicePackageController;
 use Modules\Service\Http\Controllers\Backend\API\HairstyleModelApiController;
 
 Route::get('service-list', [ServiceController::class, 'serviceList']);
-Route::get('hairstyle-models', [HairstyleModelApiController::class, 'index']);
-Route::get('hairstyle-models/{id}', [HairstyleModelApiController::class, 'show'])->whereNumber('id');
-Route::get('service-models-visualize', [HairstyleModelApiController::class, 'visualize']);
-Route::post('hairstyle-models', [HairstyleModelApiController::class, 'store']);
-Route::match(['post', 'put', 'patch'], 'hairstyle-models/{id}', [HairstyleModelApiController::class, 'update'])->whereNumber('id');
-Route::delete('hairstyle-models/{id}', [HairstyleModelApiController::class, 'destroy'])->whereNumber('id');
-Route::post('hairstyle-models/{id}/delete', [HairstyleModelApiController::class, 'destroy'])->whereNumber('id');
-Route::post('hairstyle-models/{id}/delete-images', [HairstyleModelApiController::class, 'deleteImages'])->whereNumber('id');
-Route::post('hairstyle-models/bulk-action', [HairstyleModelApiController::class, 'bulkAction']);
-
 Route::group(['middleware' => 'auth:sanctum'], function () {
+    Route::get('hairstyle-models', [HairstyleModelApiController::class, 'index']);
+    Route::get('hairstyle-models/{id}', [HairstyleModelApiController::class, 'show'])->whereNumber('id');
+    Route::get('service-models-visualize', [HairstyleModelApiController::class, 'visualize']);
+    Route::post('hairstyle-models', [HairstyleModelApiController::class, 'store']);
+    Route::match(['post', 'put', 'patch'], 'hairstyle-models/{id}', [HairstyleModelApiController::class, 'update'])->whereNumber('id');
+    Route::delete('hairstyle-models/{id}', [HairstyleModelApiController::class, 'destroy'])->whereNumber('id');
+    Route::post('hairstyle-models/{id}/delete', [HairstyleModelApiController::class, 'destroy'])->whereNumber('id');
+    Route::post('hairstyle-models/{id}/delete-images', [HairstyleModelApiController::class, 'deleteImages'])->whereNumber('id');
+    Route::post('hairstyle-models/bulk-action', [HairstyleModelApiController::class, 'bulkAction']);
     Route::get('service/staff/{id}', [ServiceController::class, 'assign_employee_list']);
     Route::post('service/staff/{id}', [ServiceController::class, 'assign_employee_update']);
 

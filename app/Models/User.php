@@ -109,18 +109,34 @@ class User extends Authenticatable implements HasMedia, MustVerifyEmail
      */
     public function subscriptionPackage()
     {
-        return $this->hasOne(Subscription::class, 'user_id', 'id')->where('status', config('constant.SUBSCRIPTION_STATUS.ACTIVE'));
+        return $this->hasOne(Subscription::class, 'user_id', 'id')
+            ->where('status', config('constant.SUBSCRIPTION_STATUS.ACTIVE'))
+            ->where('end_date', '>', now())
+            ->latest('end_date');
     }
 
     public const MOBILE_TRIAL_DAYS = 3;
 
     public function hasMobileAccess(): bool
     {
-        if (! $this->hasAnyRole(['admin', 'manager', 'employee'])) {
+        if ($this->hasAnyRole(['admin', 'super-admin'])) {
+            return true;
+        }
+
+        if (! $this->hasAnyRole(['manager', 'employee', 'receptionist', 'staff', 'coiffeur', 'barber', 'stylist'])) {
             return false;
         }
 
-        return true;
+        // Do not lock existing salons while the merchant payment account has
+        // not yet been configured. Enforcement becomes automatic as soon as
+        // both CinetPay credentials are supplied in the environment.
+        if (! filled(config('services.cinetpay.api_key')) || ! filled(config('services.cinetpay.site_id'))) {
+            return true;
+        }
+
+        $owner = $this->mobileSubscriptionOwner();
+
+        return $owner->subscriptionPackage()->exists() || $owner->mobileTrialDaysRemaining() > 0;
     }
 
     public function mobileTrialDaysRemaining(): int
@@ -136,6 +152,36 @@ class User extends Authenticatable implements HasMedia, MustVerifyEmail
         }
 
         return (int) now()->diffInDays($expiresAt) + 1;
+    }
+
+    /**
+     * The salon manager owns the mobile subscription for all of its staff.
+     */
+    public function mobileSubscriptionOwner(): self
+    {
+        if ($this->hasRole('manager')) {
+            return $this;
+        }
+
+        $branchId = $this->branch_id ?: optional($this->branch()->first())->branch_id;
+        $managerId = $branchId ? Branch::whereKey($branchId)->value('manager_id') : null;
+
+        return $managerId ? (self::find($managerId) ?: $this) : $this;
+    }
+
+    public function mobileAccessSummary(): array
+    {
+        $owner = $this->mobileSubscriptionOwner();
+        $subscription = $owner->subscriptionPackage()->first();
+        $trialDays = $owner->mobileTrialDaysRemaining();
+
+        return [
+            'active' => $this->hasMobileAccess(),
+            'owner_id' => $owner->id,
+            'is_trial' => $subscription === null && $trialDays > 0,
+            'trial_days_remaining' => $trialDays,
+            'subscription' => $subscription,
+        ];
     }
 
     public function address()

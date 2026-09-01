@@ -54,7 +54,8 @@ class BaseModel extends Model implements HasMedia
         // create a event to happen on creating
         static::creating(function ($table) {
             $route = request()->route();
-            if (isset($route) && ! str_contains($route->getName(), 'api.quick_bookings.store')) {
+            $routeName = $route?->getName() ?? '';
+            if (isset($route) && ! str_contains($routeName, 'api.quick_bookings.store')) {
                 $table->created_by = Auth::id();
             }
         });
@@ -62,7 +63,8 @@ class BaseModel extends Model implements HasMedia
         // create a event to happen on updating
         static::updating(function ($table) {
             $route = request()->route();
-            if (isset($route) && ! str_contains($route->getName(), 'api.quick_bookings.store')) {
+            $routeName = $route?->getName() ?? '';
+            if (isset($route) && ! str_contains($routeName, 'api.quick_bookings.store')) {
                 $table->updated_by = Auth::id();
             }
         });
@@ -70,7 +72,8 @@ class BaseModel extends Model implements HasMedia
         // create a event to happen on saving
         static::saving(function ($table) {
             $route = request()->route();
-            if (isset($route) && ! str_contains($route->getName(), 'api.quick_bookings.store')) {
+            $routeName = $route?->getName() ?? '';
+            if (isset($route) && ! str_contains($routeName, 'api.quick_bookings.store')) {
                 $table->updated_by = Auth::id();
             }
         });

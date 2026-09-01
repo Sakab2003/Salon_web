@@ -90,7 +90,19 @@ class BookingsController extends Controller
     {
         $user = \Auth::user();
 
-        $booking = $this->accessibleBookings()->with('booking_service', 'bookingTransaction');
+        // The mobile list resource uses these relations for every booking.  Eager-load
+        // them here to avoid dozens of database queries and the mobile 10-second timeout.
+        $booking = $this->accessibleBookings()->with([
+            'branch.address',
+            'booking_service.employee',
+            'booking_service.service',
+            'bookingTransaction',
+            'payment',
+            'products',
+            'user',
+            'createdUser',
+            'updatedUser',
+        ]);
 
         if($request->has('status') && isset($request->status)) {
 

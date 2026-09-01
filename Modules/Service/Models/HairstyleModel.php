@@ -17,8 +17,11 @@ class HairstyleModel extends BaseModel
         'name',
         'service_id',
         'commission_id',
+        'branch_id',
         'status',
         'description',
+        'created_by',
+        'updated_by',
     ];
 
     protected $appends = ['feature_image', 'feature_images', 'feature_image_items'];
@@ -26,6 +29,7 @@ class HairstyleModel extends BaseModel
     protected $casts = [
         'service_id' => 'integer',
         'commission_id' => 'integer',
+        'branch_id' => 'integer',
         'status' => 'integer',
     ];
 
