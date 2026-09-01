@@ -69,11 +69,24 @@ class HairstyleModelController extends Controller
         $module_action = 'Visualiser les';
 
         $branchId = request()->selected_session_branch_id;
+
+        // Pour les managers : récupérer la branche si non définie en session
+        if (!$branchId && !auth()->user()->hasRole('admin') && auth()->user()->hasRole('manager')) {
+            $branchId = auth()->user()->branch_id 
+                ?: \App\Models\Branch::where('manager_id', auth()->id())->value('id');
+        }
+
         $commissions = \Modules\Commission\Models\Commission::where('status', 1)->get();
         
         $servicesQuery = Service::active()
-            ->with(['hairstyle_models' => function($q) {
+            ->with(['hairstyle_models' => function($q) use ($branchId) {
                 $q->active()->orderBy('id', 'desc');
+                if (!auth()->user()->hasRole('admin')) {
+                    if ($branchId) {
+                        // Filtre strict : uniquement les modèles de cette branche
+                        $q->where('branch_id', $branchId);
+                    }
+                }
             }, 'commission']);
 
         if ($branchId && !auth()->user()->hasRole('admin')) {
@@ -112,12 +125,20 @@ class HairstyleModelController extends Controller
         $module_name = $this->module_name;
         $query = HairstyleModel::query()->with(['service', 'commission']);
 
+        // Filtre par branche : les managers ne voient que les modèles de leur salon
         $branchId = request()->selected_session_branch_id;
-        if ($branchId && !auth()->user()->hasRole('admin')) {
-            $query->whereHas('service.branches', function ($q) use ($branchId) {
-                $q->where('branch_id', $branchId);
-            });
+        if (!auth()->user()->hasRole('admin')) {
+            // Pour les managers : récupérer la branche depuis la session ou depuis le profil
+            if (!$branchId && auth()->user()->hasRole('manager')) {
+                $branchId = auth()->user()->branch_id 
+                    ?: \App\Models\Branch::where('manager_id', auth()->id())->value('id');
+            }
+            if ($branchId) {
+                // Filtre strict : uniquement les modèles avec ce branch_id exact
+                $query->where('branch_id', $branchId);
+            }
         }
+        // Les admins voient tous les modèles (aucun filtre de branche)
 
         $filter = $request->filter;
 
@@ -207,6 +228,17 @@ class HairstyleModelController extends Controller
     public function store(HairstyleModelRequest $request)
     {
         $data = $request->except(['feature_image', 'remove_image_ids']);
+
+        // Store branch_id for model isolation
+        $branchId = request()->selected_session_branch_id;
+        if (!isset($data['branch_id']) && $branchId) {
+            $data['branch_id'] = $branchId;
+        }
+        if (!isset($data['created_by'])) {
+            $data['created_by'] = auth()->id();
+            $data['updated_by'] = auth()->id();
+        }
+
         $model = HairstyleModel::create($data);
 
         if ($request->filled('service_id') && $request->filled('commission_id')) {
@@ -228,6 +260,7 @@ class HairstyleModelController extends Controller
 
         return response()->json(['message' => 'Modèle de commission créé avec succès.', 'status' => true], 200);
     }
+
 
     /**
      * Show the form for editing the specified resource.

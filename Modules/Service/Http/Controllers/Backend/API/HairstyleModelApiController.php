@@ -52,12 +52,24 @@ class HairstyleModelApiController extends Controller
 
         $query = HairstyleModel::with(['service', 'commission'])->orderBy('id', 'desc');
 
-        if (!empty($branchId) && (!$user || !$user->hasRole('admin'))) {
-            $query->whereHas('service.branches', function ($q) use ($branchId) {
-                $q->where('branch_id', $branchId);
-            });
-        } elseif (!$user && empty($branchId)) {
-            // Guest mode: only public models with active status
+        if ($user) {
+            // Authenticated user: filter strictly by branch_id stored on the model
+            if (!empty($branchId) && !$user->hasRole('admin')) {
+                $query->where(function($q) use ($branchId) {
+                    $q->where('branch_id', $branchId)
+                      ->orWhere(function($q2) use ($branchId) {
+                          // Fallback: models without branch_id that belong to this branch's services
+                          $q2->whereNull('branch_id')
+                             ->whereHas('service.branches', function($q3) use ($branchId) {
+                                 $q3->where('branch_id', $branchId);
+                             });
+                      });
+                });
+            } elseif ($user->hasRole('admin')) {
+                // Admin sees all
+            }
+        } else {
+            // Guest mode: only active public models
             $query->where('status', 1);
         }
 
@@ -95,6 +107,7 @@ class HairstyleModelApiController extends Controller
         ]);
     }
 
+
     /**
      * Get services with their models for the visualizer (Strictly scoped by salon).
      */
@@ -104,8 +117,20 @@ class HairstyleModelApiController extends Controller
         $branchId = $this->resolveBranchId($request);
 
         $query = Service::active()
-            ->with(['hairstyle_models' => function ($q) {
+            ->with(['hairstyle_models' => function ($q) use ($branchId) {
                 $q->active()->orderBy('id', 'desc');
+                // Filter models strictly by branch_id
+                if (!empty($branchId)) {
+                    $q->where(function($mq) use ($branchId) {
+                        $mq->where('branch_id', $branchId)
+                           ->orWhere(function($mq2) use ($branchId) {
+                               $mq2->whereNull('branch_id')
+                                   ->whereHas('service.branches', function($sq) use ($branchId) {
+                                       $sq->where('branch_id', $branchId);
+                                   });
+                           });
+                    });
+                }
             }, 'commission']);
 
         if (!empty($branchId) && (!$user || !$user->hasRole('admin'))) {
@@ -230,12 +255,17 @@ class HairstyleModelApiController extends Controller
             'service_id' => 'required|integer',
         ]);
 
+        $branchId = $this->resolveBranchId($request);
+
         $model = HairstyleModel::create([
             'name' => $request->name,
             'service_id' => $request->service_id,
             'commission_id' => $request->commission_id,
             'status' => $request->has('status') ? (int) $request->status : 1,
             'description' => $request->description,
+            'branch_id' => $branchId,
+            'created_by' => auth('sanctum')->id(),
+            'updated_by' => auth('sanctum')->id(),
         ]);
 
         if ($request->filled('service_id') && $request->filled('commission_id')) {

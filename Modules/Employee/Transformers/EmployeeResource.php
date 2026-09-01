@@ -40,6 +40,7 @@ class EmployeeResource extends JsonResource
             'instagram_link' => $this->profile->instagram_link ?? null,
             'twitter_link' => $this->profile->twitter_link ?? null,
             'dribbble_link' => $this->profile->dribbble_link ?? null,
+            'commission_id' => optional($this->commissions->first())->commission_id ?? null,
         ];
     }
 }

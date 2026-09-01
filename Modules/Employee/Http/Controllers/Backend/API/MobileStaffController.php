@@ -175,7 +175,8 @@ class MobileStaffController extends Controller
     {
         $user = $request->user();
 
-        abort_unless($user && $user->hasRole('manager'), 403, 'Accès réservé aux managers.');
+        // Autoriser à la fois les managers et les admins
+        abort_unless($user && ($user->hasRole('manager') || $user->hasRole('admin')), 403, 'Accès réservé aux managers.');
 
         return $user;
     }
@@ -185,7 +186,18 @@ class MobileStaffController extends Controller
         $branchId = $request->input('branch_id') ?: $manager->branch_id;
 
         if (! $branchId) {
+            // Chercher la branche associée au manager ou à l'admin
             $branchId = Branch::where('manager_id', $manager->id)->value('id');
+        }
+
+        // Pour les admins sans branche spécifique, utiliser la branche de la session si disponible
+        if (! $branchId && $manager->hasRole('admin')) {
+            $branchId = $request->input('selected_session_branch_id') 
+                ?: session('selected_session_branch_id');
+            // Fallback: première branche active
+            if (! $branchId) {
+                $branchId = Branch::where('status', 1)->value('id');
+            }
         }
 
         return $branchId ? (int) $branchId : null;

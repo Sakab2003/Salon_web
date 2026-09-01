@@ -33,11 +33,15 @@ class AuthController extends Controller
      */
     public function login(LoginRequest $request)
     {
-        $user = User::where('email', request('email'))->first();
+        // Normaliser l'email : supprimer les espaces et mettre en minuscules
+        $email = strtolower(trim(request('email')));
+        $password = request('password');
+
+        $user = User::where('email', $email)->first();
         if ($user == null) {
             return response()->json(['status' => false, 'message' => __('messages.register_before_login')]);
         }
-        if (Auth::attempt(['email' => request('email'), 'password' => request('password')])) {
+        if (Auth::attempt(['email' => $email, 'password' => $password])) {
             $user = Auth::user();
 
             if ($user->is_banned == 1 || $user->status == 0) {
@@ -49,10 +53,24 @@ class AuthController extends Controller
             // Save the user
             $user->save();
 
-            if (! $user->hasAnyRole(['manager', 'employee'])) {
+            // Vérification du rôle : managers ET tout le personnel du salon (employés, réceptionnistes, etc.)
+            $allowedRoles = ['admin', 'manager', 'employee', 'receptionist', 'staff', 'coiffeur', 'barber', 'stylist'];
+            $hasAccess = $user->hasAnyRole($allowedRoles);
+
+            // Fallback : si aucun rôle reconnu mais que l'utilisateur n'est pas "user" (client), on autorise
+            if (!$hasAccess) {
+                $userRoles = $user->getRoleNames()->toArray();
+                $isClientOnly = count($userRoles) === 1 && in_array('user', $userRoles);
+                if (!empty($userRoles) && !$isClientOnly) {
+                    $hasAccess = true; // Tout rôle non-client est autorisé
+                }
+            }
+
+            if (!$hasAccess) {
+                $userRoles = $user->getRoleNames()->join(', ');
                 return $this->sendError(
-                    'Seuls les managers et les membres du staff peuvent utiliser l’application mobile.',
-                    ['error' => __('messages.unauthorised')],
+                    'Accès non autorisé. Seul le personnel du salon peut utiliser cette application. (Rôle actuel: ' . ($userRoles ?: 'aucun') . ')',
+                    ['error' => __('messages.unauthorised'), 'roles' => $user->getRoleNames()],
                     403
                 );
             }

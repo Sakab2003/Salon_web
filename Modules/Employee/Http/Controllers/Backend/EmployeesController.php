@@ -510,6 +510,9 @@ class EmployeesController extends Controller
 
         $data['dribbble_link'] = $data->profile->dribbble_link ?? null;
 
+        // Needed by frontend to set staff_role_type radio button correctly
+        $data['is_receptionist'] = $data->is_receptionist ?? 0;
+
         return response()->json(['data' => $data, 'status' => true]);
     }
 

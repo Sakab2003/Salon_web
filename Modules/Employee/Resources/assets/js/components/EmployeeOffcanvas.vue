@@ -19,8 +19,8 @@
                 <div class="form-group col-md-6">
                   <label class="form-label">{{ $t('employee.lbl_phone_number') }}<span class="text-danger">*</span>
                   </label>
-                  <vue-tel-input :value="mobile" @input="handleInput"
-                    v-bind="{ mode: 'international', maxLen: 15 }" autocomplete="new-password"></vue-tel-input>
+                  <vue-tel-input :key="'tel-'+currentId+'-'+mobileKey" :value="mobile" @input="handleInput" @update:modelValue="(v) => { if(v) mobile = v }"
+                    v-bind="{ mode: 'international', maxLen: 15 }" autocomplete="new-password" style="border:1px solid #dee2e6; border-radius:0.375rem;"></vue-tel-input>
                   <span class="text-danger">{{ errors['mobile'] }}</span>
                 </div>
               </div>
@@ -207,6 +207,7 @@ const props = defineProps({
 })
 
 const staff_role_type = ref('provider')
+const mobileKey = ref(0)
 
 const onRoleTypeChange = () => {
   if (staff_role_type.value === 'receptionist') {
@@ -346,31 +347,39 @@ const defaultData = () => {
 
 //  Reset Form
 const setFormData = (data) => {
-  ImageViewer.value = data.profile_image
+  ImageViewer.value = data.profile_image || null
+  // Determine staff_role_type from data
+  if (data.is_receptionist == 1 || data.is_receptionist === true) {
+    staff_role_type.value = 'receptionist'
+  } else {
+    staff_role_type.value = 'provider'
+  }
+  // Force vue-tel-input re-render when editing
+  mobileKey.value++
   resetForm({
     values: {
-      id: data.id,
-      first_name: data.first_name,
-      last_name: data.last_name,
-      email: data.email,
-      mobile: data.mobile,
-      password: data.password,
-      confirm_password: data.confirm_password,
-      gender: data.gender,
-      profile_image: data.profile_image,
-      branch_id: data.branch_id,
-      service_id: data.service_id,
-      commission_id: data.commission_id,
+      id: data.id || '',
+      first_name: data.first_name || '',
+      last_name: data.last_name || '',
+      email: data.email || '',
+      mobile: data.mobile || '',
+      password: data.password || '',
+      confirm_password: data.confirm_password || '',
+      gender: data.gender || 'male',
+      profile_image: data.profile_image || '',
+      branch_id: data.branch_id || 0,
+      service_id: data.service_id || [],
+      commission_id: data.commission_id || '',
       status: data.status ? true : false,
-      show_in_calender: data.show_in_calender,
-      is_manager: data.is_manager,
-      custom_fields_data: data.custom_field_data,
-      about_self: data.about_self,
-      expert: data.expert,
-      facebook_link: data.facebook_link,
-      instagram_link: data.instagram_link,
-      twitter_link: data.twitter_link,
-      dribbble_link: data.dribbble_link,
+      show_in_calender: data.show_in_calender !== undefined ? data.show_in_calender : 1,
+      is_manager: data.is_manager || 0,
+      custom_fields_data: data.custom_field_data || {},
+      about_self: data.about_self || '',
+      expert: data.expert || '',
+      facebook_link: data.facebook_link || '',
+      instagram_link: data.instagram_link || '',
+      twitter_link: data.twitter_link || '',
+      dribbble_link: data.dribbble_link || '',
     }
   })
 }
