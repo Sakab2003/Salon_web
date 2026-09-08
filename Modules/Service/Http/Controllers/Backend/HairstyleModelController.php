@@ -11,12 +11,13 @@ use Modules\Service\Http\Requests\HairstyleModelRequest;
 use Modules\Service\Models\HairstyleModel;
 use Modules\Service\Models\Service;
 use Yajra\DataTables\DataTables;
+use App\Models\Branch;
 
 class HairstyleModelController extends Controller
 {
     public function __construct()
     {
-        $this->module_title = 'Modèle de Commission';
+        $this->module_title = 'Modèles de Coiffure';
         $this->module_name = 'hairstyle-models';
         $this->module_icon = 'fa-solid fa-scissors';
 
@@ -39,25 +40,41 @@ class HairstyleModelController extends Controller
      */
     public function index(Request $request)
     {
-        $module_title = 'modèles de commission';
+        $module_title = 'modèles de coiffure';
         $filter = [
             'status' => $request->status,
             'service_id' => $request->service_id,
-            'commission_id' => $request->commission_id,
         ];
         $module_action = 'Liste des';
 
-        $branchId = request()->selected_session_branch_id;
-        $servicesQuery = Service::active()->select('id', 'name', 'commission_id');
-        if ($branchId && !auth()->user()->hasRole('admin')) {
-            $servicesQuery->whereHas('branches', function ($q) use ($branchId) {
-                $q->where('branch_id', $branchId);
-            });
-        }
-        $services = $servicesQuery->get();
-        $commissions = \Modules\Commission\Models\Commission::where('status', 1)->get();
+        $user = auth()->user();
+        $servicesQuery = Service::active()->select('id', 'name');
 
-        return view('service::backend.hairstyle_models.index_datatable', compact('module_action', 'module_title', 'filter', 'services', 'commissions'));
+        if ($user->hasRole('admin')) {
+            // Admin : filter by selected session branch if set
+            $branchId = request()->selected_session_branch_id;
+            if ($branchId) {
+                $servicesQuery->whereHas('branches', function ($q) use ($branchId) {
+                    $q->where('branch_id', $branchId);
+                });
+            }
+        } elseif ($user->hasRole('manager')) {
+            // Manager : only services of their branch
+            $branchId = $user->branch_id ?: Branch::where('manager_id', $user->id)->value('id');
+            if ($branchId) {
+                $servicesQuery->whereHas('branches', function ($q) use ($branchId) {
+                    $q->where('branch_id', $branchId);
+                });
+            }
+        }
+
+        $services = $servicesQuery->orderBy('name')->get();
+        // Liste des salons pour le select admin dans le modal
+        $branches = $user->hasRole('admin')
+            ? Branch::where('status', 1)->select('id', 'name')->get()
+            : collect();
+
+        return view('service::backend.hairstyle_models.index_datatable', compact('module_action', 'module_title', 'filter', 'services', 'branches'));
     }
 
     /**
@@ -65,12 +82,10 @@ class HairstyleModelController extends Controller
      */
     public function visualize(Request $request)
     {
-        $module_title = 'modèles de commission';
+        $module_title = 'modèles de coiffure';
         $module_action = 'Visualiser les';
 
         $branchId = $this->currentBranchId();
-
-        $commissions = \Modules\Commission\Models\Commission::where('status', 1)->get();
         
         $servicesQuery = Service::active()
             ->with(['hairstyle_models' => function($q) use ($branchId) {
@@ -81,7 +96,7 @@ class HairstyleModelController extends Controller
                         $q->where('branch_id', $branchId);
                     }
                 }
-            }, 'commission']);
+            }]);
 
         if ($branchId && !auth()->user()->hasRole('admin')) {
             $servicesQuery->whereHas('branches', function ($q) use ($branchId) {
@@ -89,13 +104,9 @@ class HairstyleModelController extends Controller
             });
         }
 
-        $services = (clone $servicesQuery)->has('hairstyle_models')->get();
+        $services = $servicesQuery->has('hairstyle_models')->get();
 
-        if ($services->isEmpty()) {
-            $services = $servicesQuery->get();
-        }
-
-        return view('service::backend.hairstyle_models.visualize', compact('module_action', 'module_title', 'services', 'commissions'));
+        return view('service::backend.hairstyle_models.visualize', compact('module_action', 'module_title', 'services'));
     }
 
     /**
@@ -117,7 +128,7 @@ class HairstyleModelController extends Controller
     public function index_data(Datatables $datatable, Request $request)
     {
         $module_name = $this->module_name;
-        $query = HairstyleModel::query()->with(['service', 'commission']);
+        $query = HairstyleModel::query()->with(['service', 'commission', 'branch']);
 
         // Filtre par branche : les managers ne voient que les modèles de leur salon
         $branchId = $this->currentBranchId();
@@ -179,6 +190,11 @@ class HairstyleModelController extends Controller
             ->addColumn('service', function ($data) {
                 return $data->service ? '<span class="badge bg-soft-primary">'.$data->service->name.'</span>' : '-';
             })
+            ->addColumn('branch', function ($data) {
+                return $data->branch
+                    ? '<span class="badge bg-soft-success"><i class="fa-solid fa-store me-1"></i>'.e($data->branch->name).'</span>'
+                    : '<span class="badge bg-soft-secondary">Tous les salons</span>';
+            })
             ->addColumn('commission', function ($data) {
                 return $data->commission ? '<span class="badge bg-soft-info">'.$data->commission->title.'</span>' : '-';
             })
@@ -209,7 +225,7 @@ class HairstyleModelController extends Controller
             ->addColumn('action', function ($data) use ($module_name) {
                 return view('service::backend.hairstyle_models.action_column', compact('module_name', 'data'));
             })
-            ->rawColumns(['action', 'image', 'service', 'commission', 'status', 'check'])
+            ->rawColumns(['action', 'image', 'service', 'branch', 'commission', 'status', 'check'])
             ->orderColumns(['id'], '-:column $1')
             ->toJson();
     }
@@ -221,10 +237,19 @@ class HairstyleModelController extends Controller
     {
         $data = $request->except(['feature_image', 'remove_image_ids']);
 
-        // Store branch_id for model isolation
         $branchId = $this->currentBranchId();
-        if (!isset($data['branch_id']) && $branchId) {
+        if (! auth()->user()->hasRole('admin')) {
+            // Non-admin : utiliser le salon courant obligatoirement
+            abort_unless($branchId, 422, 'Aucun salon n\'est associé à ce compte.');
             $data['branch_id'] = $branchId;
+        } else {
+            // Admin : utiliser le branch_id envoyé par le formulaire s'il est présent
+            if (!empty($data['branch_id'])) {
+                // déjà dans $data via $request->except()
+            } elseif ($branchId) {
+                $data['branch_id'] = $branchId;
+            }
+            // Si aucun branch_id et pas de session → branch_id reste null (modèle global)
         }
         if (!isset($data['created_by'])) {
             $data['created_by'] = auth()->id();
@@ -270,6 +295,9 @@ class HairstyleModelController extends Controller
     {
         $model = $this->findAccessibleModel($id);
         $request_data = $request->except(['feature_image', 'remove_image_ids']);
+        if (! auth()->user()->hasRole('admin')) {
+            $request_data['branch_id'] = $this->currentBranchId();
+        }
         $model->update($request_data);
 
         // Remove media items marked for deletion
@@ -396,9 +424,12 @@ class HairstyleModelController extends Controller
     {
         $branchId = request()->selected_session_branch_id;
 
+        if (! $branchId && ! auth()->user()->hasRole('admin')) {
+            $branchId = auth()->user()->branch_id;
+        }
+
         if (! $branchId && auth()->user()->hasRole('manager')) {
-            $branchId = auth()->user()->branch_id
-                ?: \App\Models\Branch::where('manager_id', auth()->id())->value('id');
+            $branchId = \App\Models\Branch::where('manager_id', auth()->id())->value('id');
         }
 
         return $branchId ? (int) $branchId : null;

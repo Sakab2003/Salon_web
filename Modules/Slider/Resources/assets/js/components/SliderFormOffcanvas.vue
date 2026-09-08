@@ -82,7 +82,7 @@ useOnOffcanvasHide('form-offcanvas', () => setFormData(defaultData()))
 
 onMounted(() => {
   useSelect({ url: TYPE_LIST }, { value: 'id', label: 'name' }).then((data) => (module_types.value = data))
-  setFormData(defaultData())
+  if (currentId.value <= 0) setFormData(defaultData())
 })
 
 const getList = () => {

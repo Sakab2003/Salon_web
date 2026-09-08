@@ -59,7 +59,7 @@
 
                     @hasPermission('add_hairstyle_model')
                         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#hairstyle-model-modal" id="btn-create-model">
-                            <i class="fa-solid fa-plus me-1"></i> Créer un modèle de service
+                            <i class="fa-solid fa-plus me-1"></i> Créer un modèle de coiffure
                         </button>
                     @endhasPermission
                 </x-slot>
@@ -75,7 +75,7 @@
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold" id="hairstyleModelModalLabel">Créer un modèle de service</h5>
+                    <h5 class="modal-title fw-bold" id="hairstyleModelModalLabel">Créer un modèle de coiffure</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="hairstyle-model-form" method="POST" enctype="multipart/form-data">
@@ -94,6 +94,20 @@
                                     @endforeach
                                 </select>
                             </div>
+
+                            @if(auth()->user()->hasRole('admin') && $branches->count() > 0)
+                            <div class="col-md-6 form-group mb-3" id="admin-branch-selector">
+                                <label for="branch_id_select" class="form-label fw-semibold">
+                                    Salon <span class="text-muted small fw-normal">(Admin : associer à un salon)</span>
+                                </label>
+                                <select class="form-select" id="branch_id_select" name="branch_id">
+                                    <option value="">Aucun salon spécifique (global)</option>
+                                    @foreach ($branches as $branch)
+                                        <option value="{{ $branch->id }}">{{ $branch->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            @endif
 
                             <div class="col-md-6 form-group mb-3">
                                 <label for="status_select" class="form-label fw-semibold">Statut <span class="text-danger">*</span></label>
@@ -161,7 +175,7 @@
                 <div class="modal-body p-4">
                     <!-- Description optional -->
                     <div id="fg-description-box" class="p-3 mb-3 rounded-3 d-none" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08);">
-                        <small class="text-white-50 d-block mb-1 font-weight-bold">Details du modèle :</small>
+                        <small class="text-white-50 d-block mb-1 font-weight-bold">Détails du modèle :</small>
                         <p class="text-light mb-0 small" id="fg-description"></p>
                     </div>
 
@@ -341,6 +355,15 @@
                     name: 'service.name',
                     title: 'Service'
                 },
+                @if(auth()->user()->hasRole('admin'))
+                {
+                    data: 'branch',
+                    name: 'branch.name',
+                    title: 'Salon',
+                    orderable: true,
+                    searchable: true
+                },
+                @endif
                 {
                     data: 'name',
                     name: 'name',
@@ -454,9 +477,9 @@
                 $('#form-method').val('POST');
                 $('#model-id').val('');
                 $('#service_id').val('');
-                $('#commission_id').val('');
                 $('#status_select').val('1');
                 $('#description').val('');
+                $('#branch_id_select').val('');
                 selectedNewFiles = [];
                 existingMediaItems = [];
                 removedMediaIds = [];
@@ -500,7 +523,7 @@
             $(document).on('click', '[data-crud-id]', function() {
                 const id = $(this).data('crud-id');
                 resetHairstyleModelForm();
-                $('#hairstyleModelModalLabel').text('Modifier le modèle de commission');
+                $('#hairstyleModelModalLabel').text('Modifier le modèle de coiffure');
                 $('.req-img-asterisk').hide();
                 
                 $.ajax({
@@ -512,9 +535,9 @@
                             $('#model-id').val(data.id);
                             $('#name').val(data.name);
                             $('#service_id').val(data.service_id);
-                            $('#commission_id').val(data.commission_id || '');
                             $('#status_select').val(data.status);
                             $('#description').val(data.description || '');
+                            $('#branch_id_select').val(data.branch_id || '');
                             $('#form-method').val('PUT');
 
                             if (data.feature_image_items && data.feature_image_items.length > 0) {
@@ -801,11 +824,13 @@
                 });
 
                 if (checkedMediaIds.length === 0) {
-                    if (window.toastr) {
-                        toastr.warning('Veuillez cocher au moins une image à supprimer.');
-                    } else {
-                        alert('Veuillez cocher au moins une image à supprimer.');
-                    }
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Sélection requise',
+                        text: 'Veuillez cocher au moins une image à supprimer.',
+                        confirmButtonText: 'Compris',
+                        confirmButtonColor: '#a8328f'
+                    });
                     return;
                 }
 

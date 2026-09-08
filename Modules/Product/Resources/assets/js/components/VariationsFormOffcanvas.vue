@@ -150,7 +150,7 @@
   const errorMessages = ref({})
 
   onMounted(() => {
-    setFormData(defaultData())
+    if (currentId.value <= 0) setFormData(defaultData())
   })
   const IS_SUBMITED = ref(false)
   const formSubmit = handleSubmit((values) => {

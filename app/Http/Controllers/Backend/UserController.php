@@ -114,12 +114,40 @@ class UserController extends Controller
                 }
             })->where('is_show_calender', 1)->get();
         } elseif ($role == 'user') {
-            $query_data = User::role(['user'])->where(function ($q) {
+            $query = User::role('user')->where(function ($q) use ($term) {
                 if (! empty($term)) {
                     $q->orWhere('first_name', 'LIKE', "%$term%")->
                     $q->orWhere('last_name', 'LIKE', "%$term%");
                 }
-            })->active()->get();
+            })->active();
+
+            $user = auth()->user();
+            if ($user && $user->hasRole('manager')) {
+                $managerBranchIds = \App\Models\Branch::where('manager_id', $user->id)
+                    ->pluck('id')
+                    ->all();
+
+                if ($user->branch_id) {
+                    $managerBranchIds[] = $user->branch_id;
+                }
+
+                $managerBranchIds = array_values(array_unique($managerBranchIds));
+
+                if (! empty($managerBranchIds)) {
+                    $query->where(function ($q) use ($managerBranchIds, $user) {
+                        $q->whereIn('users.branch_id', $managerBranchIds)
+                            ->orWhere(function ($createdCustomers) use ($managerBranchIds, $user) {
+                                $createdCustomers->whereNull('users.branch_id')
+                                    ->where('users.created_by', $user->id);
+                            })
+                            ->orWhereHas('booking', function ($bookingQuery) use ($managerBranchIds) {
+                                $bookingQuery->whereIn('branch_id', $managerBranchIds);
+                            });
+                    });
+                }
+            }
+
+            $query_data = $query->get();
         }
 
         $data = [];

@@ -72,5 +72,6 @@ class Kernel extends HttpKernel
         'permission' => \Spatie\Permission\Middlewares\PermissionMiddleware::class,
         'role_or_permission' => \Spatie\Permission\Middlewares\RoleOrPermissionMiddleware::class,
         'mobile.access' => \App\Http\Middleware\EnsureMobileAccess::class,
+        'subscription.check' => \App\Http\Middleware\CheckActiveSubscription::class,
     ];
 }

@@ -51,20 +51,19 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { EDIT_URL, STORE_URL, UPDATE_URL, CATEGORY_LIST } from '../constant/service'
+import { EDIT_URL, STORE_URL, UPDATE_URL } from '../constant/service'
 import { useField, useForm } from 'vee-validate'
 import InputField from '@/vue/components/form-elements/InputField.vue'
 
 import { useModuleId, useRequest, useOnOffcanvasHide } from '@/helpers/hooks/useCrudOpration'
 import * as yup from 'yup'
-import { buildMultiSelectObject } from '@/helpers/utilities'
 import { readFile } from '@/helpers/utilities'
 import FormHeader from '@/vue/components/form-elements/FormHeader.vue'
 import FormFooter from '@/vue/components/form-elements/FormFooter.vue'
 import FormElement from '@/helpers/custom-field/FormElement.vue'
 
 // props
-defineProps({
+const props = defineProps({
   createTitle: { type: String, default: '' },
   editTitle: { type: String, default: '' },
   customefield: { type: Array, default: () => [] },
@@ -75,15 +74,10 @@ const { getRequest, storeRequest, updateRequest, listingRequest } = useRequest()
 
 // Edit Form Or Create Form
 const currentId = useModuleId(() => {
-  subCategories.value.options = []
   if (currentId.value > 0) {
     getRequest({ url: EDIT_URL, id: currentId.value }).then((res) => {
       if (res.status) {
         setFormData(res.data)
-        changeCategory(category_id.value)
-        if (res.data.sub_category_id.value != 0) {
-          sub_category_id.value = res.data.sub_category_id
-        }
       }
     })
   } else {
@@ -124,8 +118,6 @@ const defaultData = () => {
     duration_min: '',
     default_price: '',
     status: 1,
-    category_id: '',
-    sub_category_id: '',
     feature_image: null,
     custom_fields_data: {}
   }
@@ -141,8 +133,6 @@ const setFormData = (data) => {
       duration_min: data.duration_min,
       default_price: data.default_price,
       status: data.status,
-      category_id: data.category_id,
-      sub_category_id: data.sub_category_id,
       feature_image: data.feature_image,
       custom_fields_data: data.custom_field_data
     }
@@ -185,37 +175,15 @@ const { value: description } = useField('description')
 const { value: duration_min } = useField('duration_min')
 const { value: default_price } = useField('default_price')
 const { value: status } = useField('status')
-const { value: category_id } = useField('category_id')
-const { value: sub_category_id } = useField('sub_category_id')
 const { value: feature_image } = useField('feature_image')
 const { value: custom_fields_data } = useField('custom_fields_data')
 
 const errorMessages = ref({})
 
-const categories = ref({
-  searchable: true,
-  createOption: true,
-  options: []
-})
-
-const subCategories = ref({
-  searchable: true,
-  createOption: true,
-  options: []
-})
-
-const getCategoryList = () => {
-  listingRequest({ url: CATEGORY_LIST, data: { id: 0 } }).then((res) => (categories.value.options = buildMultiSelectObject(res, { value: 'id', label: 'name' })))
-}
-
-const changeCategory = (value) => {
-  sub_category_id.value = null
-  listingRequest({ url: CATEGORY_LIST, data: { id: value } }).then((res) => (subCategories.value.options = buildMultiSelectObject(res, { value: 'id', label: 'name' })))
-}
-
 onMounted(() => {
-  getCategoryList()
-  setFormData(defaultData())
+  if (currentId.value <= 0) {
+    setFormData(defaultData())
+  }
 })
 
 // Form Submit

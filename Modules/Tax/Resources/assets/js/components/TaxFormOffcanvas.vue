@@ -59,7 +59,7 @@ const props = defineProps({
 const { getRequest, storeRequest, updateRequest, listingRequest } = useRequest()
 
 onMounted(() => {
-  setFormData(defaultData())
+  if (currentId.value <= 0) setFormData(defaultData())
 })
 
 // Edit Form Or Create Form

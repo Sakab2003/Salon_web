@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Modules\Service\Models\HairstyleModel;
 use Modules\Service\Models\Service;
-use Modules\Commission\Models\Commission;
 
 class HairstyleModelApiController extends Controller
 {
@@ -15,12 +14,10 @@ class HairstyleModelApiController extends Controller
      */
     protected function resolveBranchId(Request $request)
     {
-        $branchId = $request->branch_id;
-        if (!empty($branchId) && $branchId != '0') {
-            return (int) $branchId;
-        }
-
         $user = auth('sanctum')->user();
+
+        // A manager or employee must always use the salon assigned to the
+        // authenticated account. Never trust a branch_id sent by the app.
         if ($user) {
             if ($user->hasRole('manager')) {
                 return $user->branch_id ?: optional(\App\Models\Branch::where('manager_id', $user->id)->first())->id;
@@ -37,6 +34,16 @@ class HairstyleModelApiController extends Controller
             } elseif ($user->branch_id) {
                 return $user->branch_id;
             }
+
+            if ($user->hasRole('admin')) {
+                $branchId = $request->branch_id;
+                return !empty($branchId) && $branchId != '0' ? (int) $branchId : null;
+            }
+        }
+
+        $branchId = $request->branch_id;
+        if (!empty($branchId) && $branchId != '0') {
+            return (int) $branchId;
         }
 
         return null;
@@ -50,17 +57,13 @@ class HairstyleModelApiController extends Controller
         $user = auth('sanctum')->user();
         $branchId = $this->resolveBranchId($request);
 
-        $query = HairstyleModel::with(['service', 'commission'])->orderBy('id', 'desc');
+        $query = HairstyleModel::with(['service'])->orderBy('id', 'desc');
 
         if ($user) {
-            // Authenticated user: filter strictly by branch_id stored on the model
             if (!empty($branchId) && !$user->hasRole('admin')) {
                 $query->where('branch_id', $branchId);
-            } elseif ($user->hasRole('admin')) {
-                // Admin sees all
             }
         } else {
-            // Guest mode: only active public models
             $query->where('status', 1);
         }
 
@@ -76,24 +79,22 @@ class HairstyleModelApiController extends Controller
 
         $data = $models->map(function ($model) {
             return [
-                'id' => $model->id,
-                'name' => $model->name,
-                'service_id' => $model->service_id,
-                'service_name' => optional($model->service)->name ?? '-',
-                'commission_id' => $model->commission_id,
-                'commission_name' => optional($model->commission)->title ?? '-',
-                'status' => (int) $model->status,
-                'description' => $model->description,
-                'feature_image' => $model->feature_image,
-                'feature_images' => $model->feature_images,
-                'feature_image_items' => $model->feature_image_items,
-                'created_at' => $model->created_at ? $model->created_at->format('Y-m-d H:i:s') : null,
+                'id'                   => $model->id,
+                'name'                 => $model->name,
+                'service_id'           => $model->service_id,
+                'service_name'         => optional($model->service)->name ?? '-',
+                'status'               => (int) $model->status,
+                'description'          => $model->description,
+                'feature_image'        => $model->feature_image,
+                'feature_images'       => $model->feature_images,
+                'feature_image_items'  => $model->feature_image_items,
+                'created_at'           => $model->created_at ? $model->created_at->format('Y-m-d H:i:s') : null,
             ];
         });
 
         return response()->json([
-            'status' => true,
-            'data' => $data,
+            'status'  => true,
+            'data'    => $data,
             'message' => 'Liste des modèles récupérée avec succès'
         ]);
     }
@@ -184,24 +185,22 @@ class HairstyleModelApiController extends Controller
      */
     public function show(Request $request, $id)
     {
-        $model = HairstyleModel::with(['service', 'commission'])->findOrFail($id);
+        $model = HairstyleModel::with(['service'])->findOrFail($id);
         $this->ensureAccessible($request, $model);
 
         return response()->json([
             'status' => true,
-            'data' => [
-                'id' => $model->id,
-                'name' => $model->name,
-                'service_id' => $model->service_id,
-                'service_name' => optional($model->service)->name ?? '-',
-                'commission_id' => $model->commission_id,
-                'commission_name' => optional($model->commission)->title ?? '-',
-                'status' => (int) $model->status,
-                'description' => $model->description,
-                'feature_image' => $model->feature_image,
-                'feature_images' => $model->feature_images,
+            'data'   => [
+                'id'                  => $model->id,
+                'name'                => $model->name,
+                'service_id'          => $model->service_id,
+                'service_name'        => optional($model->service)->name ?? '-',
+                'status'              => (int) $model->status,
+                'description'         => $model->description,
+                'feature_image'       => $model->feature_image,
+                'feature_images'      => $model->feature_images,
                 'feature_image_items' => $model->feature_image_items,
-                'created_at' => $model->created_at ? $model->created_at->format('Y-m-d H:i:s') : null,
+                'created_at'          => $model->created_at ? $model->created_at->format('Y-m-d H:i:s') : null,
             ],
             'message' => 'Détail du modèle'
         ]);
@@ -212,19 +211,19 @@ class HairstyleModelApiController extends Controller
      */
     protected function attachMediaFiles(HairstyleModel $model, Request $request)
     {
-        $fileInputs = ['feature_image', 'feature_images', 'images', 'image', 'photos'];
-        foreach ($fileInputs as $inputKey) {
-            if ($request->hasFile($inputKey)) {
-                $files = $request->file($inputKey);
-                if (is_array($files)) {
-                    foreach ($files as $file) {
-                        if ($file) {
-                            $model->addMedia($file)->toMediaCollection('feature_image');
-                        }
-                    }
-                } elseif ($files) {
-                    $model->addMedia($files)->toMediaCollection('feature_image');
+        $attached = [];
+        foreach ($request->allFiles() as $files) {
+            $list = is_array($files) ? $files : [$files];
+            foreach ($list as $file) {
+                if (! $file) {
+                    continue;
                 }
+                $path = method_exists($file, 'getRealPath') ? $file->getRealPath() : spl_object_hash($file);
+                if (isset($attached[$path])) {
+                    continue;
+                }
+                $attached[$path] = true;
+                $model->addMedia($file)->toMediaCollection('feature_image');
             }
         }
     }
@@ -240,11 +239,23 @@ class HairstyleModelApiController extends Controller
         ]);
 
         $branchId = $this->resolveBranchId($request);
+        $user = auth('sanctum')->user();
+        $service = Service::active()->find($request->service_id);
+
+        abort_unless($service, 422, 'Le service sélectionné n’existe plus. Actualisez la liste avant de créer le modèle.');
+
+        if ($user && ! $user->hasRole('admin')) {
+            abort_unless($branchId, 422, 'Aucun salon n’est associé à ce compte.');
+            abort_unless(
+                $service->branches()->where('branch_id', $branchId)->exists(),
+                422,
+                'Ce service n’appartient pas à votre salon.'
+            );
+        }
 
         $model = HairstyleModel::create([
             'name' => $request->name,
             'service_id' => $request->service_id,
-            'commission_id' => $request->commission_id,
             'status' => $request->has('status') ? (int) $request->status : 1,
             'description' => $request->description,
             'branch_id' => $branchId,
@@ -263,8 +274,6 @@ class HairstyleModelApiController extends Controller
                 'name' => $model->name,
                 'service_id' => $model->service_id,
                 'service_name' => optional($model->service)->name ?? '-',
-                'commission_id' => $model->commission_id,
-                'commission_name' => optional($model->commission)->title ?? '-',
                 'status' => (int) $model->status,
                 'description' => $model->description,
                 'feature_image' => $model->feature_image,
@@ -284,17 +293,16 @@ class HairstyleModelApiController extends Controller
         $this->ensureAccessible($request, $model);
 
         $updateData = [];
-        if ($request->filled('name')) $updateData['name'] = $request->name;
-        if ($request->filled('service_id')) $updateData['service_id'] = $request->service_id;
-        if ($request->filled('commission_id')) $updateData['commission_id'] = $request->commission_id;
-        if ($request->has('status')) $updateData['status'] = (int) $request->status;
-        if ($request->has('description')) $updateData['description'] = $request->description;
+        if ($request->filled('name'))        $updateData['name']        = $request->name;
+        if ($request->filled('service_id'))  $updateData['service_id']  = $request->service_id;
+        if ($request->has('status'))         $updateData['status']      = (int) $request->status;
+        if ($request->has('description'))    $updateData['description'] = $request->description;
+        $updateData['updated_by'] = auth('sanctum')->id();
 
         if (!empty($updateData)) {
             $model->update($updateData);
         }
 
-        // Remove marked images
         if ($request->has('remove_image_ids')) {
             $removeIds = $request->input('remove_image_ids');
             if (is_string($removeIds)) {
@@ -303,31 +311,26 @@ class HairstyleModelApiController extends Controller
             if (is_array($removeIds)) {
                 foreach ($removeIds as $mediaId) {
                     $media = $model->media()->find($mediaId);
-                    if ($media) {
-                        $media->delete();
-                    }
+                    if ($media) $media->delete();
                 }
                 $model->unsetRelation('media');
             }
         }
 
         $this->attachMediaFiles($model, $request);
-
         $model->refresh();
 
         return response()->json([
-            'status' => true,
-            'data' => [
-                'id' => $model->id,
-                'name' => $model->name,
-                'service_id' => $model->service_id,
-                'service_name' => optional($model->service)->name ?? '-',
-                'commission_id' => $model->commission_id,
-                'commission_name' => optional($model->commission)->title ?? '-',
-                'status' => (int) $model->status,
-                'description' => $model->description,
-                'feature_image' => $model->feature_image,
-                'feature_images' => $model->feature_images,
+            'status'  => true,
+            'data'    => [
+                'id'                  => $model->id,
+                'name'                => $model->name,
+                'service_id'          => $model->service_id,
+                'service_name'        => optional($model->service)->name ?? '-',
+                'status'              => (int) $model->status,
+                'description'         => $model->description,
+                'feature_image'       => $model->feature_image,
+                'feature_images'      => $model->feature_images,
                 'feature_image_items' => $model->feature_image_items,
             ],
             'message' => 'Modèle mis à jour avec succès'
@@ -371,8 +374,15 @@ class HairstyleModelApiController extends Controller
      */
     public function destroy(Request $request, $id)
     {
-        $model = HairstyleModel::findOrFail($id);
+        $model = HairstyleModel::query()->whereKey($id)->first();
+        if (! $model) {
+            return response()->json([
+                'status' => true,
+                'message' => 'Ce modèle est introuvable ou a déjà été supprimé.',
+            ], 200);
+        }
         $this->ensureAccessible($request, $model);
+        $model->clearMediaCollection('feature_image');
         $model->delete();
 
         return response()->json([

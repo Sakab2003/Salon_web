@@ -66,6 +66,16 @@ class Service extends BaseModel
         static::updating(function ($table) {
             //
         });
+
+        static::deleting(function (self $service) {
+            $service->hairstyle_models()->with('media')->get()->each(function (HairstyleModel $model) {
+                $model->clearMediaCollection('feature_image');
+                $model->delete();
+            });
+            $service->branches()->delete();
+            $service->employee()->delete();
+            $service->clearMediaCollection('feature_image');
+        });
     }
 
     public function employee()
@@ -112,7 +122,7 @@ class Service extends BaseModel
     {
         $media = $this->getFirstMediaUrl('feature_image');
 
-        return isset($media) && ! empty($media) ? $media : default_feature_image();
+        return isset($media) && ! empty($media) ? rewrite_public_url($media) : default_feature_image();
     }
 
     public function scopeActive($query)

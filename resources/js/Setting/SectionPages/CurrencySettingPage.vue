@@ -28,7 +28,7 @@
             </th>
             <th>
               <button type="button" class="btn btn-soft-primary btn-sm me-2" data-bs-toggle="modal" data-bs-target="#exampleModal" @click="changeId(currency.id)" aria-controls="exampleModal"><i class="fa-solid fa-pen-clip"></i></button>
-              <button type="button" class="btn btn-soft-danger btn-sm" @click="destroyData(currency.id, 'Es-tu sûr de vouloir le supprimer?')" data-bs-toggle="tooltip"><i class="fa-solid fa-trash"></i></button>
+              <button type="button" class="btn btn-soft-danger btn-sm" @click="destroyData(currency.id, 'Êtes-vous sûr de vouloir supprimer cette devise ?')" data-bs-toggle="tooltip"><i class="fa-solid fa-trash"></i></button>
             </th>
           </tr>
         </tbody>

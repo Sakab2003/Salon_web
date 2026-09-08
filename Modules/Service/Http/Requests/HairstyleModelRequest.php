@@ -16,7 +16,7 @@ class HairstyleModelRequest extends FormRequest
         $rules = [
             'name' => 'required|string|max:255',
             'service_id' => 'required|exists:services,id',
-            'commission_id' => 'required|exists:commissions,id',
+            'commission_id' => 'nullable|integer|exists:commissions,id',
             'status' => 'required|in:0,1',
             'remove_image_ids' => 'nullable|array',
             'remove_image_ids.*' => 'integer',
@@ -29,6 +29,8 @@ class HairstyleModelRequest extends FormRequest
             $rules['feature_image'] = 'nullable';
             $rules['feature_image.*'] = 'image|mimes:jpeg,png,jpg,gif,svg,webp|max:10240';
         }
+
+        $rules['branch_id'] = 'nullable|integer|exists:branches,id';
 
         return $rules;
     }

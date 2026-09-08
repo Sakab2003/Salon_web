@@ -5,7 +5,7 @@ use Modules\Service\Http\Controllers\Backend\API\ServicePackageController;
 use Modules\Service\Http\Controllers\Backend\API\HairstyleModelApiController;
 
 Route::get('service-list', [ServiceController::class, 'serviceList']);
-Route::group(['middleware' => 'auth:sanctum'], function () {
+Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('hairstyle-models', [HairstyleModelApiController::class, 'index']);
     Route::get('hairstyle-models/{id}', [HairstyleModelApiController::class, 'show'])->whereNumber('id');
     Route::get('service-models-visualize', [HairstyleModelApiController::class, 'visualize']);

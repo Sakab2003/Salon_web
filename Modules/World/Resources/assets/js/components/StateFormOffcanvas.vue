@@ -113,7 +113,7 @@ const { value: country_id  } = useField('country_id')
 const errorMessages = ref({})
 
 onMounted(() => {
-  setFormData(defaultData())
+  if (currentId.value <= 0) setFormData(defaultData())
 })
 
 

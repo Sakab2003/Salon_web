@@ -604,7 +604,8 @@ Index Of Script
                     if(res.status) {
                         // window.successSnackbar(res.message)
                         Swal.fire({
-                            title: 'Deleted',
+                            // The backend uses French as its default locale.
+                            title: 'Supprimé',
                             text: res.message,
                             icon: "success",
                             showClass: {
@@ -619,7 +620,7 @@ Index Of Script
                     } else {
                         if(res.message) {
                             Swal.fire({
-                              title: 'Error',
+                              title: 'Erreur',
                               text: res.message,
                               icon: "error",
                               showClass: {
@@ -690,6 +691,7 @@ Index Of Script
                 confirmButtonColor: '#d33',
                 cancelButtonColor: '#858482',
                 confirmButtonText: 'Oui, supprimer !',
+                cancelButtonText: 'Annuler',
                 showClass: {
                   popup: 'animate__animated animate__zoomIn'
                 },

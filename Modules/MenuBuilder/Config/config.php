@@ -159,7 +159,7 @@ return [
         [
             'title' => 'sidebar.finance',
             'menu_item_type' => 'static',
-            'permission' => ['view_tax', 'view_earning', 'view_commission'],
+            'permission' => ['view_tax', 'view_earning'],
             'order' => 11,
         ],
         [
@@ -170,14 +170,14 @@ return [
             'permission' => ['view_earning', 'view_product', 'view_dashboard'],
             'order' => 11.5,
         ],
-        [
-            'start_icon' => 'fa-solid fa-percent',
-            'title' => 'sidebar.commissions',
-            'route' => 'backend.commissions.index',
-            'active' => ['app/commissions'],
-            'permission' => ['view_commission'],
-            'order' => 12,
-        ],
+        // [
+        //     'start_icon' => 'fa-solid fa-percent',
+        //     'title' => 'sidebar.commissions',
+        //     'route' => 'backend.commissions.index',
+        //     'active' => ['app/commissions'],
+        //     'permission' => ['view_commission'],
+        //     'order' => 12,
+        // ],
         [
             'start_icon' => 'fa-solid fa-money-bill-trend-up',
             'title' => 'sidebar.tax',
@@ -550,6 +550,16 @@ return [
                 ],
             ],
         ],
+        // [
+        //     'menu_type' => 'horizontal',
+        //     'start_icon' => 'fa-solid fa-percent',
+        //     'title' => 'sidebar.commissions',
+        //     'route' => 'backend.commissions.index',
+        //     'active' => ['app/commissions'],
+        //     'permission' => ['view_commission'],
+        //     'order' => 3.5,
+        //     'menu_level' => 1,
+        // ],
         [
             'menu_type' => 'horizontal',
             'title' => 'sidebar.reports',

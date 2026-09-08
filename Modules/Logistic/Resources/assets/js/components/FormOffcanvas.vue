@@ -143,7 +143,7 @@
   const errorMessages = ref({})
 
   onMounted(() => {
-    setFormData(defaultData())
+    if (currentId.value <= 0) setFormData(defaultData())
   })
 
   // Edit Form Or Create Form

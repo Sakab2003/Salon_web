@@ -34,12 +34,12 @@ class EmployeeResource extends JsonResource
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
             'deleted_at' => $this->deleted_at,
-            'rating_star' => count($this->rating) > 0 ? (float) number_format(max($this->rating->avg('rating'), 0), 2) : 0,
-            'about_self' => $this->profile->about_self ?? null,
-            'facebook_link' => $this->profile->facebook_link ?? null,
-            'instagram_link' => $this->profile->instagram_link ?? null,
-            'twitter_link' => $this->profile->twitter_link ?? null,
-            'dribbble_link' => $this->profile->dribbble_link ?? null,
+            'rating_star' => optional($this->rating)->count() > 0 ? (float) number_format(max($this->rating->avg('rating'), 0), 2) : 0,
+            'about_self' => optional($this->profile)->about_self,
+            'facebook_link' => optional($this->profile)->facebook_link,
+            'instagram_link' => optional($this->profile)->instagram_link,
+            'twitter_link' => optional($this->profile)->twitter_link,
+            'dribbble_link' => optional($this->profile)->dribbble_link,
             'commission_id' => optional($this->commissions->first())->commission_id ?? null,
         ];
     }

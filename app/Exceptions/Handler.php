@@ -3,6 +3,7 @@
 namespace App\Exceptions;
 
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Throwable;
 
@@ -38,6 +39,35 @@ class Handler extends ExceptionHandler
         $this->reportable(function (Throwable $e) {
             //
         });
+    }
+
+    public function render($request, Throwable $e)
+    {
+        $wantsApi = $request->ajax() || $request->expectsJson() || $request->is('api/*');
+
+        if ($wantsApi && $e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface) {
+            $status = $e->getStatusCode();
+            $message = $e->getMessage() ?: 'Action non autorisee.';
+
+            return response()->json([
+                'status' => false,
+                'message' => $message,
+            ], $status);
+        }
+
+        if ($e instanceof ModelNotFoundException) {
+            $isAjax = $request->ajax() || $request->expectsJson() || $request->is('api/*');
+            if ($isAjax) {
+                $alreadyGone = in_array($request->method(), ['DELETE', 'POST', 'PUT', 'PATCH'], true);
+
+                return response()->json([
+                    'status' => $alreadyGone,
+                    'message' => 'Cet élément est introuvable ou a déjà été supprimé.',
+                ], $alreadyGone ? 200 : 404);
+            }
+        }
+
+        return parent::render($request, $e);
     }
 
     protected function unauthenticated($request, AuthenticationException $exception)

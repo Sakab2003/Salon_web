@@ -61,6 +61,7 @@ Route::group(['prefix' => 'app', 'as' => 'backend.', 'middleware' => ['auth']], 
         Route::post('update-status/{id}', [ServicesController::class, 'update_status'])->name('update_status');
         Route::get('/category_list', [ServicesController::class, 'category_list'])->name('category_list');
         Route::get('export', [ServicesController::class, 'export'])->name('export');
+        Route::post('/{id}/delete', [ServicesController::class, 'destroy'])->name('delete');
     });
     Route::resource('services', ServicesController::class);
 

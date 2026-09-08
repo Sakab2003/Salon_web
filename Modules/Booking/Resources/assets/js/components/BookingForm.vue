@@ -29,8 +29,8 @@
           </div>
 
           <!-- Sélection du Personnel -->
-          <div class="form-group" v-if="bookingType !== 'CALENDER_BOOKING' && branch_id">
-            <Multiselect id="employee_id" placeholder="Sélectionner le personnel" v-model="employee_id" :value="employee_id" :disabled="is_paid || filterStatus(status).is_disabled" v-bind="singleSelectOption" :options="employee.options" @select="employeeSelect" @change="removeEmployee" class="form-group mb-0"></Multiselect>
+          <div class="form-group" v-if="bookingType !== 'CALENDER_BOOKING' && (branch_id || isManagerOnly)">
+            <Multiselect id="employee_id" placeholder="Sélectionner le personnel" noOptionsText="Aucun personnel enregistré" noResultsText="Aucun personnel trouvé" v-model="employee_id" :value="employee_id" :disabled="is_paid || filterStatus(status).is_disabled" v-bind="singleSelectOption" :options="employee.options" @select="employeeSelect" @change="removeEmployee" class="form-group mb-0"></Multiselect>
             <span class="text-danger small" v-if="errors.employee_id">{{ errors.employee_id }}</span>
           </div>
 
@@ -133,15 +133,6 @@
               <div class="form-group mb-3">
                 <label class="form-label small fw-semibold text-dark mb-1">Prix par défaut (FCFA) <span class="text-danger">*</span></label>
                 <input type="number" v-model="custom_service_amount" class="form-control form-control-sm" placeholder="Ex: 5000" required />
-              </div>
-
-              <!-- Catégorie * -->
-              <div class="form-group mb-3">
-                <label class="form-label small fw-semibold text-dark mb-1">Catégorie <span class="text-danger">*</span></label>
-                <select v-model="custom_service_category_id" class="form-select form-select-sm" required>
-                  <option value="">Sélectionner une catégorie</option>
-                  <option v-for="cat in categoryList" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
-                </select>
               </div>
 
               <!-- Description -->
@@ -400,11 +391,9 @@ import moment from 'moment'
 
 // Custom Service State & Form matching "Créer Services"
 const showCustomServiceInput = ref(false)
-const categoryList = ref([])
 const custom_service_name = ref('')
 const custom_service_duration = ref(30)
 const custom_service_amount = ref('')
-const custom_service_category_id = ref('')
 const custom_service_description = ref('')
 const custom_service_status = ref(true)
 const custom_service_file = ref(null)
@@ -430,31 +419,8 @@ const onImageSelected = (e) => {
   }
 }
 
-const fetchCategories = async () => {
-  try {
-    const response = await fetch('/app/services/category_list', {
-      headers: {
-        'Accept': 'application/json',
-        ...XSRF_REQUEST_HEADER()
-      }
-    })
-    const data = await response.json()
-    if (data && Array.isArray(data)) {
-      categoryList.value = data
-    }
-  } catch (err) {
-    console.error('Erreur chargement catégories:', err)
-  }
-}
-
-watch(showCustomServiceInput, (val) => {
-  if (val && categoryList.value.length === 0) {
-    fetchCategories()
-  }
-})
-
 const saveCustomService = async () => {
-  if (!custom_service_name.value || !custom_service_duration.value || !custom_service_amount.value || !custom_service_category_id.value) {
+  if (!custom_service_name.value || !custom_service_duration.value || !custom_service_amount.value) {
     if (window.errorSnackbar) {
       window.errorSnackbar('Veuillez remplir tous les champs obligatoires (*).')
     }
@@ -467,7 +433,6 @@ const saveCustomService = async () => {
   formData.append('name', custom_service_name.value)
   formData.append('duration_min', custom_service_duration.value)
   formData.append('default_price', custom_service_amount.value)
-  formData.append('category_id', custom_service_category_id.value)
   formData.append('description', custom_service_description.value || '')
   formData.append('status', custom_service_status.value ? 1 : 0)
   if (employee_id.value) {
@@ -528,7 +493,6 @@ const saveCustomService = async () => {
       custom_service_name.value = ''
       custom_service_amount.value = ''
       custom_service_duration.value = 30
-      custom_service_category_id.value = ''
       custom_service_description.value = ''
       custom_service_status.value = true
       custom_service_file.value = null
@@ -766,11 +730,11 @@ useOnOffcanvasShow('booking-form', () => {
     if (!branch_id.value && data.options && data.options.length > 0) {
       branch_id.value = data.options[0].value
     }
-    branchSelect(branch_id.value)
+    loadEmployees(branch_id.value)
   })
   branch_id.value = props.bookingData.branch_id || branch_id.value
   getCustomers()
-  branchSelect(branch_id.value)
+  loadEmployees(branch_id.value)
   getProducts()
 })
 
@@ -796,14 +760,23 @@ const getSlots = () => {
   })
 }
 // On Select
-const branchSelect = (value) => {
-  if (!value) return
-  useSelect({ url: EMPLOYEE_LIST, data: { branch_id: value } }, { value: 'id', label: 'name' }).then((data) => {
+const loadEmployees = (value) => {
+  const request = isManagerOnly.value ? { url: EMPLOYEE_LIST, data: {} } : { url: EMPLOYEE_LIST, data: { branch_id: value } }
+  useSelect(request, { value: 'id', label: 'name' }).then((data) => {
     employee.value = data
+
+    if (!employee_id.value && isManagerOnly.value && data.options && data.options.length > 0) {
+      employee_id.value = data.options[0].value
+    }
+
     if (employee_id.value) {
       employeeSelect(employee_id.value)
     }
   })
+}
+const branchSelect = (value) => {
+  if (!value) return
+  loadEmployees(value)
   getSlots()
 }
 const removeBranch = (value) => {

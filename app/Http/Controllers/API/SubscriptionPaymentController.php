@@ -19,12 +19,25 @@ class SubscriptionPaymentController extends Controller
     public function subscribe(Request $request)
     {
         $user = $request->user();
-        abort_unless($user->hasRole('manager'), 403, 'Seul le manager du salon peut souscrire un abonnement.');
+        
+        if (! $user->hasAnyRole(['manager', 'admin']) && ! $user->is_manager) {
+            return response()->json(['status' => false, 'message' => 'Seul le manager du salon peut souscrire un abonnement.'], 403);
+        }
 
-        $amount = (int) config('services.cinetpay.subscription_amount', 0);
-        abort_if($amount < 500, 422, 'Le tarif de l’abonnement n’est pas encore configuré.');
+        $planType = $request->input('plan_type', 'monthly');
+        $customAmount = (int) $request->input('amount', 0);
 
-        $duration = max(1, (int) config('services.cinetpay.subscription_duration_days', 30));
+        // Définir le montant et la durée selon le plan
+        if ($planType === 'yearly') {
+            $amount = $customAmount > 0 ? $customAmount : 100000;
+            $duration = 365;
+            $planName = 'Abonnement mobile annuel';
+        } else {
+            $amount = $customAmount > 0 ? $customAmount : 10000;
+            $duration = 30;
+            $planName = 'Abonnement mobile mensuel';
+        }
+
         $transactionId = 'SALON-'.now()->format('YmdHis').'-'.$user->id.'-'.Str::upper(Str::random(6));
 
         $subscription = Subscription::create([
@@ -33,11 +46,11 @@ class SubscriptionPaymentController extends Controller
             'end_date' => now()->addDays($duration),
             'status' => config('constant.SUBSCRIPTION_STATUS.PENDING'),
             'amount' => $amount,
-            'name' => 'Abonnement mobile '.$duration.' jours',
-            'identifier' => 'mobile-'.$duration.'-jours',
+            'name' => $planName,
+            'identifier' => 'mobile-'.$planType,
             'type' => 'days',
             'duration' => $duration,
-            'plan_type' => 'Unlimited',
+            'plan_type' => ucfirst($planType),
             'payment_transaction_id' => $transactionId,
             'payment_provider' => 'cinetpay',
         ]);

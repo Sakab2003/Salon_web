@@ -35,8 +35,16 @@ Route::controller(AuthController::class)->group(function () {
     Route::get('logout', 'logout');
 });
 
+Route::post('webhook', [\App\Http\Controllers\API\SubscriptionPaymentController::class, 'webhook']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('subscribe', [\App\Http\Controllers\API\SubscriptionPaymentController::class, 'subscribe']);
+    Route::get('subscription-status', [\App\Http\Controllers\API\SubscriptionPaymentController::class, 'status']);
+});
+
 Route::prefix('v1')->as('api.v1.')->group(function () {
     Route::post('payments/webhook', [\App\Http\Controllers\API\SubscriptionPaymentController::class, 'webhook'])->name('payments.webhook');
+    Route::post('webhook', [\App\Http\Controllers\API\SubscriptionPaymentController::class, 'webhook']);
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('subscribe', [\App\Http\Controllers\API\SubscriptionPaymentController::class, 'subscribe']);

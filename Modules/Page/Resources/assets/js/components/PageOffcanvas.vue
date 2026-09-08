@@ -92,7 +92,9 @@ onMounted(() => {
   quillInstance.on('text-change', () => {
     description.value = quillInstance.root.innerHTML;
   });
-  setFormData(defaultData())
+  if (currentId.value <= 0) {
+    setFormData(defaultData())
+  }
 })
 
 

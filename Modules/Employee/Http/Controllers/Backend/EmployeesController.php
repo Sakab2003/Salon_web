@@ -132,35 +132,50 @@ class EmployeesController extends Controller
         $term = trim($request->q);
 
         $branchId = $request->branch_id;
+        $managerBranchIds = [];
 
-        if (empty($branchId) || $branchId == '0' || $branchId == 0) {
-            if (auth()->check() && auth()->user()->hasRole('manager')) {
-                $branchId = auth()->user()->branch_id ?: optional(\App\Models\Branch::where('manager_id', auth()->id())->first())->id;
-            } elseif (request()->filled('selected_session_branch_id')) {
-                $branchId = request()->selected_session_branch_id;
+        if (auth()->check() && auth()->user()->hasRole('manager')) {
+            $managerBranchIds = \App\Models\Branch::where('manager_id', auth()->id())
+                ->pluck('id')
+                ->all();
+
+            if (auth()->user()->branch_id) {
+                $managerBranchIds[] = auth()->user()->branch_id;
             }
+
+            $managerBranchIds = array_values(array_unique($managerBranchIds));
+        } elseif (empty($branchId) || $branchId == '0' || $branchId == 0) {
+            $branchId = request()->selected_session_branch_id;
         }
 
         $role = $request->role;
 
-        $query_data = User::whereHas('roles', function($q) use ($role) {
-            if (!empty($role)) {
-                $q->where('name', $role);
-            } else {
-                $q->whereIn('name', ['employee', 'manager']);
-            }
-        })->where('status', 1)->with('media', 'branches')->where(function ($q) use ($term) {
+        $query_data = User::whereHas('roles', function ($q) use ($role) {
+            $q->where('name', $role ?: 'employee');
+        })
+            ->where('status', 1)
+            ->where(function ($q) {
+                $q->whereNull('is_receptionist')->orWhere('is_receptionist', 0);
+            })
+            ->with('media', 'branches')
+            ->where(function ($q) use ($term) {
             if (! empty($term)) {
                 $q->orWhere('first_name', 'LIKE', "%$term%");
                 $q->orWhere('last_name', 'LIKE', "%$term%");
             }
-        });
+            });
 
         if ($request->filled('show_in_calender') && $request->show_in_calender == '1') {
             $query_data->where('show_in_calender', 1);
         }
 
-        if (isset($branchId) && ! empty($branchId) && $branchId != 0 && $branchId != '0') {
+        if (! empty($managerBranchIds)) {
+            $query_data->where(function ($q) use ($managerBranchIds) {
+                $q->whereHas('branches', function ($branchQuery) use ($managerBranchIds) {
+                    $branchQuery->whereIn('branch_id', $managerBranchIds);
+                })->orWhereIn('branch_id', $managerBranchIds);
+            });
+        } elseif (isset($branchId) && ! empty($branchId) && $branchId != 0 && $branchId != '0') {
             $query_data->where(function ($q) use ($branchId) {
                 $q->whereHas('branches', function ($b) use ($branchId) {
                     $b->where('branch_id', $branchId);

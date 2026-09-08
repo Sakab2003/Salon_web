@@ -34,7 +34,7 @@
 
             <th>
               <button type="button" v-if="hasPermissions('edit_custom_field')" class="btn btn-soft-primary btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal" @click="changeId(item.id)" aria-controls="exampleModal"><i class="fa-solid fa-pen-clip"></i></button>
-              <button type="button" v-if="hasPermissions('delete_custom_field')" class="btn btn-soft-danger btn-sm ms-2" @click="destroyData(item.id, 'Es-tu sûr de vouloir le supprimer?')" data-bs-toggle="tooltip"><i class="fa-solid fa-trash"></i></button>
+              <button type="button" v-if="hasPermissions('delete_custom_field')" class="btn btn-soft-danger btn-sm ms-2" @click="destroyData(item.id, 'Êtes-vous sûr de vouloir supprimer ce champ personnalisé ?')" data-bs-toggle="tooltip"><i class="fa-solid fa-trash"></i></button>
             </th>
           </tr>
         </tbody>

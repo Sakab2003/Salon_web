@@ -22,7 +22,7 @@
               </div>
               <div class="default-flex-gap">
                 <button class="btn btn-icon btn-secondary btn-sm rounded" v-if="hasPermissions('edit_menu_builder')" data-bs-toggle="modal" data-bs-target="#exampleModal" aria-controls="form-modal" @click="store.setEditCurrentMenuId(element.id)"><i class="fa-solid fa-pen-clip"></i></button>
-                <button class="btn btn-icon btn-danger btn-sm rounded" v-if="hasPermissions('delete_menu_builder')" @click="store.deleteMenu(element.id, 'Es-tu sûr de vouloir le supprimer?')"><i class="fa-solid fa-trash"></i></button>
+                <button class="btn btn-icon btn-danger btn-sm rounded" v-if="hasPermissions('delete_menu_builder')" @click="store.deleteMenu(element.id, 'Êtes-vous sûr de vouloir supprimer ce menu ?')"><i class="fa-solid fa-trash"></i></button>
               </div>
             </div>
             <nested-draggable :menus="element.children" v-if="element.menu_item_type == 'parent'" />

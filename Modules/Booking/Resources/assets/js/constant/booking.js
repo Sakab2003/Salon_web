@@ -14,7 +14,7 @@ export const EMPLOYEE_LIST = ({branch_id, show_in_calender}) => {
     if (branch_id) query.push(`branch_id=${branch_id}`)
     if (show_in_calender !== undefined && show_in_calender !== '') query.push(`show_in_calender=${show_in_calender}`)
     const qStr = query.length > 0 ? `?${query.join('&')}` : ''
-    return {path: `employees/employee_list${qStr}`, method: 'GET'}
+    return {path: `personnel/employee_list${qStr}`, method: 'GET'}
 }
 export const SERVICE_LIST = ({id: employee_id, branch_id}) => {
     let query = []

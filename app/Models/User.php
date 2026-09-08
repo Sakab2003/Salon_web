@@ -127,25 +127,34 @@ class User extends Authenticatable implements HasMedia, MustVerifyEmail
             return false;
         }
 
-        // Do not lock existing salons while the merchant payment account has
-        // not yet been configured. Enforcement becomes automatic as soon as
-        // both CinetPay credentials are supplied in the environment.
-        if (! filled(config('services.cinetpay.api_key')) || ! filled(config('services.cinetpay.site_id'))) {
-            return true;
-        }
-
         $owner = $this->mobileSubscriptionOwner();
+        $owner->ensureMobileTrialStarted();
 
         return $owner->subscriptionPackage()->exists() || $owner->mobileTrialDaysRemaining() > 0;
     }
 
+    public function ensureMobileTrialStarted(): void
+    {
+        if ($this->mobile_trial_started_at !== null) {
+            return;
+        }
+
+        $this->mobile_trial_started_at = now();
+        $this->save();
+        $this->refresh();
+    }
+
     public function mobileTrialDaysRemaining(): int
     {
-        if ($this->subscriptionPackage()->exists() || $this->mobile_trial_started_at === null) {
+        if ($this->subscriptionPackage()->exists()) {
             return 0;
         }
 
-        $expiresAt = $this->mobile_trial_started_at->copy()->addDays(self::MOBILE_TRIAL_DAYS);
+        $this->ensureMobileTrialStarted();
+
+        $trialStart = $this->mobile_trial_started_at ?? now();
+
+        $expiresAt = $trialStart->copy()->addDays(self::MOBILE_TRIAL_DAYS);
 
         if (now()->greaterThan($expiresAt)) {
             return 0;

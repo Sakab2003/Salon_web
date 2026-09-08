@@ -215,7 +215,7 @@ const getCity = (value) => useSelect({ url: CITY_LIST, data: {state_id: value}},
 
   onMounted(() => {
 
-    setFormData(defaultData())
+    if (currentId.value <= 0) setFormData(defaultData())
     getCountryList()
     getState()
     getCity()

@@ -369,11 +369,6 @@ class ServicesController extends Controller
         }
 
         $data = $request->except(['feature_image', 'employee_id']);
-        if (empty($data['category_id'])) {
-            $defaultCat = \Modules\Category\Models\Category::first();
-            $data['category_id'] = $defaultCat ? $defaultCat->id : null;
-        }
-
         $query = Service::create($data);
 
         if ($request->custom_fields_data) {
@@ -445,7 +440,17 @@ class ServicesController extends Controller
     {
         $module_action = 'Show';
 
-        $data = Service::findOrFail($id);
+        $data = Service::find($id);
+
+        // Deleting twice can happen when a user confirms once while the table
+        // refreshes.  Return a normal French response instead of Laravel's raw
+        // exception page for a service that is already gone.
+        if (! $data) {
+            return response()->json([
+                'message' => 'Ce service a déjà été supprimé.',
+                'status' => true,
+            ], 200);
+        }
 
         return view('service::backend.services.show', compact('module_action', "$data"));
     }
@@ -523,11 +528,14 @@ class ServicesController extends Controller
             return response()->json(['message' => __('messages.permission_denied'), 'status' => false], 200);
         }
 
-        $data = Service::findOrFail($id);
+        $data = Service::query()->whereKey($id)->first();
 
-        $data->branches()->delete();
-
-        $data->employee()->delete();
+        if (! $data) {
+            return response()->json([
+                'message' => 'Ce service est introuvable ou a déjà été supprimé.',
+                'status' => true,
+            ], 200);
+        }
 
         $data->delete();
 

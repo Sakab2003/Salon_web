@@ -136,9 +136,18 @@ class ServiceController extends Controller
     {
         $perPage = $request->input('per_page', 10);
         $branchId = $request->input('branch_id');
+        $user = auth('sanctum')->user();
 
-        $services = Service::with(['media', 'branches', 'employee']);
-        if ($request->has('branch_id') && !empty($branchId) && $branchId != '0' && $branchId != 0) {
+        if ((! $branchId || $branchId === '0') && $user && ! $user->hasRole('admin')) {
+            if ($user->hasRole('manager')) {
+                $branchId = $user->branch_id ?: \App\Models\Branch::where('manager_id', $user->id)->value('id');
+            } else {
+                $branchId = optional($user->branch()->first())->branch_id ?: $user->branch_id;
+            }
+        }
+
+        $services = Service::active()->with(['media', 'branches', 'employee']);
+        if (!empty($branchId) && $branchId != '0' && $branchId != 0) {
             $services = $services->whereHas('branches', function ($query) use ($branchId) {
                 $query->where('branch_id', $branchId);
             });
@@ -161,15 +170,11 @@ class ServiceController extends Controller
             $services->whereIn('sub_category_id', explode(',', $request->subcategory_id));
         }
         $services = $services->paginate($perPage);
-        $serviceCollection = ServiceResource::collection($services);
-        $responseData = $serviceCollection->map(function ($item) {
-            return $item->resource->toArray(request());
-        });
-        $responseData = $serviceCollection->toArray(request());
+        $data = ServiceResource::collection($services->getCollection())->resolve();
 
         return response()->json([
             'status' => true,
-            'data' => $responseData,
+            'data' => $data,
             'message' => __('service.service_list'),
         ], 200);
     }
@@ -250,16 +255,18 @@ class ServiceController extends Controller
                     'duration_min' => $service->duration_min,
                 ]);
             }
-        } else {
-            $branchIds = $request->branch_id ? (is_array($request->branch_id) ? $request->branch_id : explode(',', $request->branch_id)) : \App\Models\Branch::pluck('id')->toArray();
-            foreach ($branchIds as $bId) {
-                ServiceBranches::firstOrCreate([
-                    'service_id' => $service->id,
-                    'branch_id' => $bId,
-                ], [
-                    'service_price' => $service->default_price,
-                    'duration_min' => $service->duration_min,
-                ]);
+        } elseif ($user && $user->hasRole('admin')) {
+            if ($request->branch_id) {
+                $branchIds = is_array($request->branch_id) ? $request->branch_id : explode(',', $request->branch_id);
+                foreach ($branchIds as $bId) {
+                    ServiceBranches::firstOrCreate([
+                        'service_id' => $service->id,
+                        'branch_id' => $bId,
+                    ], [
+                        'service_price' => $service->default_price,
+                        'duration_min' => $service->duration_min,
+                    ]);
+                }
             }
         }
 
@@ -282,7 +289,14 @@ class ServiceController extends Controller
 
     public function update(Request $request, $id)
     {
-        $service = Service::findOrFail($id);
+        $service = Service::query()->whereKey($id)->first();
+
+        if (! $service) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Ce service est introuvable ou a déjà été supprimé.',
+            ], 404);
+        }
 
         $data = $request->only([
             'name', 'description', 'duration_min', 'default_price', 
@@ -317,7 +331,15 @@ class ServiceController extends Controller
 
     public function destroy($id)
     {
-        $service = Service::findOrFail($id);
+        $service = Service::query()->whereKey($id)->first();
+
+        if (! $service) {
+            return response()->json([
+                'status' => true,
+                'message' => 'Ce service est introuvable ou a déjà été supprimé.',
+            ], 200);
+        }
+
         $service->delete();
 
         return response()->json([

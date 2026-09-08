@@ -273,7 +273,7 @@ onMounted(() => {
   getStaff()
   getServiceList()
   changeCategory()
-  setFormData(defaultData())
+  if (currentId.value <= 0) setFormData(defaultData())
 })
 
 const ImageViewer = ref(null)

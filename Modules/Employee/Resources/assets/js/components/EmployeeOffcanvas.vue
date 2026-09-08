@@ -19,7 +19,7 @@
                 <div class="form-group col-md-6">
                   <label class="form-label">{{ $t('employee.lbl_phone_number') }}<span class="text-danger">*</span>
                   </label>
-                  <vue-tel-input :key="'tel-'+currentId+'-'+mobileKey" :value="mobile" @input="handleInput" @update:modelValue="(v) => { if(v) mobile = v }"
+                  <vue-tel-input :key="'tel-'+currentId+'-'+mobileKey" v-model="mobile"
                     v-bind="{ mode: 'international', maxLen: 15 }" autocomplete="new-password" style="border:1px solid #dee2e6; border-radius:0.375rem;"></vue-tel-input>
                   <span class="text-danger">{{ errors['mobile'] }}</span>
                 </div>
@@ -37,13 +37,22 @@
               </div>
               <span class="text-danger">{{ errors.profile_image }}</span>
             </div>
-            <div class="row" v-if="currentId === 0">
-              <InputField type="password" class="col-md-6" :is-required="true" :label="$t('employee.lbl_password')"
-                placeholder="" v-model="password" :error-message="errors['password']" :autocomplete="newpassword"
+            <div class="row">
+              <InputField type="password" class="col-md-6"
+                :is-required="currentId === 0"
+                :label="currentId === 0 ? $t('employee.lbl_password') : 'Nouveau mot de passe (optionnel)'"
+                placeholder=""
+                v-model="password"
+                :error-message="errors['password']"
+                :autocomplete="newpassword"
                 :error-messages="errorMessages['password']"></InputField>
 
-              <InputField type="password" class="col-md-6" :is-required="true" :label="$t('employee.lbl_confirm_password')"
-                placeholder="" v-model="confirm_password" :error-message="errors['confirm_password']"
+              <InputField type="password" class="col-md-6"
+                :is-required="currentId === 0"
+                :label="currentId === 0 ? $t('employee.lbl_confirm_password') : 'Confirmer le nouveau mot de passe'"
+                placeholder=""
+                v-model="confirm_password"
+                :error-message="errors['confirm_password']"
                 :error-messages="errorMessages['confirm_password']"></InputField>
             </div>
 
@@ -277,7 +286,9 @@ const commissions = ref({ options: [], list: [] })
 const services = ref({ options: [], list: [] })
 
 onMounted(() => {
-  setFormData(defaultData())
+  if (currentId.value <= 0) {
+    setFormData(defaultData())
+  }
   branchSelect()
 })
 
@@ -347,9 +358,10 @@ const defaultData = () => {
 
 //  Reset Form
 const setFormData = (data) => {
-  ImageViewer.value = data.profile_image || null
+  const source = data?.data ?? data ?? {}
+  ImageViewer.value = source.profile_image || null
   // Determine staff_role_type from data
-  if (data.is_receptionist == 1 || data.is_receptionist === true) {
+  if (source.is_receptionist == 1 || source.is_receptionist === true) {
     staff_role_type.value = 'receptionist'
   } else {
     staff_role_type.value = 'provider'
@@ -358,28 +370,28 @@ const setFormData = (data) => {
   mobileKey.value++
   resetForm({
     values: {
-      id: data.id || '',
-      first_name: data.first_name || '',
-      last_name: data.last_name || '',
-      email: data.email || '',
-      mobile: data.mobile || '',
-      password: data.password || '',
-      confirm_password: data.confirm_password || '',
-      gender: data.gender || 'male',
-      profile_image: data.profile_image || '',
-      branch_id: data.branch_id || 0,
-      service_id: data.service_id || [],
-      commission_id: data.commission_id || '',
-      status: data.status ? true : false,
-      show_in_calender: data.show_in_calender !== undefined ? data.show_in_calender : 1,
-      is_manager: data.is_manager || 0,
-      custom_fields_data: data.custom_field_data || {},
-      about_self: data.about_self || '',
-      expert: data.expert || '',
-      facebook_link: data.facebook_link || '',
-      instagram_link: data.instagram_link || '',
-      twitter_link: data.twitter_link || '',
-      dribbble_link: data.dribbble_link || '',
+      id: source.id ?? '',
+      first_name: source.first_name ?? '',
+      last_name: source.last_name ?? '',
+      email: source.email ?? '',
+      mobile: source.mobile ?? '',
+      password: '',
+      confirm_password: '',
+      gender: source.gender ?? 'male',
+      profile_image: source.profile_image ?? '',
+      branch_id: source.branch_id ?? 0,
+      service_id: Array.isArray(source.service_id) ? source.service_id : [],
+      commission_id: source.commission_id ?? '',
+      status: source.status === undefined ? true : Boolean(source.status),
+      show_in_calender: source.show_in_calender ?? source.show_in_calendar ?? 1,
+      is_manager: source.is_manager ?? 0,
+      custom_fields_data: source.custom_field_data ?? source.custom_fields_data ?? {},
+      about_self: source.about_self ?? '',
+      expert: source.expert ?? '',
+      facebook_link: source.facebook_link ?? '',
+      instagram_link: source.instagram_link ?? '',
+      twitter_link: source.twitter_link ?? '',
+      dribbble_link: source.dribbble_link ?? '',
     }
   })
 }
@@ -423,15 +435,19 @@ const validationSchema = yup.object({
         return false;
       }
       return true;
-    }).min(8, 'Password must be at least 8 characters long'),
+    }).test('min-length', 'Password must be at least 8 characters long', function(value) {
+      if (!value) return true; // optionnel en édition
+      return value.length >= 8;
+    }),
     confirm_password: yup.string().test('confirm_password', 'Confirm password is required', function(value) {
       if (currentId.value === 0 && !value) {
         return false;
       }
       return true;
     }).test('passwords-match', 'Passwords must match', function(value) {
-      if (!value && !this.parent.password) return true;
-      return value === this.parent.password;
+      const pwd = this.parent.password;
+      if (!pwd && !value) return true; // les deux vides = ok en édition
+      return value === pwd;
     }),
     commission_id: yup.string()
       .required('Select commission is a required field'),

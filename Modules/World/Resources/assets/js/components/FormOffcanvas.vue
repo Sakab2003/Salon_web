@@ -104,7 +104,7 @@ const { value: status, } = useField('status')
 const errorMessages = ref({})
 
 onMounted(() => {
-  setFormData(defaultData())
+  if (currentId.value <= 0) setFormData(defaultData())
 })
 
 // Form Submit

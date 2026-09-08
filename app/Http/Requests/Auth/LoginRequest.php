@@ -29,9 +29,17 @@ class LoginRequest extends FormRequest
     public function rules()
     {
         return [
-            'email' => ['required', 'string', 'email'],
+            // Accepte 'email' (champ email/phone web) OU 'contact_number' (envoyé par l'app Flutter)
             'password' => ['required', 'string'],
         ];
+    }
+
+    protected function prepareForValidation()
+    {
+        // Normaliser : si contact_number est envoyé mais pas email, on le copie dans 'email'
+        if (!$this->has('email') && $this->has('contact_number')) {
+            $this->merge(['email' => $this->input('contact_number')]);
+        }
     }
 
     /**

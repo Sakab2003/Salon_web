@@ -24,44 +24,65 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $request->validate([
-            'first_name' => 'required|string|max:191',
-            'last_name' => 'required|string|max:191',
-            'salon_name' => 'required|string|max:191',
-            'email' => 'required|email|max:191|unique:users,email',
-            'mobile' => 'required|string|max:191',
-            'password' => 'required|string|min:8',
-            'gender' => 'nullable|in:male,female,other',
+            'first_name'  => 'required|string|max:191',
+            'last_name'   => 'required|string|max:191',
+            'salon_name'  => 'required|string|max:191',
+            'email'       => 'nullable|email|max:191',
+            'mobile'      => 'required|string|max:191',
+            'password'    => 'required|string|min:8',
         ]);
 
-        $user = DB::transaction(function () use ($request) {
+        $mobile = trim($request->mobile);
+        $email  = $request->email ? strtolower(trim($request->email)) : null;
+
+        // A client, un personnel ou un manager occupe déjà ce numéro.
+        // Un rendez-vous public ne doit jamais empêcher une inscription :
+        // il n'est pas consulté ici, car il n'est pas stocké dans users.
+        if (User::where('mobile', $mobile)->exists()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Ce numéro de téléphone est déjà utilisé pour un compte.',
+                'error_code' => 'MOBILE_ALREADY_USED',
+            ], 422);
+        }
+
+        // Vérifier l'unicité de l'email s'il est fourni
+        if ($email && User::where('email', $email)->exists()) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Cette adresse email est déjà utilisée par un autre compte.',
+            ], 422);
+        }
+
+        // Création d'un nouveau compte manager
+        $user = DB::transaction(function () use ($request, $mobile, $email) {
             $user = User::create([
-                'first_name' => trim($request->first_name),
-                'last_name' => trim($request->last_name),
-                'email' => strtolower(trim($request->email)),
-                'mobile' => trim($request->mobile),
-                'password' => Hash::make($request->password),
-                'gender' => $request->gender,
-                'email_verified_at' => now(),
-                'status' => 1,
-                'is_manager' => 1,
-                'show_in_calender' => 1,
+                'first_name'              => trim($request->first_name),
+                'last_name'               => trim($request->last_name),
+                'email'                   => $email,
+                'mobile'                  => $mobile,
+                'password'                => Hash::make($request->password),
+                'email_verified_at'       => now(),
+                'status'                  => 1,
+                'is_manager'              => 1,
+                'show_in_calender'        => 1,
                 'mobile_trial_started_at' => now(),
             ]);
             $user->syncRoles(['employee', 'manager']);
 
             $branch = Branch::create([
-                'name' => trim($request->salon_name),
-                'manager_id' => $user->id,
-                'contact_email' => $user->email,
-                'contact_number' => $user->mobile,
-                'status' => 1,
-                'branch_for' => 'both',
+                'name'           => trim($request->salon_name),
+                'manager_id'     => $user->id,
+                'contact_email'  => $email ?? $mobile,
+                'contact_number' => $mobile,
+                'status'         => 1,
+                'branch_for'     => 'both',
             ]);
 
             $user->update(['branch_id' => $branch->id]);
             BranchEmployee::firstOrCreate([
                 'employee_id' => $user->id,
-                'branch_id' => $branch->id,
+                'branch_id'   => $branch->id,
             ], ['is_primary' => 1]);
 
             return $user->fresh();
@@ -82,15 +103,31 @@ class AuthController extends Controller
      */
     public function login(LoginRequest $request)
     {
-        // Normaliser l'email : supprimer les espaces et mettre en minuscules
-        $email = strtolower(trim(request('email')));
+        // Supporter login par email OU numéro de téléphone (champ 'email' ou 'contact_number' selon le client)
+        $rawField = request('email') ?: request('contact_number') ?: '';
+        $loginField = strtolower(trim($rawField));
         $password = request('password');
 
-        $user = User::where('email', $email)->first();
+        // Essayer d'abord par email
+        $user = User::where('email', $loginField)->first();
+
+        // Si pas trouvé par email, essayer par numéro de téléphone
         if ($user == null) {
-            return response()->json(['status' => false, 'message' => __('messages.register_before_login')]);
+            $user = User::where('mobile', $loginField)->first();
         }
-        if (Auth::attempt(['email' => $email, 'password' => $password])) {
+
+        if ($user == null) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Aucun compte ne correspond à ce numéro de téléphone ou à cette adresse e-mail.',
+                'error_code' => 'ACCOUNT_NOT_FOUND',
+            ], 401);
+        }
+
+        // Déterminer le champ d'authentification (email ou mobile)
+        $authField = filter_var($loginField, FILTER_VALIDATE_EMAIL) ? 'email' : 'mobile';
+
+        if (Auth::attempt([$authField => $loginField, 'password' => $password])) {
             $user = Auth::user();
 
             if ($user->is_banned == 1 || $user->status == 0) {
@@ -101,28 +138,6 @@ class AuthController extends Controller
 
             // Save the user
             $user->save();
-
-            // Vérification du rôle : managers ET tout le personnel du salon (employés, réceptionnistes, etc.)
-            $allowedRoles = ['admin', 'manager', 'employee', 'receptionist', 'staff', 'coiffeur', 'barber', 'stylist'];
-            $hasAccess = $user->hasAnyRole($allowedRoles);
-
-            // Fallback : si aucun rôle reconnu mais que l'utilisateur n'est pas "user" (client), on autorise
-            if (!$hasAccess) {
-                $userRoles = $user->getRoleNames()->toArray();
-                $isClientOnly = count($userRoles) === 1 && in_array('user', $userRoles);
-                if (!empty($userRoles) && !$isClientOnly) {
-                    $hasAccess = true; // Tout rôle non-client est autorisé
-                }
-            }
-
-            if (!$hasAccess) {
-                $userRoles = $user->getRoleNames()->join(', ');
-                return $this->sendError(
-                    'Accès non autorisé. Seul le personnel du salon peut utiliser cette application. (Rôle actuel: ' . ($userRoles ?: 'aucun') . ')',
-                    ['error' => __('messages.unauthorised'), 'roles' => $user->getRoleNames()],
-                    403
-                );
-            }
 
             if ($user->mobile_trial_started_at === null) {
                 $user->mobile_trial_started_at = now();
@@ -135,7 +150,11 @@ class AuthController extends Controller
 
             return $this->sendResponse($loginResource, $message);
         } else {
-            return $this->sendError(__('messages.not_matched'), ['error' => __('messages.unauthorised')], 200);
+            return response()->json([
+                'status' => false,
+                'message' => 'Le mot de passe est incorrect pour ce compte.',
+                'error_code' => 'INVALID_PASSWORD',
+            ], 401);
         }
     }
 

@@ -15,7 +15,8 @@
       showCancelButton: true,
       confirmButtonColor: '#d33',
       cancelButtonColor: '#858482',
-      confirmButtonText: 'Yes, do it!',
+      confirmButtonText: 'Oui, continuer',
+      cancelButtonText: 'Annuler',
       showClass: {
         popup: 'animate__animated animate__zoomIn'
       },
@@ -76,7 +77,7 @@
           document.dispatchEvent(event)
         } else {
           Swal.fire({
-            title: 'Error',
+            title: 'Erreur',
             text: res.message,
             icon: "error",
             showClass: {

@@ -265,7 +265,9 @@ const formSubmit = handleSubmit((values) => {
 })
 
 onMounted(() => {
-  setFormData(defaultData())
+  if (currentId.value <= 0) {
+    setFormData(defaultData())
+  }
 })
 </script>
 

@@ -86,6 +86,7 @@ export const confirmSwal = async ({title}) => {
         confirmButtonColor: '#3085d6',
         cancelButtonColor: '#d33',
         confirmButtonText: 'Oui, supprimer !',
+        cancelButtonText: 'Annuler',
         showClass: {
           popup: 'animate__animated animate__zoomIn'
         },
@@ -104,7 +105,8 @@ export const confirmcancleSwal = async ({title}) => {
         showCancelButton: true,
         confirmButtonColor: '#d33',
         cancelButtonColor: '#858482',
-        confirmButtonText: 'Yes, do it!',
+        confirmButtonText: 'Oui, continuer',
+        cancelButtonText: 'Annuler',
         showClass: {
           popup: 'animate__animated animate__zoomIn'
         },

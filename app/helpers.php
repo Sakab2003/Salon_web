@@ -280,7 +280,33 @@ if (! function_exists('user_avatar')) {
 if (! function_exists('default_feature_image')) {
     function default_feature_image()
     {
-        return asset(config('app.image_path').'default.png');
+        return rewrite_public_url(asset(config('app.image_path').'default.png'));
+    }
+}
+
+if (! function_exists('rewrite_public_url')) {
+    function rewrite_public_url(?string $url): string
+    {
+        if (empty($url)) {
+            return '';
+        }
+
+        $appUrl = rtrim((string) config('app.url'), '/');
+        if (app()->runningInConsole() === false && request()->getHost()) {
+            $appUrl = request()->getScheme().'://'.request()->getHttpHost();
+        }
+        if ($appUrl === '') {
+            return $url;
+        }
+
+        $parts = parse_url($url);
+        if ($parts === false || empty($parts['host'])) {
+            return $url;
+        }
+
+        return $appUrl.(($parts['path'] ?? '/'))
+            .(isset($parts['query']) ? '?'.$parts['query'] : '')
+            .(isset($parts['fragment']) ? '#'.$parts['fragment'] : '');
     }
 }
 

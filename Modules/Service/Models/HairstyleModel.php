@@ -38,6 +38,11 @@ class HairstyleModel extends BaseModel
         return $this->belongsTo(Service::class, 'service_id');
     }
 
+    public function branch()
+    {
+        return $this->belongsTo(\App\Models\Branch::class, 'branch_id');
+    }
+
     public function commission()
     {
         return $this->belongsTo(\Modules\Commission\Models\Commission::class, 'commission_id');
@@ -54,7 +59,7 @@ class HairstyleModel extends BaseModel
         return $mediaItems->map(function ($media) {
             return [
                 'id' => $media->id,
-                'url' => $media->getFullUrl(),
+                'url' => rewrite_public_url($media->getFullUrl()),
             ];
         })->toArray();
     }
@@ -63,7 +68,7 @@ class HairstyleModel extends BaseModel
     {
         $media = $this->getFirstMediaUrl('feature_image');
 
-        return isset($media) && ! empty($media) ? $media : default_feature_image();
+        return isset($media) && ! empty($media) ? rewrite_public_url($media) : default_feature_image();
     }
 
     protected function getFeatureImagesAttribute()
@@ -75,7 +80,7 @@ class HairstyleModel extends BaseModel
         }
 
         return $mediaItems->map(function ($media) {
-            return $media->getFullUrl();
+            return rewrite_public_url($media->getFullUrl());
         })->toArray();
     }
 

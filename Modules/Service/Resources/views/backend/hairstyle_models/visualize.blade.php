@@ -311,9 +311,11 @@
                     <div class="card service-model-card h-100">
                         <div class="service-card-img-wrap" role="button" data-bs-toggle="modal" data-bs-target="#service-models-modal-{{ $service->id }}">
                             <img src="{{ $coverImage }}" class="service-card-img" alt="{{ $serviceName }}">
+                            @if($models->count() > 0)
                             <span class="model-count-badge">
-                                <i class="fa-solid fa-camera me-1 text-warning"></i> {{ $totalPhotosCount }} {{ $totalPhotosCount > 1 ? 'photos / modèles' : 'photo / modèle' }}
+                                <i class="fa-solid fa-scissors me-1 text-warning"></i> {{ $models->count() }} {{ $models->count() > 1 ? 'modèles' : 'modèle' }}
                             </span>
+                            @endif
                         </div>
                         <div class="card-body d-flex flex-column justify-content-between p-4">
                             <div>
@@ -323,7 +325,7 @@
                                 </div>
                                 <h5 class="fw-bold card-title mb-2 text-dark dark:text-light">{{ $serviceName }}</h5>
                                 <p class="text-muted small line-clamp-2 mb-3">
-                                    Collection de {{ $totalPhotosCount }} {{ $totalPhotosCount > 1 ? 'photos & inspirations' : 'photo' }} créées pour le service {{ $serviceName }}.
+                                    {{ $models->count() }} {{ $models->count() > 1 ? 'modèles disponibles' : 'modèle disponible' }} pour ce service.
                                 </p>
                             </div>
                             <button type="button" 
@@ -344,7 +346,7 @@
                                 <div>
                                     <span class="badge bg-soft-primary rounded-pill mb-1">Service</span>
                                     <h4 class="modal-title fw-bold">{{ $serviceName }}</h4>
-                                    <p class="text-muted small m-0">{{ $totalPhotosCount }} {{ $totalPhotosCount > 1 ? 'photos / modèles disponibles' : 'photo / modèle disponible' }} pour ce service</p>
+                                    <p class="text-muted small m-0">{{ $models->count() }} {{ $models->count() > 1 ? 'modèles disponibles' : 'modèle disponible' }} pour ce service</p>
                                 </div>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
