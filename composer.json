@@ -8,17 +8,15 @@
     "license": "GPL-3.0-or-later",
     "type": "project",
     "require": {
-        "php": "^8.0.2",
-        "alexusmai/laravel-file-manager": "^3.0",
-        "arcanedev/log-viewer": "^9.0",
+        "php": "^8.1 || ^8.2 || ^8.3 || ^8.4",        "alexusmai/laravel-file-manager": "^3.0",
         "dompdf/dompdf": "^2.0",
         "guzzlehttp/guzzle": "^7.4",
         "hashids/hashids": "^4.1",
         "laracasts/flash": "^3.2",
         "laravel-notification-channels/onesignal": "^2.5",
         "laravel-notification-channels/webpush": "^7.1",
-        "laravel/framework": "^9.2",
-        "laravel/sanctum": "^2.14.1",
+        "laravel/framework": "^10.0",
+        "laravel/sanctum": "^3.0",
         "laravel/socialite": "^5.5",
         "laravel/tinker": "^2.7",
         "laravelcollective/html": "^6.4",
@@ -27,7 +25,7 @@
         "maatwebsite/excel": "^3.1",
         "mews/purifier": "^3.3",
         "nasirkhan/module-manager": "^0.4.0",
-        "nwidart/laravel-modules": "^9.0",
+        "nwidart/laravel-modules": "^10.0",
         "orangehill/iseed": "^3.0",
         "predis/predis": "^1.1",
         "razorpay/razorpay": "2.*",
@@ -51,9 +49,9 @@
         "laravel/sail": "^1.0.1",
         "laravel/telescope": "^4.14",
         "mockery/mockery": "^1.4.4",
-        "nunomaduro/collision": "^6.1",
-        "phpunit/phpunit": "^9.5.10",
-        "spatie/laravel-ignition": "^1.0"
+        "nunomaduro/collision": "^7.0",
+        "phpunit/phpunit": "^10.0",
+        "spatie/laravel-ignition": "^2.0"
     },
     "autoload": {
         "psr-4": {
