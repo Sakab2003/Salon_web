@@ -54,10 +54,11 @@ Route::group(['prefix' => 'app', 'as' => 'backend.', 'middleware' => ['auth']], 
         Route::post('stripe-payment', [BookingsController::class, 'stripe_payment'])->name('stripe_payment');
         Route::get('payment_success/{booking_transaction_id}', [BookingsController::class, 'payment_success'])->name('payment_success');
         Route::get('export', [BookingsController::class, 'export'])->name('export');
+        Route::get('/', [BookingsController::class, 'index'])->name('index');
     });
     Route::get('booking-invoice', [BookingsController::class, 'viewInvoice'])->name('bookings.invoice');
     Route::get('vue-tableau-reservations', [BookingsController::class, 'datatable_view'])->name('bookings.datatable_view');
     Route::get('bookings-table-view', function() { return redirect()->route('backend.bookings.datatable_view'); });
-    Route::resource('reservations', BookingsController::class, ['names' => 'bookings']);
+    Route::resource('reservations', BookingsController::class, ['names' => 'bookings', 'except' => ['index']]);
     Route::get('bookings', function() { return redirect()->route('backend.bookings.index'); });
 });

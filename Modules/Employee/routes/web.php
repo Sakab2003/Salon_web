@@ -57,7 +57,6 @@ Route::group(['prefix' => 'app', 'as' => 'backend.', 'middleware' => ['auth']], 
     });
     Route::get('avis-clients', [EmployeesController::class, 'review'])->name('employees.review');
     Route::get('employees-review', function() { return redirect()->route('backend.employees.review'); });
-    Route::post('employees-save-review', [EmployeesController::class, 'save_review'])->name('employees.save_review');
     Route::resource('personnel', EmployeesController::class, ['names' => 'employees']);
     Route::get('employees', function() { return redirect()->route('backend.employees.index'); });
 });

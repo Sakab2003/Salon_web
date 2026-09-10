@@ -19,7 +19,8 @@ class EmployeeRequest extends FormRequest
                 return [
                     'first_name' => 'required|string|max:255',
                     'last_name' => 'required|string|max:255',
-                    'email' => 'required|string|unique:users,email',
+                    // email nullable : sera généré automatiquement si absent
+                    'email' => 'nullable|email|unique:users,email',
                     'mobile' => 'required|string',
                     'password' => 'required|min:8',
                     'confirm_password' => 'required|same:password',
@@ -30,7 +31,7 @@ class EmployeeRequest extends FormRequest
                 return [
                     'first_name' => 'required|string|max:255',
                     'last_name' => 'required|string|max:255',
-                    'email' => ['required', 'string', Rule::unique('users', 'email')->ignore($this->id)->whereNull('deleted_at')],
+                    'email' => ['nullable', 'email', Rule::unique('users', 'email')->ignore($this->id)->whereNull('deleted_at')],
                     'mobile' => 'required|string',
                 ];
                 break;

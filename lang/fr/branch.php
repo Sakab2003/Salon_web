@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 return [
     'title' => 'Salons',
@@ -6,7 +6,7 @@ return [
     'branch_setting' => 'Paramètres du salon',
     'lbl_branch_name' => 'Nom du salon',
     'lbl_branch_for' => 'Salon pour',
-    'lbl_select_manager' => 'Attribuer un gestionnaire',
+    'lbl_select_manager' => 'Attribuer un manager',
     'lbl_select_service' => 'Sélectionner un service',
     'lbl_contact_number' => 'Numéro de contact',
     'lbl_contact_email' => 'E-mail',
@@ -21,7 +21,7 @@ return [
     'lbl_description' => 'Description',
     'lbl_status' => 'Statut',
     'lbl_name' => 'Nom',
-    'lbl_manager_name' => 'Nom du gestionnaire',
+    'lbl_manager_name' => 'Nom du manager',
     'lbl_image' => 'Image',
     'lbl_lat' => 'Latitude',
     'lbl_long' => 'Longitude',

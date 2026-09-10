@@ -46,7 +46,7 @@ Route::group(['prefix' => 'app', 'as' => 'backend.', 'middleware' => ['auth']], 
         Route::post('block-customer/{id}', [CustomersController::class, 'block_customer'])->name('block-customer');
         Route::post('verify-customer/{id}', [CustomersController::class, 'verify_customer'])->name('verify-customer');
         Route::get('export', [CustomersController::class, 'export'])->name('export');
+        Route::get('/', [CustomersController::class, 'index'])->name('index');
     });
-    Route::resource('clients', CustomersController::class, ['names' => 'customers']);
-    Route::resource('customers', CustomersController::class);
+    Route::resource('clients', CustomersController::class, ['names' => 'customers', 'except' => ['index']]);
 });

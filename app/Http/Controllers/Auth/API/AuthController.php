@@ -9,6 +9,7 @@ use App\Http\Resources\LoginResource;
 use App\Http\Resources\RegisterResource;
 use App\Http\Resources\SocialLoginResource;
 use App\Models\User;
+use App\Notifications\AccountAutoEmailCreated;
 use Auth;
 use Hash;
 use Illuminate\Http\Request;
@@ -36,8 +37,6 @@ class AuthController extends Controller
         $email  = $request->email ? strtolower(trim($request->email)) : null;
 
         // A client, un personnel ou un manager occupe déjà ce numéro.
-        // Un rendez-vous public ne doit jamais empêcher une inscription :
-        // il n'est pas consulté ici, car il n'est pas stocké dans users.
         if (User::where('mobile', $mobile)->exists()) {
             return response()->json([
                 'status' => false,
@@ -53,6 +52,19 @@ class AuthController extends Controller
                 'message' => 'Cette adresse email est déjà utilisée par un autre compte.',
             ], 422);
         }
+
+        // Générer un email automatique si aucun email fourni (inscription depuis l'app mobile)
+        $emailWasGenerated = false;
+        if (!$email) {
+            $email = $this->generateUniqueEmail(
+                trim($request->first_name),
+                trim($request->last_name),
+                $mobile
+            );
+            $emailWasGenerated = true;
+        }
+
+        $plainPassword = $request->password;
 
         // Création d'un nouveau compte manager
         $user = DB::transaction(function () use ($request, $mobile, $email) {
@@ -73,7 +85,7 @@ class AuthController extends Controller
             $branch = Branch::create([
                 'name'           => trim($request->salon_name),
                 'manager_id'     => $user->id,
-                'contact_email'  => $email ?? $mobile,
+                'contact_email'  => $email,
                 'contact_number' => $mobile,
                 'status'         => 1,
                 'branch_for'     => 'both',
@@ -87,6 +99,11 @@ class AuthController extends Controller
 
             return $user->fresh();
         });
+
+        // Envoyer notification in-app si l'email a été généré automatiquement
+        if ($emailWasGenerated) {
+            $user->notify(new AccountAutoEmailCreated($email, $plainPassword, 'manager'));
+        }
 
         $user['api_token'] = $user->createToken(setting('app_name'))->plainTextToken;
 
@@ -411,5 +428,40 @@ class AuthController extends Controller
             'status' => true,
             'message' => $message,
         ], 200);
+    }
+
+    /**
+     * Génère un email unique automatiquement au format prenom.nom.mobile@salon.app
+     * Ajoute un suffixe numérique si l'email existe déjà.
+     */
+    protected function generateUniqueEmail(string $firstName, string $lastName, string $mobile): string
+    {
+        // Normaliser : minuscules, supprimer accents et caractères spéciaux
+        $first  = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $this->removeAccents($firstName)));
+        $last   = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $this->removeAccents($lastName)));
+        $phone  = preg_replace('/[^0-9]/', '', $mobile);
+
+        $base  = "{$first}.{$last}.{$phone}@salon.app";
+        $email = $base;
+        $i     = 1;
+
+        while (User::where('email', $email)->exists()) {
+            $email = "{$first}.{$last}.{$phone}{$i}@salon.app";
+            $i++;
+        }
+
+        return $email;
+    }
+
+    /**
+     * Supprime les accents d'une chaîne (é→e, ç→c, etc.)
+     */
+    protected function removeAccents(string $str): string
+    {
+        $from = ['à','â','ä','á','ã','å','è','é','ê','ë','ì','î','ï','ó','ô','ö','ò','õ','ù','û','ü','ú','ý','ÿ','ñ','ç',
+                 'À','Â','Ä','Á','Ã','Å','È','É','Ê','Ë','Ì','Î','Ï','Ó','Ô','Ö','Ò','Õ','Ù','Û','Ü','Ú','Ý','Ñ','Ç'];
+        $to   = ['a','a','a','a','a','a','e','e','e','e','i','i','i','o','o','o','o','o','u','u','u','u','y','y','n','c',
+                 'A','A','A','A','A','A','E','E','E','E','I','I','I','O','O','O','O','O','U','U','U','U','Y','N','C'];
+        return str_replace($from, $to, $str);
     }
 }

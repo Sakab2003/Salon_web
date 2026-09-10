@@ -5,6 +5,7 @@ namespace Modules\Employee\Http\Controllers\Backend\API;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\User;
+use App\Notifications\AccountAutoEmailCreated;
 use Carbon\Carbon;
 use Hash;
 use Illuminate\Http\Request;
@@ -51,10 +52,18 @@ class MobileStaffController extends Controller
             'password'   => 'required|min:8',
         ]);
 
+        // Générer un email automatique si aucun email fourni (app mobile)
+        $emailProvided = !empty($request->email);
+        $email = $emailProvided
+            ? $request->email
+            : $this->generateUniqueEmail($request->first_name, $request->last_name, $request->mobile);
+
+        $plainPassword = $request->password;
+
         $employee = User::create([
             'first_name'        => $request->first_name,
             'last_name'         => $request->last_name,
-            'email'             => $request->email ?: null,
+            'email'             => $email,
             'mobile'            => $request->mobile,
             'password'          => Hash::make($request->password),
             'email_verified_at' => Carbon::now(),
@@ -68,6 +77,11 @@ class MobileStaffController extends Controller
             'employee_id' => $employee->id,
             'branch_id'   => $branchId,
         ]);
+
+        // Envoyer notification in-app si l'email a été généré automatiquement
+        if (!$emailProvided) {
+            $employee->notify(new AccountAutoEmailCreated($email, $plainPassword, 'employee'));
+        }
 
         return response()->json([
             'status'  => true,
@@ -184,5 +198,35 @@ class MobileStaffController extends Controller
                 $query->where('branch_id', $branchId);
             })
             ->findOrFail($employeeId);
+    }
+
+    /**
+     * Génère un email unique automatiquement au format prenom.nom.mobile@salon.app
+     */
+    protected function generateUniqueEmail(string $firstName, string $lastName, string $mobile): string
+    {
+        $first = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $this->removeAccents($firstName)));
+        $last  = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $this->removeAccents($lastName)));
+        $phone = preg_replace('/[^0-9]/', '', $mobile);
+
+        $email = "{$first}.{$last}.{$phone}@salon.app";
+        $i = 1;
+        while (User::where('email', $email)->exists()) {
+            $email = "{$first}.{$last}.{$phone}{$i}@salon.app";
+            $i++;
+        }
+        return $email;
+    }
+
+    /**
+     * Supprime les accents d'une chaîne (é→e, ç→c, etc.)
+     */
+    protected function removeAccents(string $str): string
+    {
+        $from = ['à','â','ä','á','ã','å','è','é','ê','ë','ì','î','ï','ó','ô','ö','ò','õ','ù','û','ü','ú','ý','ÿ','ñ','ç',
+                 'À','Â','Ä','Á','Ã','Å','È','É','Ê','Ë','Ì','Î','Ï','Ó','Ô','Ö','Ò','Õ','Ù','Û','Ü','Ú','Ý','Ñ','Ç'];
+        $to   = ['a','a','a','a','a','a','e','e','e','e','i','i','i','o','o','o','o','o','u','u','u','u','y','y','n','c',
+                 'A','A','A','A','A','A','E','E','E','E','I','I','I','O','O','O','O','O','U','U','U','U','Y','N','C'];
+        return str_replace($from, $to, $str);
     }
 }

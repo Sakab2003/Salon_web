@@ -1,8 +1,8 @@
 <template>
-    <!-- Modal -->
+    <!-- Modal Créer Nouveau Manager -->
     <form @submit="formSubmit" class="">
         <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
+            <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h1 class="modal-title fs-5" id="exampleModalLabel">{{ $t('employee.lbl_create_manager') }}</h1>
@@ -13,15 +13,26 @@
                           <InputField class="col-md-6" :is-required="true" :label="$t('customer.lbl_first_name')" placeholder="" v-model="first_name" :error-message="errors['first_name']" :error-messages="errorMessages['first_name']"></InputField>
                           <InputField class="col-md-6" :is-required="true" :label="$t('customer.lbl_last_name')" placeholder="" v-model="last_name" :error-message="errors['last_name']" :error-messages="errorMessages['last_name']"></InputField>
 
-                          <InputField class="col-md-6" :is-required="true" :label="$t('customer.lbl_Email')" placeholder="" v-model="email" :error-message="errors['email']" :error-messages="errorMessages['email']"></InputField>
+                          <!-- Nom du salon obligatoire pour un manager -->
+                          <InputField class="col-md-12" :is-required="true" label="Nom du salon" placeholder="Entrez le nom du salon" v-model="salon_name" :error-message="errors['salon_name']" :error-messages="errorMessages['salon_name']"></InputField>
+
                           <div class="form-group col-md-6">
                             <label class="form-label">{{ $t('branch.lbl_contact_number') }}<span class="text-danger">*</span> </label>
                             <vue-tel-input :value="mobile" @input="handleInput" v-bind="{mode: 'international',maxLen: 15}"></vue-tel-input>
                             <span class="text-danger">{{ errors['mobile'] }}</span>
                           </div>
+
+                          <!-- Note: l'email sera généré automatiquement par le serveur -->
+                          <div class="col-md-6 form-group">
+                            <div class="alert alert-info py-2 px-3 mt-2" style="font-size:0.85rem;">
+                              <i class="fa-solid fa-circle-info me-1"></i>
+                              Un email sera généré automatiquement pour ce manager.
+                            </div>
+                          </div>
+
                             <InputField type="password" class="col-md-6" :is-required="true" :label="$t('employee.lbl_password')" placeholder="" v-model="password" :error-message="errors['password']" :error-messages="errorMessages['password']"></InputField>
 
-                            <InputField type="password" class="col-md-6" :is-required="true" :label="$t('employee.lbl_confirm_password')" placeholder="" v-model="confirm_password" :error-message="errors['confirm_password']" :error-messages="errorMessages['passwconfirm_passwordord']"></InputField>
+                            <InputField type="password" class="col-md-6" :is-required="true" :label="$t('employee.lbl_confirm_password')" placeholder="" v-model="confirm_password" :error-message="errors['confirm_password']" :error-messages="errorMessages['confirm_password']"></InputField>
                             <div class="form-group col-md-12">
                               <label for="" class="w-100">{{ $t('customer.lbl_gender') }}</label>
                                 <div class="form-check form-check-inline">
@@ -80,7 +91,7 @@ const defaultData = () => {
   return {
     first_name: '',
     last_name: '',
-    email: '',
+    salon_name: '',
     mobile: '',
     password: '',
     confirm_password: '',
@@ -101,13 +112,11 @@ const setFormData = (data) => {
     values: {
       first_name: data.first_name,
       last_name: data.last_name,
-      email: data.email,
+      salon_name: data.salon_name,
       mobile: data.mobile,
       password: data.password,
       confirm_password: data.confirm_password,
       gender: data.gender,
-      show_in_calender: data.show_in_calender,
-      is_manager: data.is_manager,
       show_in_calender: data.show_in_calender,
       is_manager: data.is_manager,
       confirmed: data.confirmed,
@@ -115,18 +124,16 @@ const setFormData = (data) => {
   })
 }
 
-let EMAIL_REGX = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
-
 // Validations
 const validationSchema = yup.object({
-    first_name: yup.string().required('First Name is required'),
-    last_name: yup.string().required('Last Name is required'),
-    email: yup.string().required('Email is required').matches(EMAIL_REGX, 'Must be a valid email'),
-    mobile: yup.string().required('Contact Number is required'),
-    password : yup.string().required('Password is required')
-    .min(8, 'Password must be at least 8 characters long'),
-      confirm_password : yup.string().required('Current password is required')
-      .oneOf([yup.ref('password')], 'Passwords must match')
+    first_name: yup.string().required('Le prénom est obligatoire'),
+    last_name: yup.string().required('Le nom est obligatoire'),
+    salon_name: yup.string().required('Le nom du salon est obligatoire'),
+    mobile: yup.string().required('Le numéro de téléphone est obligatoire'),
+    password : yup.string().required('Le mot de passe est obligatoire')
+    .min(8, 'Le mot de passe doit comporter au moins 8 caractères'),
+      confirm_password : yup.string().required('La confirmation du mot de passe est obligatoire')
+      .oneOf([yup.ref('password')], 'Les mots de passe ne correspondent pas')
 })
 
 const { handleSubmit, errors, resetForm } = useForm({
@@ -135,7 +142,7 @@ const { handleSubmit, errors, resetForm } = useForm({
 
 const { value: first_name } = useField('first_name')
 const { value: last_name } = useField('last_name')
-const { value: email } = useField('email')
+const { value: salon_name } = useField('salon_name')
 const { value: password } = useField('password')
 const { value: confirm_password } = useField('confirm_password')
 const { value: gender } = useField('gender')
@@ -157,10 +164,8 @@ const handleInput = (phone, phoneObject) => {
 };
 
 const resetform = () => {
-
   setFormData(defaultData())
       bootstrap.Modal.getInstance(document.getElementById("exampleModal")).hide()
-
 };
 
 const formSubmit = handleSubmit((value) => {

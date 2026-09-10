@@ -6,7 +6,7 @@ use Modules\Booking\Http\Controllers\Backend\API\PaymentController;
 
 Route::get('booking-status', [BookingsController::class, 'statusList']);
 
-Route::group(['middleware' => ['auth:sanctum', 'mobile.access'], 'as' => 'backend.'], function () {
+Route::group(['middleware' => ['auth:sanctum', 'mobile.access'], 'as' => 'api.backend.'], function () {
     Route::apiResource('bookings', BookingsController::class);
     Route::post('booking-update', [BookingsController::class, 'update']);
     Route::get('booking-list', [BookingsController::class, 'bookingList']);

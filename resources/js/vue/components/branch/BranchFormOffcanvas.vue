@@ -33,7 +33,7 @@
             <div class="form-group col-md-12">
               <div class="d-flex justify-content-between">
                 <label for="manager_id">{{ $t('branch.lbl_select_manager') }} <span class="text-danger">*</span></label>
-                <button type="button" data-bs-toggle="modal" data-bs-target="#exampleModal" class="btn btn-sm text-primary"><i class="fa-solid fa-plus"></i> {{ $t('messages.create') }} {{ $t('messages.new') }}</button>
+                <button type="button" data-bs-toggle="modal" data-bs-target="#exampleModal" class="btn btn-sm text-primary"><i class="fa-solid fa-plus"></i> {{ $t('messages.create') }} {{ $t('messages.new') }} Manager</button>
               </div>
               <Multiselect v-model="manager_id" :value="manager_id" :options="manager.options" v-bind="singleSelectOption" id="manager_id"></Multiselect>
                <span v-if="errorMessages['manager_id']">
@@ -44,10 +44,6 @@
               <span class="text-danger">{{ errors.manager_id }}</span>
             </div>
 
-            <div class="form-group col-md-12">
-              <label class="form-label" for="services">{{ $t('branch.lbl_select_service') }}</label>
-              <Multiselect v-model="service_id" :value="service_id" :options="service.options" v-bind="multiselectOption" id="services"></Multiselect>
-            </div>
             <div class="form-group col-md-6">
               <label class="form-label"> {{ $t('branch.lbl_contact_number') }} <span class="text-danger">*</span> </label>
               <vue-tel-input type="number" :value="contact_number" @input="handleInput" v-bind="{mode: 'international',maxLen: 15}"></vue-tel-input>
@@ -56,53 +52,6 @@
             <InputField class="col-md-6" :is-required="true" :label="$t('branch.lbl_contact_email')" placeholder="" v-model="contact_email" :error-message="errors.contact_email" :error-messages="errorMessages['contact_email']"></InputField>
             <InputField class="col-md-6" :is-required="true" :label="$t('branch.lbl_shop_number')" placeholder="" v-model="address_line_1" :error-message="errors['address.address_line_1']" :error-messages="errorMessages['address_line_1']"></InputField>
             <InputField class="col-md-6" :label="$t('branch.lbl_landmark')" placeholder="" v-model="address_line_2" :error-message="errors['address.address_line_2']" :error-messages="errorMessages['address_line_2']"></InputField>
-            <div class="col-md-2 form-group">
-            <label class="form-label">{{ $t('branch.lbl_country') }} <span class="text-danger">*</span></label>
-            <Multiselect id="country-list" v-model="country" :value="country" v-bind="singleSelectOption" :options="countries.options" @select="getState" class="form-group"></Multiselect>
-            <span v-if="errorMessages['country']">
-              <ul class="text-danger">
-                <li v-for="err in errorMessages['country']" :key="err">{{ err }}</li>
-              </ul>
-            </span>
-            <span class="text-danger">{{ errors['address.country'] }}</span>
-          </div>
-          <div class="col-md-2 form-group">
-            <label class="form-label">{{ $t('branch.lbl_state') }} <span class="text-danger">*</span></label>
-            <Multiselect id="state-list" v-model="state" :value="state" v-bind="singleSelectOption" :options="states.options" @select="getCity" class="form-group"></Multiselect>
-            <span v-if="errorMessages['state']">
-              <ul class="text-danger">
-                <li v-for="err in errorMessages['state']" :key="err">{{ err }}</li>
-              </ul>
-            </span>
-            <span class="text-danger">{{ errors['address.state'] }}</span>
-          </div>
-          <div class="col-md-2 form-group">
-            <label class="form-label">{{ $t('branch.lbl_city') }}<span class="text-danger">*</span></label>
-            <Multiselect id="city-list" v-model="city" :value="city" v-bind="singleSelectOption" :options="cities.options" class="form-group"></Multiselect>
-            <span v-if="errorMessages['city']">
-                <ul class="text-danger">
-                  <li v-for="err in errorMessages['city']" :key="err">{{ err }}</li>
-                </ul>
-              </span>
-              <span class="text-danger">{{ errors['address.city'] }}</span>
-          </div>
-            <InputField class="col-md-2" type="number" :is-required="true" :label="$t('branch.lbl_postal_code')" placeholder="" v-model="postal_code" :error-message="errors['address.postal_code']" :error-messages="errorMessages['postal_code']"></InputField>
-            <InputField class="col-md-2" :is-required="true" :label="$t('branch.lbl_lat')" placeholder="" v-model="latitude" :error-message="errors['address.latitude']" :error-messages="errorMessages['latitude']"></InputField>
-            <InputField class="col-md-2" :is-required="true" :label="$t('branch.lbl_long')" placeholder="" v-model="longitude" :error-message="errors['address.longitude']" :error-messages="errorMessages['longitude']"></InputField>
-
-
-              <div class="form-group col-md-6">
-              <label class="form-label" for="payment-method">{{ $t('branch.lbl_payment_method') }} <span class="text-danger">*</span></label>
-              <div class="d-flex w-100 gap-3" role="group" aria-label="Basic checkbox toggle button group">
-                <template v-for="(item, index) in PAYMENT_METHODS_OPTIONS" :key="index">
-                  <div class="d-flex gap-1 form-check">
-                    <input type="checkbox" class="form-check-input" :id="`${item.id}-payment-method`" autocomplete="off" :value="item.id" v-model="payment_method" :checked="payment_method.includes(item.id)" />
-                    <label class="form-label mb-0" :for="`${item.id}-payment-method`">{{ item.text }}</label>
-                  </div>
-                </template>
-              </div>
-              <span class="text-danger">{{ errors.payment_method }}</span>
-            </div>
 
             <div class="form-group col-md-12">
               <label class="form-label" for="description">{{$t('branch.lbl_description')}}</label>
@@ -214,26 +163,14 @@ const validationSchema = yup.object({
   name: yup.string()
     .required('Branch Name is a required field')
     .test('is-string', 'Only strings are allowed', (value) => {
-      // Regular expressions to disallow special characters and numbers
       const specialCharsRegex = /[!@#$%^&*,.?":{}|<>\-_;'\/+=\[\]\\]/;
       return !specialCharsRegex.test(value) && !numberRegex.test(value);
     }),
-  manager_id:  yup.string().required('Assign Manager is a required field').matches(/^(\+?\d+)?(\s?\d+)*$/, 'Phone Number must contain only digits'),
+  manager_id: yup.mixed().required('Assign Manager is a required field'),
   contact_number: yup.string().required('Contact Number is a required field').matches(/^(\+?\d+)?(\s?\d+)*$/, 'Phone Number must contain only digits'),
   contact_email: yup.string().required('Email is a required field').matches(EMAIL_REGX, 'Must be a valid email'),
   address: yup.object({
     address_line_1: yup.string().required('Address is a required field'),
-    postal_code: yup.string().required('Postal Code is a required field'),
-    city: yup.string().required('City is a required field'),
-    latitude: yup.string()
-    .required('Latitude is a required field')
-    .matches(/^(-?\d+(\.\d+)?)$/, 'Latitude must be a valid number'),
-    longitude: yup.string()
-    .required('Longitude is a required field')
-    .matches(/^(-?\d+(\.\d+)?)$/, 'Longitude must be a valid number'),
-    state: yup.string().required('State is a required field'),
-    country: yup.string().required('Country is a required field'),
-    // manager_id: yup.string().required('Manager is a required field'),
   })
 })
 

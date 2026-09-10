@@ -165,20 +165,6 @@ class BranchController extends Controller
             ->addColumn('action', function ($data) use ($module_name) {
                 return view('backend.branch.action_column', compact('module_name', 'data'));
             })
-            ->filterColumn('address.city', function ($query, $keyword) {
-                if (! empty($keyword)) {
-                    $query->whereHas('address', function ($q) use ($keyword) {
-                        $q->where('city', 'like', '%'.$keyword.'%');
-                    });
-                }
-            })
-            ->filterColumn('address.postal_code', function ($query, $keyword) {
-                if (! empty($keyword)) {
-                    $query->whereHas('address', function ($q) use ($keyword) {
-                        $q->where('postal_code', 'like', '%'.$keyword.'%');
-                    });
-                }
-            })
             ->filterColumn('manager_id', function ($query, $keyword) {
                 if (! empty($keyword)) {
                     $query->whereHas('employee', function ($q) use ($keyword) {
@@ -206,12 +192,6 @@ class BranchController extends Controller
             })
             ->addColumn('image', function ($data) {
                 return '<img src='.$data->feature_image." class='avatar avatar-50 rounded-pill'>";
-            })
-            ->editColumn('address.city', function ($data) {
-                return $data->address->city ?? '';
-            })
-            ->editColumn('address.postal_code', function ($data) {
-                return $data->address->postal_code ?? '-';
             })
             ->editColumn('manager_id', function ($data) {
                 return $data->employee->full_name ?? '-';
@@ -311,7 +291,7 @@ class BranchController extends Controller
 
         $service_id = $request->service_id;
 
-        $this->assign_service_branch($service_id, $branch_id);
+        // Service assignment supprimé — l'admin n'impose plus de services
 
         $message = __('messages.create_form', ['form' => __('branch.singular_title')]);
 
@@ -398,7 +378,7 @@ class BranchController extends Controller
 
         $service_id = $request->service_id;
 
-        $this->assign_service_branch($service_id, $branch_id);
+        // Service assignment supprimé — l'admin n'impose plus de services
 
         $message = __('messages.update_form', ['form' => __('branch.singular_title')]);
 

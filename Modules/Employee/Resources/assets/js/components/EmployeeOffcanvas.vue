@@ -97,7 +97,8 @@
               </div>
             </div>
 
-            <div class="form-group col-md-12">
+            <!-- Rôle dans le salon : uniquement pour les non-managers -->
+            <div class="form-group col-md-12" v-if="!is_manager">
               <label class="form-label d-block fw-bold">Rôle dans le salon :</label>
               <div class="form-check form-check-inline">
                 <input class="form-check-input" type="radio" name="staff_role_type" id="role_provider" value="provider" v-model="staff_role_type" @change="onRoleTypeChange">
@@ -105,11 +106,12 @@
               </div>
               <div class="form-check form-check-inline">
                 <input class="form-check-input" type="radio" name="staff_role_type" id="role_receptionist" value="receptionist" v-model="staff_role_type" @change="onRoleTypeChange">
-                <label class="form-check-label fw-bold" for="role_receptionist">Réceptionniste (Accueil & Encaissement)</label>
+                <label class="form-check-label fw-bold" for="role_receptionist">Réceptionniste (Accueil &amp; Encaissement)</label>
               </div>
             </div>
 
-            <div class="form-group col-md-12" v-if="branch.options.length > 1 && selectedSessionBranchId == ''">
+            <!-- Sélecteur de salon pour personnel (non-manager) -->
+            <div class="form-group col-md-12" v-if="!is_manager && branch.options.length > 1 && selectedSessionBranchId == ''">
               <label class="form-label" for="branch">{{ $t('employee.lbl_select_branch') }}</label><span class="text-danger">*</span>
               <Multiselect id="branch_id" v-model="branch_id" :value="branch_id" placeholder="Selectionner un salon"
                 v-bind="singleSelectOption" :options="branch.options" @select="branchSelect" class="form-group">
@@ -122,7 +124,8 @@
               <span class="text-danger">{{ errors.branch_id }}</span>
             </div>
 
-            <div class="form-group" v-if="staff_role_type !== 'receptionist'">
+            <!-- Champ service : uniquement pour les prestataires (non-manager, non-réceptionniste) -->
+            <div class="form-group" v-if="!is_manager && staff_role_type !== 'receptionist'">
               <label class="form-label" for="service">{{ $t('employee.lbl_select_service') }}</label>
               <Multiselect id="service_id" v-model="service_id" :multiple="true" :value="service_id"
                 placeholder="Selectionner un service" v-bind="multiSelectOption" :options="services.options" @select="onServiceSelect" class="form-group">
@@ -135,26 +138,24 @@
               <span class="text-danger">{{ errors.service_id }}</span>
             </div>
 
-            <div class="form-group col-md-12">
-              <label class="form-label" for="commission_id"> {{ $t('employee.lbl_select_commission') }} <span class="text-danger">*</span> </label>
-              <Multiselect id="commission_id" v-model="commission_id" :value="commission_id"
-                :placeholder="$t('employee.lbl_select_commission')" v-bind="singleSelectOption" :options="commissions.options"
-                class="form-group"></Multiselect>
-              <span v-if="errorMessages['commission_id']">
-                <ul class="text-danger">
-                  <li v-for="err in errorMessages['commission_id']" :key="err">{{ err }}</li>
-                </ul>
-              </span>
-              <span class="text-danger">{{ errors.commission_id }}</span>
+            <!-- Champs supplémentaires si Manager : nom du salon obligatoire -->
+            <div v-if="is_manager" class="col-md-12 mt-2">
+              <div class="alert alert-primary py-2">
+                <i class="fa-solid fa-store me-1"></i>
+                <strong>Informations du salon pour ce manager</strong>
+              </div>
+              <InputField class="col-md-12" :is-required="true" label="Nom du salon *"
+                placeholder="Entrez le nom du salon de ce manager"
+                v-model="salon_name"
+                :error-message="errors['salon_name']"
+                :error-messages="errorMessages['salon_name']">
+              </InputField>
             </div>
 
             <div v-for="field in customefield" :key="field.id">
-
               <FormElement v-model="custom_fields_data" :name="field.name" :label="field.label" :type="field.type"
                 :required="field.required" :options="field.value" :field_id="field.id"></FormElement>
-
             </div>
-
 
             <InputField class="col-md-6" :label="$t('employee.lbl_about_self')" placeholder="" v-model="about_self"
               :error-message="errors['about_self']" :error-messages="errorMessages['about_self']"></InputField>
@@ -221,26 +222,11 @@ const mobileKey = ref(0)
 const onRoleTypeChange = () => {
   if (staff_role_type.value === 'receptionist') {
     service_id.value = []
-    // Auto find receptionist commission
-    const foundRec = commissions.value.options.find(c => c.label.toLowerCase().includes('réceptionniste') || c.label.toLowerCase().includes('receptionist'))
-    if (foundRec) {
-      commission_id.value = foundRec.value
-    } else if (commissions.value.options.length > 0) {
-      commission_id.value = commissions.value.options[0].value
-    }
   }
 }
 
 const onServiceSelect = (val) => {
-  if (!val || val.length === 0) return
-  // Auto find commission matching service
-  const selectedSvc = services.value.options.find(s => val.includes(s.value))
-  if (selectedSvc) {
-    const matchedComm = commissions.value.options.find(c => c.label.toLowerCase().includes(selectedSvc.label.toLowerCase()))
-    if (matchedComm) {
-      commission_id.value = matchedComm.value
-    }
-  }
+  // Aucune logique de commission — supprimée
 }
 
 // Select Options
@@ -268,7 +254,6 @@ const currentId = useModuleId(() => {
     }
     branchSelect()
   })
-  useSelect({ url: COMMISSION_LIST }, { value: 'id', label: 'name' }).then((data) => (commissions.value = data))
   if (currentId.value > 0) {
     getRequest({ url: EDIT_URL, id: currentId.value }).then((res) => {
       if (res.status && res.data) {
@@ -282,7 +267,6 @@ const currentId = useModuleId(() => {
 })
 
 const branch = ref({ options: [], list: [] })
-const commissions = ref({ options: [], list: [] })
 const services = ref({ options: [], list: [] })
 
 onMounted(() => {
@@ -304,7 +288,6 @@ const fileUpload = async (e, { imageViewerBS64, changeFile }) => {
   let file = e.target.files[0]
   await readFile(file, (fileB64) => {
     imageViewerBS64.value = fileB64
-
     logoInputRef.value.value = '';
   })
   changeFile.value = file
@@ -335,12 +318,11 @@ const defaultData = () => {
     password: '',
     confirm_password: '',
     gender: 'male',
-    password: '',
     profile_image: '',
     status: 1,
     branch_id: 0,
     service_id: [],
-    commission_id: '',
+    salon_name: '',
     show_in_calender: 1,
     is_manager: 0,
     about_self: '',
@@ -349,8 +331,7 @@ const defaultData = () => {
     instagram_link: '',
     twitter_link: '',
     dribbble_link: '',
-    custom_fields_data: {
-    }
+    custom_fields_data: {}
   }
 }
 
@@ -381,7 +362,7 @@ const setFormData = (data) => {
       profile_image: source.profile_image ?? '',
       branch_id: source.branch_id ?? 0,
       service_id: Array.isArray(source.service_id) ? source.service_id : [],
-      commission_id: source.commission_id ?? '',
+      salon_name: source.salon_name ?? '',
       status: source.status === undefined ? true : Boolean(source.status),
       show_in_calender: source.show_in_calender ?? source.show_in_calendar ?? 1,
       is_manager: source.is_manager ?? 0,
@@ -416,14 +397,12 @@ const validationSchema = yup.object({
     first_name: yup.string()
       .required('First name is a required field')
       .test('is-string', 'Only strings are allowed', (value) => {
-        // Regular expressions to disallow special characters and numbers
         const specialCharsRegex = /[!@#$%^&*(),.?":{}|<>\-_;'\/+=\[\]\\]/;
         return !specialCharsRegex.test(value) && !numberRegex.test(value);
     }),
     last_name: yup.string()
       .required('Last name is a required field')
       .test('is-string', 'Only strings are allowed', (value) => {
-        // Regular expressions to disallow special characters and numbers
         const specialCharsRegex = /[!@#$%^&*(),.?":{}|<>\-_;'\/+=\[\]\\]/;
         return !specialCharsRegex.test(value) && !numberRegex.test(value);
       }),
@@ -436,7 +415,7 @@ const validationSchema = yup.object({
       }
       return true;
     }).test('min-length', 'Password must be at least 8 characters long', function(value) {
-      if (!value) return true; // optionnel en édition
+      if (!value) return true;
       return value.length >= 8;
     }),
     confirm_password: yup.string().test('confirm_password', 'Confirm password is required', function(value) {
@@ -446,13 +425,17 @@ const validationSchema = yup.object({
       return true;
     }).test('passwords-match', 'Passwords must match', function(value) {
       const pwd = this.parent.password;
-      if (!pwd && !value) return true; // les deux vides = ok en édition
+      if (!pwd && !value) return true;
       return value === pwd;
     }),
-    commission_id: yup.string()
-      .required('Select commission is a required field'),
-      branch_id: yup.string()
-      .required('Selectionner un salon is a required field'),
+    // salon_name : obligatoire uniquement si is_manager
+    salon_name: yup.string().test('salon_name_required', 'Le nom du salon est obligatoire pour un manager', function(value) {
+      if (this.parent.is_manager && currentId.value === 0 && !value) {
+        return false;
+      }
+      return true;
+    }),
+    branch_id: yup.mixed().nullable(),
 });
 
 
@@ -471,10 +454,10 @@ const { value: mobile } = useField('mobile')
 const { value: branch_id } = useField('branch_id')
 const { value: status } = useField('status')
 const { value: service_id } = useField('service_id')
-const { value: commission_id } = useField('commission_id')
 const { value: profile_image } = useField('profile_image')
 const { value: show_in_calender } = useField('show_in_calender')
 const { value: is_manager } = useField('is_manager')
+const { value: salon_name } = useField('salon_name')
 const { value: custom_fields_data } = useField('custom_fields_data')
 const { value: about_self } = useField('about_self')
 const { value: expert } = useField('expert')
@@ -487,7 +470,6 @@ const errorMessages = ref({})
 
 // phone number
 const handleInput = (phone, phoneObject) => {
-  // Handle the input event
   if (phoneObject?.formatted) {
     mobile.value = phoneObject.formatted
   }

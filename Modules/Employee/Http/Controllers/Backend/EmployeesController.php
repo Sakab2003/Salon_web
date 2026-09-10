@@ -388,6 +388,15 @@ class EmployeesController extends Controller
             $data['is_receptionist'] = 0;
         }
 
+        // Générer un email automatique si non fourni
+        if (empty($data['email'])) {
+            $data['email'] = $this->generateUniqueEmail(
+                $data['first_name'] ?? '',
+                $data['last_name'] ?? '',
+                $data['mobile'] ?? ''
+            );
+        }
+
         $data['password'] = Hash::make($data['password']);
 
         if ($request->confirmed == 1) {
@@ -425,9 +434,28 @@ class EmployeesController extends Controller
 
         if ($data['is_manager']) {
             array_push($roles, 'manager');
-            if ($request->has('branch_id')) {
+
+            // Si un nom de salon est fourni, créer automatiquement un salon pour ce manager
+            if ($request->filled('salon_name')) {
+                $newBranch = Branch::create([
+                    'name'           => trim($request->salon_name),
+                    'manager_id'     => $employee_id,
+                    'contact_email'  => $data->email,
+                    'contact_number' => $request->mobile ?? '',
+                    'status'         => 1,
+                    'branch_for'     => 'both',
+                ]);
+                $data->update(['branch_id' => $newBranch->id]);
+                BranchEmployee::firstOrCreate(
+                    ['employee_id' => $employee_id, 'branch_id' => $newBranch->id],
+                    ['is_primary' => 1]
+                );
+            } elseif ($request->has('branch_id')) {
+                // Sinon associer au salon existant
                 $branch = Branch::where('id', $request->branch_id)->first();
-                $branch->update(['manager_id' => $employee_id]);
+                if ($branch) {
+                    $branch->update(['manager_id' => $employee_id]);
+                }
             }
         }
 
@@ -435,7 +463,7 @@ class EmployeesController extends Controller
 
         \Artisan::call('cache:clear');
 
-        if ($request->has('branch_id')) {
+        if (!$data['is_manager'] && $request->has('branch_id')) {
             $branch_data = [
                 'employee_id' => $employee_id,
                 'branch_id' => $request->branch_id,
@@ -449,23 +477,15 @@ class EmployeesController extends Controller
 
                 foreach ($services as $value) {
                     $service_data = [
-
                         'employee_id' => $employee_id,
                         'service_id' => $value,
-
                     ];
                     ServiceEmployee::create($service_data);
                 }
             }
         }
-        if (isset($request->commission_id) && $request->has('commission_id')) {
-            $commission_data = [
-                'employee_id' => $employee_id,
-                'commission_id' => $request->commission_id,
-            ];
 
-            EmployeeCommission::updateOrCreate($commission_data, $commission_data);
-        }
+        // Commission supprimée — non utilisée sur cette plateforme
 
         $message = __('messages.create_form', ['form' => __('employee.singular_title')]);
 
@@ -580,9 +600,26 @@ class EmployeesController extends Controller
 
         if ($request->is_manager) {
             array_push($roles, 'manager');
-            if ($request->has('branch_id')) {
+            // Si un nom de salon est fourni → créer un nouveau salon pour ce manager
+            if ($request->filled('salon_name')) {
+                $newBranch = Branch::create([
+                    'name'           => trim($request->salon_name),
+                    'manager_id'     => $employee_id,
+                    'contact_email'  => $data->email,
+                    'contact_number' => $request->mobile ?? $data->mobile ?? '',
+                    'status'         => 1,
+                    'branch_for'     => 'both',
+                ]);
+                $data->update(['branch_id' => $newBranch->id]);
+                BranchEmployee::firstOrCreate(
+                    ['employee_id' => $employee_id, 'branch_id' => $newBranch->id],
+                    ['is_primary' => 1]
+                );
+            } elseif ($request->has('branch_id')) {
                 $branch = Branch::where('id', $request->branch_id)->first();
-                $branch->update(['manager_id' => $employee_id]);
+                if ($branch) {
+                    $branch->update(['manager_id' => $employee_id]);
+                }
             }
         }
 
@@ -590,12 +627,11 @@ class EmployeesController extends Controller
 
         \Artisan::call('cache:clear');
 
-        if ($request->has('branch_id')) {
+        if (!$request->is_manager && $request->has('branch_id')) {
             $branch_data = [
                 'employee_id' => $id,
                 'branch_id' => $request->branch_id,
             ];
-
             BranchEmployee::create($branch_data);
         }
 
@@ -605,25 +641,15 @@ class EmployeesController extends Controller
 
                 foreach ($services as $value) {
                     $service_data = [
-
                         'employee_id' => $employee_id,
                         'service_id' => $value,
-
                     ];
                     ServiceEmployee::create($service_data);
                 }
             }
         }
 
-        if ($request->commission_id) {
-            $commission_data = [
-
-                'employee_id' => $id,
-                'commission_id' => $request->commission_id,
-            ];
-
-            EmployeeCommission::updateOrCreate($commission_data, $commission_data);
-        }
+        // Commission supprimée — non utilisée sur cette plateforme
 
         $message = __('messages.update_form', ['form' => __('employee.singular_title')]);
 
@@ -898,5 +924,35 @@ class EmployeesController extends Controller
             'message' => 'Avis enregistré avec succès !',
             'data' => $rating
         ]);
+    }
+
+    /**
+     * Génère un email unique automatiquement au format prenom.nom.mobile@salon.app
+     */
+    protected function generateUniqueEmail(string $firstName, string $lastName, string $mobile): string
+    {
+        $first = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $this->removeAccents($firstName)));
+        $last  = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $this->removeAccents($lastName)));
+        $phone = preg_replace('/[^0-9]/', '', $mobile);
+
+        $email = "{$first}.{$last}.{$phone}@salon.app";
+        $i = 1;
+        while (User::where('email', $email)->exists()) {
+            $email = "{$first}.{$last}.{$phone}{$i}@salon.app";
+            $i++;
+        }
+        return $email;
+    }
+
+    /**
+     * Supprime les accents d'une chaîne
+     */
+    protected function removeAccents(string $str): string
+    {
+        $from = ['à','â','ä','á','ã','å','è','é','ê','ë','ì','î','ï','ó','ô','ö','ò','õ','ù','û','ü','ú','ý','ÿ','ñ','ç',
+                 'À','Â','Ä','Á','Ã','Å','È','É','Ê','Ë','Ì','Î','Ï','Ó','Ô','Ö','Ò','Õ','Ù','Û','Ü','Ú','Ý','Ñ','Ç'];
+        $to   = ['a','a','a','a','a','a','e','e','e','e','i','i','i','o','o','o','o','o','u','u','u','u','y','y','n','c',
+                 'A','A','A','A','A','A','E','E','E','E','I','I','I','O','O','O','O','O','U','U','U','U','Y','N','C'];
+        return str_replace($from, $to, $str);
     }
 }

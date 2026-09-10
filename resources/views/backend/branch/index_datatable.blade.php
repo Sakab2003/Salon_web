@@ -134,18 +134,6 @@ const columns = [{
         width: '15%',
     },
     {
-        data: 'address.city',
-        name: 'address.city',
-        title: "{{ __('branch.lbl_city') }}",
-        width: '15%',
-    },
-    {
-        data: 'address.postal_code',
-        name: 'address.postal_code',
-        title: "{{ __('branch.lbl_postal_code') }}",
-        width: '10%',
-    },
-    {
         data: 'assign',
         name: 'assign',
         title: "{{ __('branch.lbl_assign') }}",
@@ -198,7 +186,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         url: '{{ route("backend.$module_name.index_data") }}',
         finalColumns,
         orderColumn: [
-            [10, "desc"]
+            [8, "desc"]
         ],
     })
 })
