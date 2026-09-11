@@ -3,8 +3,10 @@
 
 <head>
     <meta charset="utf-8">
-    <link rel="icon" type="image/png" href="{{ setting('favicon') }}">
-    <link rel="apple-touch-icon" sizes="76x76" href="{{ setting('favicon') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('img/logo/favicon/favicon-32x32.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('img/logo/favicon/apple-icon.png') }}">
+    <link rel="shortcut icon" href="{{ asset('img/logo/favicon/favicon.ico') }}">
+    <link rel="icon" type="image/x-icon" href="{{ asset('img/logo/favicon/favicon.ico') }}" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="{{ setting('meta_description') }}">
     <meta name="keyword" content="{{ setting('meta_keyword') }}">
