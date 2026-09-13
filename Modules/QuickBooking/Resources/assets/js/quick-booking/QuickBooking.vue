@@ -2,20 +2,7 @@
   <div class="booking-wizard">
     <div class="container-fluid p-3">
       <h2 class="fw-bold mb-4 text-center">Réservations</h2>
-      <!-- BANDEAU SUPÉRIEUR VISIBLE : ÉVALUER NOS PRESTATIONS -->
-      <div class="d-flex align-items-center justify-content-between p-3 mb-3 bg-white rounded-4 shadow-sm border">
-        <div class="d-flex align-items-center gap-2">
-          <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold fs-6">
-            <i class="fa-solid fa-star me-1 text-dark"></i> Avis Clients
-          </span>
-          <span class="text-dark fw-bold small d-none d-md-inline">
-            Vous avez déjà effectué un rendez-vous chez nous ? Partagez votre avis !
-          </span>
-        </div>
-        <button type="button" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2" @click="showReviewModal = true">
-          <i class="fa-solid fa-star text-warning"></i> Évaluer nos prestations
-        </button>
-      </div>
+
 
       <div class="booking-container mx-auto">
         <!-- STEPPER HORIZONTAL / COMPACT -->
