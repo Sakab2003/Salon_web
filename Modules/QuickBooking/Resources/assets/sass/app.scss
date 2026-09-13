@@ -164,3 +164,161 @@ fade-in
         padding: .5em;
     }
 }
+
+.booking-wizard {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    min-height: 100vh;
+    padding: 2rem 0;
+}
+
+.iq-time-slot {
+    .btn {
+        background: rgba(255, 255, 255, 0.8);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
+        transition: all 0.2s ease-in-out;
+        color: #333;
+        font-weight: 600;
+
+        &:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.08);
+            border-color: rgba(0, 0, 0, 0.1);
+        }
+    }
+
+    .btn-check:checked + .btn {
+        background: var(--bs-primary);
+        color: white;
+        box-shadow: 0 8px 20px rgba(var(--bs-primary-rgb), 0.3);
+        transform: scale(1.05);
+    }
+}
+
+
+/* STEPPER HORIZONTAL / COMPACT */
+.booking-container {
+    max-width: 1000px;
+}
+
+.stepper-wrapper {
+    position: relative;
+    padding: 0 1rem;
+    
+    &::before {
+        content: "";
+        position: absolute;
+        top: 24px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: #e2e8f0;
+        z-index: 0;
+    }
+}
+
+.stepper-list {
+    list-style: none;
+    position: relative;
+    z-index: 1;
+}
+
+.stepper-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    position: relative;
+    flex: 1;
+    text-align: center;
+    cursor: pointer;
+
+    .stepper-icon-wrapper {
+        background: #f8f9fa;
+        padding: 5px;
+        border-radius: 50%;
+    }
+
+    .stepper-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #fff;
+        border: 2px solid #cbd5e1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: #94a3b8;
+        transition: all 0.3s ease;
+    }
+
+    .stepper-text {
+        h6 {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+        }
+    }
+
+    &.active {
+        .stepper-icon {
+            border-color: var(--bs-primary);
+            background: var(--bs-primary);
+            color: #fff;
+            box-shadow: 0 0 0 4px rgba(var(--bs-primary-rgb), 0.2);
+        }
+        .stepper-text h6 {
+            color: var(--bs-primary);
+            font-weight: 800 !important;
+        }
+    }
+
+    &.completed {
+        .stepper-icon {
+            border-color: var(--bs-primary);
+            background: #fff;
+            color: var(--bs-primary);
+        }
+        .stepper-text h6 {
+            color: #334155;
+        }
+    }
+}
+
+/* RESPONSIVENESS */
+@media (max-width: 768px) {
+    .stepper-wrapper::before {
+        top: 20px;
+    }
+    .stepper-item .stepper-icon {
+        width: 32px;
+        height: 32px;
+        font-size: 0.8rem;
+    }
+    
+    /* Make content full width on mobile */
+    .booking-content-area {
+        padding: 1.5rem !important;
+        border-radius: 1rem !important;
+    }
+    
+    .card-footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        background: white;
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+        padding: 1rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        border-radius: 20px 20px 0 0;
+    }
+    
+    .booking-wizard {
+        padding-bottom: 90px;
+    }
+}

@@ -24,7 +24,19 @@
     <meta name="auth_user_roles" content="{{auth()->user()->roles->pluck('name')}}">
 
 
-    <title>@yield('title') | {{ app_name() }}</title>
+    <!-- Open Graph & Social Sharing -->
+    <meta property="og:title" content="{{ __($__env->yieldContent('title')) }} | {{ app_name() }}">
+    <meta property="og:description" content="{{ setting('meta_description') }}">
+    <meta property="og:image" content="{{ asset(setting('logo')) }}">
+    <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:type" content="website">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ __($__env->yieldContent('title')) }} | {{ app_name() }}">
+    <meta name="twitter:description" content="{{ setting('meta_description') }}">
+    <meta name="twitter:image" content="{{ asset(setting('logo')) }}">
+
+    <title>{{ __($__env->yieldContent('title')) }} | {{ app_name() }}</title>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="{{ mix('css/icon.min.css') }}">

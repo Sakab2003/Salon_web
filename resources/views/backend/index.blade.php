@@ -1,6 +1,6 @@
 @extends('backend.layouts.app', ['isBanner' => false])
 
-@section('title') {{ 'Dashboard' }} @endsection
+@section('title') {{ __('sidebar.dashboard') }} @endsection
 
 @section('content')
 <div class="row">
@@ -22,7 +22,7 @@
       </div>
     </div>
     <div class="row">
-      <div class="col-sm-6 col-lg-2">
+      <div class="col-sm-6 col-lg-3">
         <div class="card dashboard-cards appointments"
           style="background-image: url({{ asset('img/dashboard/appointment.svg') }})">
           <div class="card-body">
@@ -34,7 +34,7 @@
           </div>
         </div>
       </div>
-      <div class="col-sm-6 col-lg-2">
+      <div class="col-sm-6 col-lg-3">
         <div class="card dashboard-cards services"
           style="background-image: url({{ asset('img/dashboard/services.svg') }})">
           <div class="card-body">
@@ -46,20 +46,7 @@
           </div>
         </div>
       </div>
-      <div class="col-sm-6 col-lg-2">
-        <div class="card dashboard-cards revenue"
-          style="background-image: url({{ asset('img/dashboard/revenue.svg') }})">
-          <div class="card-body">
-            <div class="d-flex align-items-start justify-content-end mb-1">
-              <i class="fa-solid fa-circle-info" data-bs-toggle="tooltip" data-bs-title="{{__('messages.total_paid_commission')}}"></i>
-            </div>
-            <h3 class="mb-2">{{ $data['total_commission'] }}</h3>
-            <p class="mb-0">{{ __('dashboard.lbl_sales_commission') }}</p>
-          </div>
-
-        </div>
-      </div>
-      <div class="col-sm-6 col-lg-2">
+      <div class="col-sm-6 col-lg-3">
         <div class="card dashboard-cards new-customer"
           style="background-image: url({{ asset('img/dashboard/new-users.svg') }})">
           <div class="card-body">
@@ -71,19 +58,7 @@
           </div>
         </div>
       </div>
-      <div class="col-sm-6 col-lg-2">
-        <div class="card dashboard-cards new-customer"
-          style="background-image: url({{ asset('img/dashboard/new-users.svg') }})">
-          <div class="card-body">
-            <div class="d-flex align-items-start justify-content-end mb-1">
-              <i class="fa-solid fa-circle-info" data-bs-toggle="tooltip" data-bs-title="{{__('messages.total_new_sales')}}"></i>
-            </div>
-            <h3 class="mb-2">{{ $data['total_orders'] }}</h3>
-            <p class="mb-0">{{ __('dashboard.lbl_orders') }}</p>
-          </div>
-        </div>
-      </div>
-      <div class="col-sm-6 col-lg-2">
+      <div class="col-sm-6 col-lg-3">
         <div class="card dashboard-cards new-customer"
           style="background-image: url({{ asset('img/dashboard/new-users.svg') }})">
           <div class="card-body">

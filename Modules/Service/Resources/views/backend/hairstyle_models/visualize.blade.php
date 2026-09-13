@@ -241,20 +241,20 @@
         <div class="col-md-7 mt-3 mt-md-0 d-flex flex-wrap gap-2 justify-content-md-end">
             <div style="min-width: 200px;">
                 <select id="filter-service-select" class="form-select shadow-sm rounded-pill py-2">
-                    <option value="">Tous les services</option>
-                    @foreach($services as $s)
-                        <option value="{{ strtolower($s->name) }}">{{ $s->name }}</option>
+                    <option value="">Toutes les cibles</option>
+                    @foreach($target_audiences as $target)
+                        <option value="{{ strtolower($target) }}">{{ $target }}</option>
                     @endforeach
                 </select>
             </div>
             <div class="input-group shadow-sm rounded-pill overflow-hidden flex-grow-1" style="max-width: 320px;">
                 <span class="input-group-text bg-white dark:bg-dark border-0 ps-3"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
-                <input type="text" id="search-service-input" class="form-control border-0 py-2" placeholder="Rechercher un service ou un modèle...">
+                <input type="text" id="search-service-input" class="form-control border-0 py-2" placeholder="Rechercher une cible ou un modèle...">
             </div>
         </div>
     </div>
 
-    @if($services->isEmpty())
+    @if($groupedModels->isEmpty())
         <div class="card p-5 text-center shadow-sm rounded-4">
             <div class="my-4">
                 <i class="fa-solid fa-layer-group fa-4x text-muted opacity-50 mb-3"></i>
@@ -263,9 +263,8 @@
             </div>
     @else
         <div class="row g-4" id="services-cards-container">
-            @foreach($services as $service)
+            @foreach($groupedModels as $audience => $models)
                 @php
-                    $models = $service->hairstyle_models;
                     $flatItems = collect();
 
                     foreach($models as $model) {
@@ -278,7 +277,6 @@
                             $flatItems->push((object)[
                                 'model_id' => $model->id,
                                 'model_name' => $model->name,
-                                'description' => $model->description,
                                 'status' => $model->status,
                                 'created_at' => $model->created_at,
                                 'image' => $imgUrl,
@@ -289,27 +287,26 @@
                     }
 
                     $firstItem = $flatItems->first();
-                    $coverImage = !empty($service->feature_image) ? $service->feature_image : ($firstItem ? $firstItem->image : asset('dummy-images/common/Service 8.webp'));
-                    $serviceName = $service->name;
+                    $coverImage = $firstItem ? $firstItem->image : asset('dummy-images/common/Service 8.webp');
+                    $serviceName = $audience;
                     $sNameLower = strtolower($serviceName);
 
                     // Dynamic icon selection per service type
                     $serviceIcon = 'fa-scissors';
-                    if (str_contains($sNameLower, 'massage') || str_contains($sNameLower, 'détente') || str_contains($sNameLower, 'relax')) {
-                        $serviceIcon = 'fa-spa';
-                    } elseif (str_contains($sNameLower, 'maquillage') || str_contains($sNameLower, 'makeup') || str_contains($sNameLower, 'visage')) {
-                        $serviceIcon = 'fa-wand-magic-sparkles';
-                    } elseif (str_contains($sNameLower, 'ongle') || str_contains($sNameLower, 'manucure') || str_contains($sNameLower, 'pédicure')) {
+                    if (str_contains($sNameLower, 'onglerie')) {
                         $serviceIcon = 'fa-hand-sparkles';
-                    } elseif (str_contains($sNameLower, 'soin') || str_contains($sNameLower, 'peau')) {
-                        $serviceIcon = 'fa-heart-pulse';
+                    } elseif (str_contains($sNameLower, 'femme')) {
+                        $serviceIcon = 'fa-person-dress';
+                    } elseif (str_contains($sNameLower, 'homme')) {
+                        $serviceIcon = 'fa-person';
                     }
 
                     $totalPhotosCount = $flatItems->count();
+                    $modalId = 'service-models-modal-' . Str::slug($audience);
                 @endphp
                 <div class="col-12 col-sm-6 col-lg-4 service-card-item" data-search="{{ strtolower($serviceName . ' ' . implode(' ', $flatItems->pluck('model_name')->toArray())) }}">
                     <div class="card service-model-card h-100">
-                        <div class="service-card-img-wrap" role="button" data-bs-toggle="modal" data-bs-target="#service-models-modal-{{ $service->id }}">
+                        <div class="service-card-img-wrap" role="button" data-bs-toggle="modal" data-bs-target="#{{ $modalId }}">
                             <img src="{{ $coverImage }}" class="service-card-img" alt="{{ $serviceName }}">
                             <span class="model-count-badge">
                                 <i class="fa-solid fa-camera me-1 text-warning"></i> {{ $totalPhotosCount }} {{ $totalPhotosCount > 1 ? 'photos / modèles' : 'photo / modèle' }}
@@ -318,18 +315,18 @@
                         <div class="card-body d-flex flex-column justify-content-between p-4">
                             <div>
                                 <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span class="badge bg-soft-primary rounded-pill px-3 py-1">Service</span>
+                                    <span class="badge bg-soft-primary rounded-pill px-3 py-1">Cible</span>
                                     <small class="text-muted"><i class="fa-solid {{ $serviceIcon }} me-1"></i>{{ $serviceName }}</small>
                                 </div>
                                 <h5 class="fw-bold card-title mb-2 text-dark dark:text-light">{{ $serviceName }}</h5>
                                 <p class="text-muted small line-clamp-2 mb-3">
-                                    Collection de {{ $totalPhotosCount }} {{ $totalPhotosCount > 1 ? 'photos & inspirations' : 'photo' }} créées pour le service {{ $serviceName }}.
+                                    Collection de {{ $totalPhotosCount }} {{ $totalPhotosCount > 1 ? 'photos & inspirations' : 'photo' }} créées pour {{ $serviceName }}.
                                 </p>
                             </div>
                             <button type="button" 
                                 class="btn btn-primary rounded-pill w-100 mt-2 btn-explore-service" 
                                 data-bs-toggle="modal" 
-                                data-bs-target="#service-models-modal-{{ $service->id }}">
+                                data-bs-target="#{{ $modalId }}">
                                 <i class="fa-solid fa-eye me-2"></i> Explorer les modèles
                             </button>
                         </div>
@@ -337,14 +334,14 @@
                 </div>
 
                 <!-- Modal avec la galerie complète des photos du service -->
-                <div class="modal fade" id="service-models-modal-{{ $service->id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal fade" id="{{ $modalId }}" tabindex="-1" aria-hidden="true">
                     <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered">
                         <div class="modal-content border-0 shadow-lg rounded-4">
                             <div class="modal-header border-0 pb-0">
                                 <div>
-                                    <span class="badge bg-soft-primary rounded-pill mb-1">Service</span>
+                                    <span class="badge bg-soft-primary rounded-pill mb-1">Cible</span>
                                     <h4 class="modal-title fw-bold">{{ $serviceName }}</h4>
-                                    <p class="text-muted small m-0">{{ $totalPhotosCount }} {{ $totalPhotosCount > 1 ? 'photos / modèles disponibles' : 'photo / modèle disponible' }} pour ce service</p>
+                                    <p class="text-muted small m-0">{{ $totalPhotosCount }} {{ $totalPhotosCount > 1 ? 'photos / modèles disponibles' : 'photo / modèle disponible' }} pour cette cible</p>
                                 </div>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
@@ -353,7 +350,7 @@
                                     @foreach($flatItems as $globalIdx => $item)
                                         <div class="col-12 col-md-6 col-lg-4">
                                             <div class="card model-gallery-card h-100 btn-open-lightbox" 
-                                                 data-service-id="{{ $service->id }}"
+                                                 data-service-id="{{ Str::slug($audience) }}"
                                                  data-global-index="{{ $globalIdx }}"
                                                  data-service-photos='@json($flatItems, JSON_HEX_APOS|JSON_HEX_QUOT)'
                                                  data-service-name="{{ $serviceName }}">
@@ -379,11 +376,6 @@
                                                                 <span class="badge bg-soft-secondary">Privé</span>
                                                             @endif
                                                         </div>
-                                                        @if($item->description)
-                                                            <p class="text-muted small mb-2 line-clamp-2">{{ $item->description }}</p>
-                                                        @else
-                                                            <p class="text-muted small fst-italic mb-2">Aucune description renseignée.</p>
-                                                        @endif
                                                     </div>
                                                     <div class="pt-2 border-top mt-2 d-flex justify-content-between align-items-center">
                                                         <small class="text-muted"><i class="fa-regular fa-clock me-1"></i>{{ $item->created_at ? \Carbon\Carbon::parse($item->created_at)->isoFormat('D MMM YYYY') : '-' }}</small>
@@ -429,10 +421,6 @@
             </div>
             <h3 class="fw-bold text-white mb-2" id="lightbox-title">Nom du Modèle</h3>
             <p class="text-info small fw-bold mb-3 d-none" id="lightbox-photo-index"></p>
-            <div class="lightbox-desc-box mb-4">
-                <label class="text-muted small uppercase fw-bold mb-1 d-block">Description / Conseils de style :</label>
-                <p class="text-light opacity-90 m-0" id="lightbox-desc">Description</p>
-            </div>
             <div class="mt-auto pt-3 border-top border-secondary text-muted small d-flex justify-content-between align-items-center">
                 <span><i class="fa-regular fa-calendar me-1"></i><span id="lightbox-date"></span></span>
                 <span class="badge bg-dark text-light px-3 py-2 rounded-pill" id="lightbox-counter">1 / 1</span>
@@ -476,7 +464,6 @@
         const lightboxImg = document.getElementById('lightbox-img');
         const lightboxTitle = document.getElementById('lightbox-title');
         const lightboxPhotoIndex = document.getElementById('lightbox-photo-index');
-        const lightboxDesc = document.getElementById('lightbox-desc');
         const lightboxServiceName = document.getElementById('lightbox-service-name');
         const lightboxStatus = document.getElementById('lightbox-status');
         const lightboxDate = document.getElementById('lightbox-date');
@@ -500,7 +487,6 @@
             
             lightboxImg.src = item.image;
             lightboxTitle.textContent = item.model_name;
-            lightboxDesc.textContent = item.description || 'Aucune description renseignée.';
             lightboxServiceName.innerHTML = `<i class="fa-solid fa-scissors me-1"></i>${currentServiceName}`;
             
             if (item.created_at) {

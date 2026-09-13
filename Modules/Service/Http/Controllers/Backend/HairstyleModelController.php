@@ -16,9 +16,9 @@ class HairstyleModelController extends Controller
 {
     public function __construct()
     {
-        $this->module_title = 'Modèle de Commission';
+        $this->module_title = 'Modèles';
         $this->module_name = 'hairstyle-models';
-        $this->module_icon = 'fa-solid fa-scissors';
+        $this->module_icon = 'fa-solid fa-camera-retro';
 
         view()->share([
             'module_title' => $this->module_title,
@@ -39,25 +39,16 @@ class HairstyleModelController extends Controller
      */
     public function index(Request $request)
     {
-        $module_title = 'modèles de commission';
+        $module_title = 'modèles';
         $filter = [
             'status' => $request->status,
-            'service_id' => $request->service_id,
-            'commission_id' => $request->commission_id,
+            'target_audience' => $request->target_audience,
         ];
         $module_action = 'Liste des';
+        
+        $target_audiences = ['Homme', 'Femme', 'Onglerie'];
 
-        $branchId = request()->selected_session_branch_id;
-        $servicesQuery = Service::active()->select('id', 'name', 'commission_id');
-        if ($branchId && !auth()->user()->hasRole('admin')) {
-            $servicesQuery->whereHas('branches', function ($q) use ($branchId) {
-                $q->where('branch_id', $branchId);
-            });
-        }
-        $services = $servicesQuery->get();
-        $commissions = \Modules\Commission\Models\Commission::where('status', 1)->get();
-
-        return view('service::backend.hairstyle_models.index_datatable', compact('module_action', 'module_title', 'filter', 'services', 'commissions'));
+        return view('service::backend.hairstyle_models.index_datatable', compact('module_action', 'module_title', 'filter', 'target_audiences'));
     }
 
     /**
@@ -65,30 +56,18 @@ class HairstyleModelController extends Controller
      */
     public function visualize(Request $request)
     {
-        $module_title = 'modèles de commission';
+        $module_title = 'modèles';
         $module_action = 'Visualiser les';
 
-        $branchId = request()->selected_session_branch_id;
-        $commissions = \Modules\Commission\Models\Commission::where('status', 1)->get();
+        $target_audiences = ['Homme', 'Femme', 'Onglerie'];
         
-        $servicesQuery = Service::active()
-            ->with(['hairstyle_models' => function($q) {
-                $q->active()->orderBy('id', 'desc');
-            }, 'commission']);
+        // Group all active hairstyle models by target_audience
+        $groupedModels = HairstyleModel::active()
+            ->orderBy('id', 'desc')
+            ->get()
+            ->groupBy('target_audience');
 
-        if ($branchId && !auth()->user()->hasRole('admin')) {
-            $servicesQuery->whereHas('branches', function ($q) use ($branchId) {
-                $q->where('branch_id', $branchId);
-            });
-        }
-
-        $services = (clone $servicesQuery)->has('hairstyle_models')->get();
-
-        if ($services->isEmpty()) {
-            $services = $servicesQuery->get();
-        }
-
-        return view('service::backend.hairstyle_models.visualize', compact('module_action', 'module_title', 'services', 'commissions'));
+        return view('service::backend.hairstyle_models.visualize', compact('module_action', 'module_title', 'target_audiences', 'groupedModels'));
     }
 
     /**
@@ -96,7 +75,7 @@ class HairstyleModelController extends Controller
      */
     public function show($id)
     {
-        $data = HairstyleModel::with(['service', 'commission'])->findOrFail($id);
+        $data = HairstyleModel::findOrFail($id);
         $data->feature_image_url = $data->feature_image;
         $data->feature_images = $data->feature_images;
         $data->feature_image_items = $data->feature_image_items;
@@ -110,14 +89,7 @@ class HairstyleModelController extends Controller
     public function index_data(Datatables $datatable, Request $request)
     {
         $module_name = $this->module_name;
-        $query = HairstyleModel::query()->with(['service', 'commission']);
-
-        $branchId = request()->selected_session_branch_id;
-        if ($branchId && !auth()->user()->hasRole('admin')) {
-            $query->whereHas('service.branches', function ($q) use ($branchId) {
-                $q->where('branch_id', $branchId);
-            });
-        }
+        $query = HairstyleModel::query();
 
         $filter = $request->filter;
 
@@ -125,11 +97,8 @@ class HairstyleModelController extends Controller
             if (isset($filter['column_status']) && $filter['column_status'] !== '') {
                 $query->where('status', $filter['column_status']);
             }
-            if (isset($filter['service_id']) && $filter['service_id'] !== '') {
-                $query->where('service_id', $filter['service_id']);
-            }
-            if (isset($filter['commission_id']) && $filter['commission_id'] !== '') {
-                $query->where('commission_id', $filter['commission_id']);
+            if (isset($filter['target_audience']) && $filter['target_audience'] !== '') {
+                $query->where('target_audience', $filter['target_audience']);
             }
         }
 
@@ -144,9 +113,7 @@ class HairstyleModelController extends Controller
                 $encodedData = e(json_encode([
                     'id' => $data->id,
                     'name' => $data->name,
-                    'service' => $data->service ? $data->service->name : '',
-                    'commission' => $data->commission ? $data->commission->title : '',
-                    'description' => $data->description,
+                    'target_audience' => $data->target_audience,
                     'items' => $items,
                 ]));
 
@@ -163,11 +130,8 @@ class HairstyleModelController extends Controller
                     </div>
                 ';
             })
-            ->addColumn('service', function ($data) {
-                return $data->service ? '<span class="badge bg-soft-primary">'.$data->service->name.'</span>' : '-';
-            })
-            ->addColumn('commission', function ($data) {
-                return $data->commission ? '<span class="badge bg-soft-info">'.$data->commission->title.'</span>' : '-';
+            ->addColumn('target_audience', function ($data) {
+                return '<span class="badge bg-soft-info">'.$data->target_audience.'</span>';
             })
             ->editColumn('status', function ($row) {
                 $checked = $row->status ? 'checked="checked"' : '';
@@ -196,7 +160,7 @@ class HairstyleModelController extends Controller
             ->addColumn('action', function ($data) use ($module_name) {
                 return view('service::backend.hairstyle_models.action_column', compact('module_name', 'data'));
             })
-            ->rawColumns(['action', 'image', 'service', 'commission', 'status', 'check'])
+            ->rawColumns(['action', 'image', 'target_audience', 'status', 'check'])
             ->orderColumns(['id'], '-:column $1')
             ->toJson();
     }
@@ -208,10 +172,6 @@ class HairstyleModelController extends Controller
     {
         $data = $request->except(['feature_image', 'remove_image_ids']);
         $model = HairstyleModel::create($data);
-
-        if ($request->filled('service_id') && $request->filled('commission_id')) {
-            Service::where('id', $request->service_id)->update(['commission_id' => $request->commission_id]);
-        }
 
         if ($request->hasFile('feature_image')) {
             $files = $request->file('feature_image');
@@ -226,7 +186,7 @@ class HairstyleModelController extends Controller
             }
         }
 
-        return response()->json(['message' => 'Modèle de commission créé avec succès.', 'status' => true], 200);
+        return response()->json(['message' => 'Modèle créé avec succès.', 'status' => true], 200);
     }
 
     /**
@@ -234,7 +194,7 @@ class HairstyleModelController extends Controller
      */
     public function edit($id)
     {
-        $data = HairstyleModel::with(['service', 'commission'])->findOrFail($id);
+        $data = HairstyleModel::findOrFail($id);
         $data->feature_image_url = $data->feature_image;
         $data->feature_images = $data->feature_images;
         $data->feature_image_items = $data->feature_image_items;
@@ -250,10 +210,6 @@ class HairstyleModelController extends Controller
         $model = HairstyleModel::findOrFail($id);
         $request_data = $request->except(['feature_image', 'remove_image_ids']);
         $model->update($request_data);
-
-        if ($request->filled('service_id') && $request->filled('commission_id')) {
-            Service::where('id', $request->service_id)->update(['commission_id' => $request->commission_id]);
-        }
 
         // Remove media items marked for deletion
         if ($request->has('remove_image_ids')) {

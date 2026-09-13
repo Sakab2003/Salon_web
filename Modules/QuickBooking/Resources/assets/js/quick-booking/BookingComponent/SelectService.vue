@@ -1,20 +1,21 @@
 <template>
   <div class="card-list-data">
     <template v-for="(item, index) in serviceList" :key="`items-${index}`">
-        <h5 class="text-primary fw-bold mb-4" v-if="!IS_LOADER">{{ item.category_name }}</h5>
-        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3" v-if="!IS_LOADER">
+        <h5 class="text-primary fw-bold mb-3 mt-4" v-if="!IS_LOADER">{{ item.category_name }}</h5>
+        <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3" v-if="!IS_LOADER">
             <template v-for="(serviceItem, index) in item.services" :key="`services-${index}`">
-                <div class="iq-widget">
+                <div class="col iq-widget">
                     <input type="radio" :id="serviceItem.name + serviceItem.id" v-model="service_id" :value="serviceItem.id" name="radio" class="btn-check" @change="onChange"/>
-                    <label :for="serviceItem.name + serviceItem.id" class="d-block w-100">
-                        <div class="card iq-service-box text-center">
-                            <div class="card-body">
+                    <label :for="serviceItem.name + serviceItem.id" class="d-block w-100 h-100">
+                        <div class="card iq-card iq-service-box text-center h-100 overflow-hidden">
+                            <img v-if="serviceItem.service_image" :src="serviceItem.service_image" alt="service image" class="card-img-top w-100" style="height: 100px; object-fit: cover;" />
+                            <div class="card-body d-flex flex-column justify-content-between p-3">
                                 <div>
-                                    <h5 class="mb-2">{{ serviceItem.name }}</h5>
-                                    <p class="m-0 mt-3">{{ serviceItem.duration_min }} min</p>
+                                    <h6 class="mb-1 fw-bold text-dark">{{ serviceItem.name }}</h6>
+                                    <p class="text-muted small mb-0 mt-1"><i class="fa-regular fa-clock me-1"></i>{{ serviceItem.duration_min }} min</p>
                                 </div>
-                                <div class="service-price mt-3">
-                                    <b>{{ formatCurrencyVue(serviceItem.default_price) }}</b>
+                                <div class="service-price mt-2">
+                                    <span class="badge bg-soft-primary text-primary fs-7 py-1 px-2 rounded-pill">À partir de {{ formatCurrencyVue(serviceItem.default_price) }}</span>
                                 </div>
                             </div>
                         </div>

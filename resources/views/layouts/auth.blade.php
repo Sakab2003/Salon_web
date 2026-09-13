@@ -11,8 +11,19 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="setting_options" content="{{ setting('customization_json') }}">
 
+    <!-- Open Graph & Social Sharing -->
+    <meta property="og:title" content="{{ $title }} - {{ app_name() }}">
+    <meta property="og:description" content="{{ setting('meta_description') }}">
+    <meta property="og:image" content="{{ asset(setting('logo')) }}">
+    <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:type" content="website">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ $title }} - {{ app_name() }}">
+    <meta name="twitter:description" content="{{ setting('meta_description') }}">
+    <meta name="twitter:image" content="{{ asset(setting('logo')) }}">
+
     <title>{{ $title }} - {{ app_name() }}</title>
-    <!-- Styles -->
     @stack('before-styles')
     <!-- Styles -->
     <link rel="stylesheet" href="{{ asset('css/hope-ui.css') }}">

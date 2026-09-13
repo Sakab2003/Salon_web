@@ -22,12 +22,7 @@ return [
                     'active' => 'app/products',
                     'order' => 0,
                 ],
-                [
-                    'title' => 'sidebar.brand',
-                    'route' => 'backend.brands.index',
-                    'active' => 'app/brands',
-                    'order' => 1,
-                ],
+
                 [
                     'title' => 'sidebar.categories',
                     'route' => 'backend.products-categories.index',
@@ -100,13 +95,7 @@ return [
                             'active' => 'app/products',
                             'order' => 0,
                         ],
-                        [
-                            'menu_type' => 'horizontal',
-                            'title' => 'sidebar.brand',
-                            'route' => 'backend.brands.index',
-                            'active' => 'app/brands',
-                            'order' => 1,
-                        ],
+
                         [
                             'menu_type' => 'horizontal',
                             'title' => 'sidebar.categories',

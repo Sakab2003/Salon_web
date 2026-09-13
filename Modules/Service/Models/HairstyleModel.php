@@ -15,6 +15,7 @@ class HairstyleModel extends BaseModel
 
     protected $fillable = [
         'name',
+        'target_audience',
         'service_id',
         'commission_id',
         'status',

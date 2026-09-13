@@ -1,11 +1,14 @@
 <template>
   <div class="card-list-data">
-    <div class="course-picker"> 
-      <div class="card-light-bg">
-        <div><flat-pickr v-model="date" :config="config" @change="dateUpdate"/></div>
+    <div class="course-picker row g-4"> 
+      <div class="col-12 col-md-5 col-lg-4">
+        <div class="card-light-bg p-3 h-100 d-flex justify-content-center border rounded-4 shadow-sm">
+          <flat-pickr v-model="date" :config="config" @change="dateUpdate"/>
+        </div>
       </div>
-      <div class="card-light-bg iq-time-slot p-3">
-          <div class="iq-time-animation d-grid grid-template-3 gap-3" v-if="timeSlotList.length > 0">
+      <div class="col-12 col-md-7 col-lg-8">
+        <div class="card-light-bg iq-time-slot p-4 h-100 border rounded-4 shadow-sm">
+          <div class="iq-time-animation d-grid gap-3" style="grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));" v-if="timeSlotList.length > 0">
             <template v-if="!IS_LOADER">
               <template v-for="(item, index) in timeSlotList" :key="`items-${index}`">
                 <div>
@@ -19,7 +22,7 @@
             </template>
           </div>
 
-          <div class="iq-time-animation d-grid grid-template-3 gap-3" v-if="timeSlotList.length == 0 && IS_LOADER && date">
+          <div class="iq-time-animation d-grid gap-3" style="grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));" v-if="timeSlotList.length == 0 && IS_LOADER && date">
             <label v-for="index in 24" :key="index" class="skeleton skeleton-label-box"></label>
           </div>
       
@@ -34,6 +37,7 @@
             </p>
           </div>
         </div>
+      </div>
     </div>
 
   </div>

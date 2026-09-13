@@ -81,14 +81,7 @@
                     </label>
                   </div>
 
-                  <div class="d-flex align-items-center gap-2">
-                    <div class="form-check form-switch mb-0">
-                      <input class="form-check-input" :value="is_featured" :checked="is_featured == 1" :true-value="1" :false-value="0" id="product_featured" type="checkbox" v-model="is_featured" />
-                    </div>
-                    <label class="form-check-label small mb-0 cursor-pointer" for="product_featured">
-                      Mettre en vedette
-                    </label>
-                  </div>
+
                 </div>
               </div>
 

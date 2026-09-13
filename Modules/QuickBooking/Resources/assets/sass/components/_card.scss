@@ -8,9 +8,17 @@
     word-wrap: break-word;
     background-color: var(--iq-white);
     background-clip: border-box;
-    border: 1px solid;
-    border-color: transparent;
-    border-radius: 8px;
+    border: 1px solid rgba(0,0,0,0.05);
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    
+    &:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 25px rgba(0, 0, 0, 0.08);
+        border-color: rgba(0,0,0,0.1);
+    }
+
     &.iq-card-sm { padding: 15px; }
     &.iq-hover-card { padding: 40px; }
     &.iq-card-lg{ padding: 50px 50px; }

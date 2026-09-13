@@ -7,9 +7,19 @@
 
         <meta name="session-id" content="10">
 
-        
+        <!-- Open Graph & Social Sharing -->
+        <meta property="og:title" content="{{ __($__env->yieldContent('title')) ?: app_name() }}">
+        <meta property="og:description" content="{{ setting('meta_description') }}">
+        <meta property="og:image" content="{{ asset(setting('logo')) }}">
+        <meta property="og:url" content="{{ url()->current() }}">
+        <meta property="og:type" content="website">
 
-        <title>{{ app_name() }}</title>
+        <meta name="twitter:card" content="summary_large_image">
+        <meta name="twitter:title" content="{{ __($__env->yieldContent('title')) ?: app_name() }}">
+        <meta name="twitter:description" content="{{ setting('meta_description') }}">
+        <meta name="twitter:image" content="{{ asset(setting('logo')) }}">
+
+        <title>{{ __($__env->yieldContent('title')) ? __($__env->yieldContent('title')) . ' | ' : '' }}{{ app_name() }}</title>
 
         <!-- Fonts -->
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap">

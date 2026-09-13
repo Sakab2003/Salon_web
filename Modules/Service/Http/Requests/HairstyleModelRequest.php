@@ -15,8 +15,7 @@ class HairstyleModelRequest extends FormRequest
     {
         $rules = [
             'name' => 'required|string|max:255',
-            'service_id' => 'required|exists:services,id',
-            'commission_id' => 'required|exists:commissions,id',
+            'target_audience' => 'required|in:Homme,Femme,Onglerie',
             'status' => 'required|in:0,1',
             'remove_image_ids' => 'nullable|array',
             'remove_image_ids.*' => 'integer',

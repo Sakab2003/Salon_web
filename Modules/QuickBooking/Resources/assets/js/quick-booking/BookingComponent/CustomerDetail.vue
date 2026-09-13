@@ -26,20 +26,20 @@
 
 
     <!-- Genre -->
-    <div class="form-group col-md-12">
-      <label for="" class="w-100 font-weight-bold mb-2">Genre / Sexe</label>
+    <div class="form-group col-md-12 mt-4">
+      <label for="" class="w-100 font-weight-bold mb-3 text-muted">Genre / Sexe</label>
       <div class="d-flex align-items-center gap-3">
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="gender" v-model="gender" id="male" value="male" />
-          <label class="form-check-label" for="male"> Homme </label>
+        <div class="iq-time-slot">
+          <input type="radio" name="gender" v-model="gender" id="male" value="male" class="btn-check" />
+          <label class="btn d-block py-2 px-4 rounded-pill" for="male"><i class="fa-solid fa-mars me-2"></i>Homme</label>
         </div>
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="gender" v-model="gender" id="female" value="female" />
-          <label class="form-check-label" for="female"> Femme </label>
+        <div class="iq-time-slot">
+          <input type="radio" name="gender" v-model="gender" id="female" value="female" class="btn-check" />
+          <label class="btn d-block py-2 px-4 rounded-pill" for="female"><i class="fa-solid fa-venus me-2"></i>Femme</label>
         </div>
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="gender" v-model="gender" id="intersex" value="intersex" />
-          <label class="form-check-label" for="intersex"> Autre </label>
+        <div class="iq-time-slot">
+          <input type="radio" name="gender" v-model="gender" id="intersex" value="intersex" class="btn-check" />
+          <label class="btn d-block py-2 px-4 rounded-pill" for="intersex"><i class="fa-solid fa-genderless me-2"></i>Autre</label>
         </div>
       </div>
     </div>

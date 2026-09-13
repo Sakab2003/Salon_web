@@ -25,12 +25,13 @@
     }
 }
 .tab-content {
-    background-color: custom-var('primary-light');
+    background: rgba(255, 255, 255, 0.85);
     padding: 2em;
     max-height: calc(100vh - 5.5rem);
-    border-bottom-left-radius: $border-radius;
-    border-bottom-right-radius: $border-radius;
+    border-radius: 15px;
     height: 100%;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.02);
+    border: 1px solid rgba(255,255,255,0.6);
     .iq-tab-pannel {
         display: none;
         height: 100%;
@@ -51,66 +52,64 @@
 }
 
 .widget-tabs {
+    background: transparent !important;
+    padding: 1rem 0;
     max-height: calc(100vh - 5.5rem);
     overflow-y: auto;
     overflow-x: hidden;
+    
     .tab-list {
         display: flex;
         flex-direction: column;
-        gap: 1.5rem;
-        padding-left: 3.5rem;
+        gap: 1rem;
+        padding: 0;
+        margin: 0;
     }
+    
     .tab-item {
         list-style: none;
         position: relative;
-        transition: opacity 400ms ease-in-out;
-        &:not(.active){
-            opacity: .8;
-            transition: opacity 400ms ease-in-out;
-        }
+        padding: 1.25rem 1.5rem;
+        background: rgba(255, 255, 255, 0.4);
+        border-radius: 15px;
+        transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid rgba(255, 255, 255, 0.3);
         cursor: pointer;
-        &::before{
-            content: '';
-            position: absolute;
-            top: 10px;
-            left: -48px;
-            width: 10px;
-            height: 10px;
-            border: 1px solid ;
-            padding: 8px;
-            border-color: custom-var('white');
-            background-color: custom-var('primary');
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-6 -6 12 12'%3e%3ccircle r='2' fill='%23fff'/%3e%3c/svg%3e");
-            border-radius: 50%;
-            transition: background-color 400ms ease-in-out;
+        
+        .tab-link {
+            text-decoration: none;
+            color: #4a5568;
+            display: block;
+            
+            h5 {
+                margin: 0;
+                font-weight: 700;
+                font-size: 1.1rem;
+                color: #2d3748;
+            }
+            
+            p {
+                margin: 0.5rem 0 0 0;
+                font-size: 0.85rem;
+                opacity: 0.8;
+            }
         }
-        &:not(:last-child):after {
-            content: '';
-            position: absolute;
-            top: 40px;
-            left: -40px;
-            width: 1px;
-            height: calc(100% - 25px);
-            background-color: custom-var('white');
+        
+        &:hover {
+            background: rgba(255, 255, 255, 0.7);
+            transform: translateX(5px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
         }
+        
         &.active {
-            &::before{
-                transition: background-color 400ms ease-in-out;
-                background-color: custom-var('white');
-                background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-6 -6 12 12'%3e%3ccircle r='2' fill='%237093E5'/%3e%3c/svg%3e");
+            background: #ffffff;
+            border-left: 5px solid var(--bs-primary);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+            transform: translateX(10px);
+            
+            .tab-link h5 {
+                color: var(--bs-primary);
             }
-        }
-        &:not(.active)[data-check="true"]{
-            opacity: 1;
-            &::before{
-                transition: background-color 400ms ease-in-out;
-                background-color: custom-var('success');
-                background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M6 10l3 3l6-6'/%3e%3c/svg%3e");
-            }
-        }
-        .tab-link, .tab-link h6, .tab-link h5 {
-            transition: opacity .2s ease-in-out;
-            color: custom-var('white');
         }
     }
 }

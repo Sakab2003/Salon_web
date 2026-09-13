@@ -12,15 +12,8 @@
                             <select name="action_type" class="form-control select2 col-12" id="quick-action-type"
                                 style="width:100%">
                                 <option value="">{{ __('messages.no_action') }}</option>
-                                <option value="change-is_featured">{{ __('product.lbl_featured') }}</option>
                                 <option value="change-status">{{ __('messages.status') }}</option>
                                 <option value="delete">{{ __('messages.delete') }}</option>
-                            </select>
-                        </div>
-                        <div class="select-is_featured d-none quick-action-field" id="change-is_featured-action">
-                            <select name="is_featured" class="form-control select2" id="is_featured" style="width:100%">
-                                <option value="1" selected>{{ __('messages.yes') }}</option>
-                                <option value="0">{{ __('messages.no') }}</option>
                             </select>
                         </div>
                         <div class="select-status d-none quick-action-field" id="change-status-action">
@@ -77,15 +70,7 @@
 
           <div class="form-group datatable-filter">
 
-             <div class="form-group datatable-filter">
-              <label class="form-label" for="column_brand">{{ __('product.brand') }}</label>
-              <select name="column_brand" id="column_brand" class="form-control select2" data-filter="select">
-                  <option value="">All Brands</option>
-                  @foreach ($brands as $brand)
-                      <option value="{{ $brand->id }}">{{ $brand->name }}</option>
-                  @endforeach
-              </select>
-            </div>
+
 
             <label class="form-label" for="column_category">{{ __('service.lbl_category') }}</label>
             <select name="column_category" id="column_category" class="form-control select2" data-filter="select">
@@ -141,11 +126,7 @@
                 name: 'name',
                 title: "{{ __('product.name') }}"
             },
-            {
-                data: 'brand',
-                name: 'brand',
-                title: "{{ __('product.brand') }}"
-            },
+
             {
                 data: 'categories',
                 name: 'categories',
@@ -164,14 +145,7 @@
                 title: "{{ __('product.quantity') }}",
                  width: '7%',
             },
-            {
-                data: 'is_featured',
-                name: 'is_featured',
-                orderable: true,
-                searchable: true,
-                title: "{{ __('product.lbl_featured') }}",
-                width: '5%'
-            },
+
             {
                 data: 'status',
                 name: 'status',
@@ -212,53 +186,15 @@
                 orderColumn: [[ 0, "desc" ]],
                 advanceFilter: () => {
                     return {
-                          brand_id: $('#column_brand').val(),
                           category_id: $('#column_category').val(),
                     }
                 }
             });
 
-               // Event listener for category selection change
-            $('#column_brand').on('change', function() {
-                var selectedBrandId = $(this).val();
-                filtercategories(selectedBrandId);
-            });
-
-            // Function to filter subcategories based on the selected category
-            function filtercategories(selectedBrandId) {
-                var $categorySelect = $('#column_category');
-                $categorySelect.empty();
-
-                // Add the default option
-                $categorySelect.append('<option value="">All Categories</option>');
-
-                if (selectedBrandId) {
-                    var filtercategories = @json($categories);
-                    filtercategories = filtercategories.filter(function(category) {
-                        return category.brand_id == selectedBrandId;
-                    });
-
-                    filtercategories.forEach(function(category) {
-                        $categorySelect.append('<option value="' + category.id + '">' + category
-                            .name + '</option>');
-                    });
-                } else {
-                    @foreach ($categories as $category)
-                        $categorySelect.append(
-                            '<option value="{{ $category->id }}">{{ $category->name }}</option>');
-                    @endforeach
-                }
-            }
-
             $('#reset-filter').on('click', function(e) {
-                $('#column_brand').val('');
                 $('#column_category').val('');
-                filtercategories('');
                 window.renderedDataTable.ajax.reload(null, false);
             });
-
-
-            filtercategories($('#column_category').val());
 
         })
 

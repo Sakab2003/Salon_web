@@ -745,7 +745,7 @@
         validateBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Validation en cours...';
 
         $.ajax({
-            url: '{{ route("backend.orders.store_pos") }}',
+            url: '{{ route("backend.orders.pos_store") }}',
             type: 'POST',
             data: payload,
             success: function(response) {

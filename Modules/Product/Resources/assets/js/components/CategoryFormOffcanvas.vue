@@ -20,10 +20,7 @@
               <label for="category" class="form-label">{{$t('category.lbl_parent_category')}}</label>
               <Multiselect v-bind="singleSelectOption" v-model="parent_id" :value="parent_id" :options="categories"></Multiselect>
             </div>
-            <div class="form-group">
-              <label for="brand" class="form-label">{{$t('category.lbl_parent_brand')}}</label>
-              <Multiselect v-bind="multipleSelectOption" v-model="brand_id" :value="brand_id" :options="brands"></Multiselect>
-            </div>
+
             <div v-for="field in customefield" :key="field.id">
               <FormElement v-model="custom_fields_data" :name="field.name" :label="field.label" :type="field.type" :required="field.required" :options="field.value"  :field_id="field.id"  ></FormElement>
             </div>

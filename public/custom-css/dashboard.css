@@ -370,6 +370,10 @@ aside#sidebar {
   overflow-x: hidden !important;
 }
 
+.scrollbar-track-x, .os-scrollbar-horizontal {
+  display: none !important;
+}
+
 .sidebar-list .iq-main-menu li a {
   border-radius: 12px;
   margin: 0 10px;

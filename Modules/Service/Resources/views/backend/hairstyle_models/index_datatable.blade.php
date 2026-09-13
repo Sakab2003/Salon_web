@@ -33,16 +33,7 @@
                 </div>
 
                 <x-slot name="toolbar">
-                    <div class="datatable-filter">
-                        <select name="column_service" id="column_service" class="select2 form-control" data-filter="select" style="width: 100%">
-                            <option value="">Tous les services</option>
-                            @foreach ($services as $service)
-                                <option value="{{ $service->id }}" {{ isset($filter['service_id']) && $filter['service_id'] == $service->id ? 'selected' : '' }}>
-                                    {{ $service->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
+                    <input type="hidden" id="column_target_audience" value="">
 
                     <div class="datatable-filter">
                         <select name="column_status" id="column_status" class="select2 form-control" data-filter="select" style="width: 100%">
@@ -65,6 +56,21 @@
                 </x-slot>
             </x-backend.section-header>
 
+            <ul class="nav nav-tabs border-bottom mb-3" id="target-audience-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-bold px-4 tab-audience" data-target="" id="tab-tous" data-bs-toggle="tab" type="button" role="tab" aria-selected="true">Tous les modèles</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-bold px-4 tab-audience" data-target="Homme" id="tab-homme" data-bs-toggle="tab" type="button" role="tab" aria-selected="false">Homme</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-bold px-4 tab-audience" data-target="Femme" id="tab-femme" data-bs-toggle="tab" type="button" role="tab" aria-selected="false">Femme</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-bold px-4 tab-audience" data-target="Onglerie" id="tab-onglerie" data-bs-toggle="tab" type="button" role="tab" aria-selected="false">Onglerie</button>
+                </li>
+            </ul>
+
             <table id="datatable" class="table table-striped border table-responsive">
             </table>
         </div>
@@ -73,66 +79,82 @@
     <!-- Modal Créer / Modifier Modèle -->
     <div class="modal fade" id="hairstyle-model-modal" tabindex="-1" aria-labelledby="hairstyleModelModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold" id="hairstyleModelModalLabel">Créer un modèle de service</h5>
+            <div class="modal-content border-0 overflow-hidden shadow-lg" style="border-radius: 20px;">
+                <div class="modal-header border-0 bg-primary bg-opacity-10 px-4 py-4 d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 50px; height: 50px;">
+                            <i class="fa-solid fa-cloud-arrow-up fa-lg"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title fw-bold text-dark mb-0" id="hairstyleModelModalLabel">Ajouter des images</h5>
+                            <small class="text-muted">Téléversez les images pour votre portfolio</small>
+                        </div>
+                    </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="hairstyle-model-form" method="POST" enctype="multipart/form-data">
                     @csrf
                     <input type="hidden" id="form-method" value="POST">
                     <input type="hidden" name="id" id="model-id">
+                    <input type="hidden" name="name" id="name" value="Nouveau modèle">
                     <div id="removed-image-ids-container"></div>
-                    <div class="modal-body">
-                        <div class="row">
-                            <div class="col-md-6 form-group mb-3">
-                                <label for="service_id" class="form-label fw-semibold">Service <span class="text-danger">*</span></label>
-                                <select class="form-select" id="service_id" name="service_id" required>
-                                    <option value="">Sélectionner un service...</option>
-                                    @foreach ($services as $service)
-                                        <option value="{{ $service->id }}">{{ $service->name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            <div class="col-md-6 form-group mb-3">
-                                <label for="status_select" class="form-label fw-semibold">Statut <span class="text-danger">*</span></label>
-                                <select class="form-select" id="status_select" name="status" required>
-                                    <option value="1" selected>Public</option>
-                                    <option value="0">Privé</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="form-group mb-3">
-                            <label for="name" class="form-label fw-semibold">Nom du modèle <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="name" name="name" required placeholder="Ex: Afro Taper, Dégradé Américain, Twist Vanille, Locks Crochet...">
-                        </div>
-
-                        <div class="form-group mb-3">
-                            <label for="description" class="form-label fw-semibold">Description / Détails du modèle</label>
-                            <textarea class="form-control" id="description" name="description" rows="3" placeholder="Description courte, conseils de style ou d'entretien..."></textarea>
-                        </div>
-
-                        <div class="form-group mb-3">
-                            <label for="feature_image" class="form-label fw-semibold">
-                                Choisir des images du modèle <span class="text-danger req-img-asterisk">*</span>
-                                <small class="text-primary fw-normal ms-1">(Maintenez Ctrl pour sélectionner plusieurs images à la fois)</small>
-                            </label>
-                            <input type="file" class="form-control" id="feature_image" name="feature_image[]" accept="image/*" multiple>
-                            
-                            <div id="image-preview" class="mt-3 d-none">
-                                <div class="d-flex align-items-center justify-content-between mb-2">
-                                    <span id="preview-count" class="form-text fw-bold text-primary m-0"></span>
-                                    <small class="text-muted"><i class="fa-solid fa-circle-info me-1"></i>Cliquez sur <strong>&times;</strong> sur une image pour la supprimer</small>
+                    
+                    <div class="modal-body p-4">
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-dark mb-3">Pour qui est ce modèle ? <span class="text-danger">*</span></label>
+                            <div class="d-flex gap-3">
+                                @foreach ($target_audiences as $target)
+                                <div class="flex-fill">
+                                    <input type="radio" class="btn-check target-radio" name="target_audience" id="target_{{ $target }}" value="{{ $target }}" required autocomplete="off">
+                                    <label class="btn btn-outline-primary w-100 py-3 rounded-4 d-flex flex-column align-items-center justify-content-center gap-2" for="target_{{ $target }}">
+                                        @if($target == 'Homme') <i class="fa-solid fa-person fa-2x"></i>
+                                        @elseif($target == 'Femme') <i class="fa-solid fa-person-dress fa-2x"></i>
+                                        @else <i class="fa-solid fa-hand-sparkles fa-2x"></i>
+                                        @endif
+                                        <span class="fw-semibold">{{ $target }}</span>
+                                    </label>
                                 </div>
-                                <div id="preview-images" class="d-flex flex-wrap gap-3 p-3 rounded border bg-light align-items-center"></div>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-dark mb-2">Visibilité <span class="text-danger">*</span></label>
+                            <div class="form-check form-switch form-switch-lg d-flex align-items-center gap-2 p-0">
+                                <input type="hidden" name="status" value="0">
+                                <input class="form-check-input m-0" type="checkbox" role="switch" id="status_switch" name="status" value="1" checked style="width: 3rem; height: 1.5rem;">
+                                <label class="form-check-label fw-semibold ms-2" for="status_switch">Rendre ce modèle public (visible par les clients)</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-0">
+                            <label class="form-label fw-bold text-dark mb-3">
+                                Images du modèle <span class="text-danger req-img-asterisk">*</span>
+                            </label>
+                            
+                            <div class="upload-drop-zone rounded-4 border border-2 border-dashed border-primary bg-primary bg-opacity-10 p-5 text-center transition-all hover-scale" style="cursor: pointer; position: relative;">
+                                <input type="file" class="form-control position-absolute top-0 start-0 w-100 h-100 opacity-0" id="feature_image" name="feature_image[]" accept="image/*" multiple style="cursor: pointer; z-index: 10;">
+                                <div class="text-primary mb-3">
+                                    <i class="fa-solid fa-images fa-3x"></i>
+                                </div>
+                                <h5 class="fw-bold mb-1">Cliquez ou glissez-déposez</h5>
+                                <p class="text-muted mb-0 small">Formats acceptés : JPG, PNG, WEBP (Max: 10MB)</p>
+                            </div>
+
+                            <div id="image-preview" class="mt-4 d-none bg-light rounded-4 p-3 border">
+                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                    <span id="preview-count" class="badge bg-primary px-3 py-2 rounded-pill shadow-sm"></span>
+                                    <small class="text-muted"><i class="fa-solid fa-circle-info me-1"></i>Cliquez sur &times; pour retirer une image</small>
+                                </div>
+                                <div id="preview-images" class="d-flex flex-wrap gap-2 align-items-center"></div>
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                        <button type="submit" class="btn btn-primary" id="btn-save-model">Enregistrer</button>
+                    <div class="modal-footer border-0 px-4 pb-4 pt-0 d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-light rounded-pill px-4 fw-semibold" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary rounded-pill px-5 fw-bold shadow-sm" id="btn-save-model">
+                            <i class="fa-solid fa-check me-2"></i> Enregistrer
+                        </button>
                     </div>
                 </form>
             </div>
@@ -161,7 +183,7 @@
                 <div class="modal-body p-4">
                     <!-- Description optional -->
                     <div id="fg-description-box" class="p-3 mb-3 rounded-3 d-none" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08);">
-                        <small class="text-white-50 d-block mb-1 font-weight-bold">Details du modèle :</small>
+                        <small class="text-white-50 d-block mb-1 font-weight-bold">Cible :</small>
                         <p class="text-light mb-0 small" id="fg-description"></p>
                     </div>
 
@@ -336,26 +358,8 @@
                     orderable: false,
                     width: '5%'
                 },
-                {
-                    data: 'service',
-                    name: 'service.name',
-                    title: 'Service'
-                },
-                {
-                    data: 'name',
-                    name: 'name',
-                    title: 'Nom du modèle'
-                },
-                {
-                    data: 'created_at',
-                    name: 'created_at',
-                    title: 'Créé le'
-                },
-                {
-                    data: 'updated_at',
-                    name: 'updated_at',
-                    title: 'Mise à jour le'
-                },
+
+
                 {
                     data: 'status',
                     name: 'status',
@@ -379,14 +383,21 @@
                 finalColumns: columns,
                 advanceFilter: () => {
                     return {
-                        service_id: $('#column_service').val(),
+                        target_audience: $('#column_target_audience').val(),
                         column_status: $('#column_status').val(),
                         category_id: '{{ $filter['category_id'] ?? '' }}',
+                        
                     }
                 }
             });
 
-            $('#column_service, #column_status').on('change', function() {
+            $('.tab-audience').on('click', function() {
+                const target = $(this).data('target');
+                $('#column_target_audience').val(target);
+                window.renderedDataTable.ajax.reload(null, false);
+            });
+
+            $('#column_status').on('change', function() {
                 window.renderedDataTable.ajax.reload(null, false);
             });
 
@@ -449,14 +460,14 @@
             }
 
             function resetHairstyleModelForm() {
-                $('#hairstyleModelModalLabel').text('Créer un {{ strtolower($module_title) }}');
+                $('#hairstyleModelModalLabel').text('Ajouter des images');
                 $('#hairstyle-model-form')[0].reset();
                 $('#form-method').val('POST');
                 $('#model-id').val('');
-                $('#service_id').val('');
-                $('#commission_id').val('');
-                $('#status_select').val('1');
-                $('#description').val('');
+                $('#name').val('Nouveau modèle');
+                
+                $('.target-radio').prop('checked', false);
+                $('#status_switch').prop('checked', true);
                 selectedNewFiles = [];
                 existingMediaItems = [];
                 removedMediaIds = [];
@@ -497,10 +508,33 @@
             });
 
             // Edit Modal Populate
-            $(document).on('click', '[data-crud-id]', function() {
-                const id = $(this).data('crud-id');
+            $(document).on('click', '[data-crud-id], .btn-edit', function() {
                 resetHairstyleModelForm();
-                $('#hairstyleModelModalLabel').text('Modifier le modèle de commission');
+                
+                const id = $(this).data('id') || $(this).data('crud-id');
+                const name = $(this).data('name');
+                const target_audience = $(this).data('target_audience');
+                const status = $(this).data('status');
+                
+                $('#hairstyleModelModalLabel').text('Modifier ce modèle');
+                $('#form-method').val('PUT');
+                $('#model-id').val(id);
+                if (name) {
+                    $('#name').val(name);
+                }
+                
+                if (target_audience) {
+                    $('#target_' + target_audience).prop('checked', true);
+                }
+                
+                if (status !== undefined) {
+                    if (status == 1 || status == '1') {
+                        $('#status_switch').prop('checked', true);
+                    } else {
+                        $('#status_switch').prop('checked', false);
+                    }
+                }
+
                 $('.req-img-asterisk').hide();
                 
                 $.ajax({
@@ -511,10 +545,8 @@
                             const data = res.data;
                             $('#model-id').val(data.id);
                             $('#name').val(data.name);
-                            $('#service_id').val(data.service_id);
-                            $('#commission_id').val(data.commission_id || '');
+                            $('#target_audience').val(data.target_audience);
                             $('#status_select').val(data.status);
-                            $('#description').val(data.description || '');
                             $('#form-method').val('PUT');
 
                             if (data.feature_image_items && data.feature_image_items.length > 0) {

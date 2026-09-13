@@ -1,6 +1,7 @@
 <template>
   <div class="booking-wizard">
     <div class="container-fluid p-3">
+      <h2 class="fw-bold mb-4 text-center">Réservations</h2>
       <!-- BANDEAU SUPÉRIEUR VISIBLE : ÉVALUER NOS PRESTATIONS -->
       <div class="d-flex align-items-center justify-content-between p-3 mb-3 bg-white rounded-4 shadow-sm border">
         <div class="d-flex align-items-center gap-2">
@@ -16,39 +17,42 @@
         </button>
       </div>
 
-      <div class="widget-layout">
-        <div class="non-printable">
-          <div class="iq-card iq-card-sm bg-primary widget-tabs">
-            <ul class="tab-list">
-              <template v-for="(item, index) in setupArray" :key="`items-${index}`">
-                <li
-                  :class="`${activeCheck(item.id)}  tab-item`"
-                  :data-check="`${doneCheck(item.id)}`"
-                  v-if="item.is_vissible"
-                >
-                  <a class="tab-link" :href="`#${item.type}`" :id="`${item.type}-tab`">
-                    <h5>{{ item.title }}</h5>
-                    <p v-if="item.detail">{{ item.detail }}</p>
-                  </a>
-                </li>
-              </template>
-
-              <!-- Bouton Évaluer nos prestations dans la barre latérale -->
-              <li class="tab-item mt-3 pt-3 border-top px-3">
-                <button type="button" class="btn btn-warning text-dark fw-bold w-100 rounded-pill py-2 shadow-sm d-flex align-items-center justify-content-center gap-2" @click="showReviewModal = true">
-                  <i class="fa-solid fa-star text-dark"></i> Évaluer nos prestations
-                </button>
+      <div class="booking-container mx-auto">
+        <!-- STEPPER HORIZONTAL / COMPACT -->
+        <div class="stepper-wrapper mb-5 non-printable">
+          <ul class="stepper-list d-flex justify-content-between align-items-center m-0 p-0">
+            <template v-for="(item, index) in setupArray" :key="`items-${index}`">
+              <li 
+                v-if="item.is_vissible"
+                :class="['stepper-item', activeCheck(item.id), doneCheck(item.id) ? 'completed' : '']"
+                @click="doneCheck(item.id) || activeCheck(item.id) ? nextTabChange(item.id) : null"
+              >
+                <div class="stepper-icon-wrapper">
+                  <div class="stepper-icon">
+                    <i class="fa-solid fa-check" v-if="doneCheck(item.id)"></i>
+                    <span v-else>{{ index + 1 }}</span>
+                  </div>
+                </div>
+                <div class="stepper-text d-none d-md-block">
+                  <h6 class="mb-0 fw-bold">{{ item.title }}</h6>
+                </div>
               </li>
-            </ul>
-          </div>
+            </template>
+          </ul>
         </div>
-        <div class="widget-pannel">
-          <div id="wizard-tab" class="iq-card iq-card-sm tab-content">
+
+        <!-- ZONE DE CONTENU CENTRAL -->
+        <div class="booking-content-area shadow-lg rounded-4 bg-white p-4 p-md-5">
+          <div id="wizard-tab" class="tab-content">
             <template v-for="(item, index) in setupArray" :key="`panel-${index}`">
               <div
                 :id="item.type"
                 :class="`iq-fade iq-tab-pannel ${activeCheck(item.id)}`"
               >
+                <div class="mb-4 text-center">
+                  <h3 class="fw-bold text-dark">{{ item.title }}</h3>
+                  <p class="text-muted" v-if="item.detail">{{ item.detail }}</p>
+                </div>
                 <TabPanel
                   :type="item.type"
                   :title="item.title"
