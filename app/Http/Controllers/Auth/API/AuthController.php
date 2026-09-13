@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Auth\API;
 
 use App\Http\Controllers\Auth\Trait\AuthTrait;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\ApiLoginRequest;
 use App\Http\Resources\LoginResource;
 use App\Http\Resources\RegisterResource;
 use App\Http\Resources\SocialLoginResource;
@@ -118,7 +118,7 @@ class AuthController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function login(LoginRequest $request)
+    public function login(ApiLoginRequest $request)
     {
         // Supporter login par email OU numéro de téléphone (champ 'email' ou 'contact_number' selon le client)
         $rawField = request('email') ?: request('contact_number') ?: '';
