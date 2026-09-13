@@ -3,6 +3,7 @@
 namespace Modules\Service\Models;
 
 use App\Models\BaseModel;
+use App\Models\Branch;
 use App\Models\Traits\HasSlug;
 use App\Trait\CustomFieldsTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;

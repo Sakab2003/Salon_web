@@ -204,7 +204,7 @@ class ServicesController extends Controller
     {
         $module_name = $this->module_name;
         $query = Service::query()
-            ->with(['category', 'sub_category'])
+            ->with(['category', 'sub_category', 'branchies'])
             ->withCount(['branches', 'employee']);
 
         if (auth()->check() && auth()->user()->hasRole('manager')) {
@@ -296,16 +296,26 @@ class ServicesController extends Controller
             })
 
             ->orderColumns(['id'], '-:column $1');
-        if (! request()->is_single_branch) {
-            $datatable->editColumn('branches_count', function ($data) {
-                return "<b>$data->branches_count</b>  <button type='button' data-assign-module='".$data->id."' data-assign-target='#service-branch-assign-form' data-assign-event='branch_assign' class='btn btn-primary btn-sm rounded text-nowrap ' data-bs-toggle='tooltip' title=". __('branch.assign_branch_to_service')."><i class='fa-solid fa-plus p-0'></i></button>";
+
+
+        // Colonne Salon pour admin
+        if (auth()->check() && auth()->user()->hasRole('admin')) {
+            $datatable->addColumn('branch_name', function ($data) {
+                // branchies() = belongsToMany Branch avec name
+                $names = $data->branchies->pluck('name')->filter()->unique();
+                if ($names->isEmpty()) {
+                    return '<span class="text-muted">—</span>';
+                }
+                return $names->map(function($n) {
+                    return '<span class="badge bg-soft-primary text-primary me-1">' . e($n) . '</span>';
+                })->implode(' ');
             });
         }
 
         // Custom Fields For export
         $customFieldColumns = CustomField::customFieldData($datatable, Service::CUSTOM_FIELD_MODEL, null);
 
-        return $datatable->rawColumns(array_merge(['action', 'image', 'status', 'check', 'branches_count', 'employee_count'], $customFieldColumns))
+        return $datatable->rawColumns(array_merge(['action', 'image', 'status', 'check', 'employee_count', 'branch_name'], $customFieldColumns))
             ->toJson();
     }
 
@@ -379,7 +389,7 @@ class ServicesController extends Controller
             storeMediaFile($query, $request->file('feature_image'));
         }
 
-        // Assign to branches (Manager's own branch ONLY, or Admin's selected/all branches)
+        // Assign to branches
         if (auth()->check() && auth()->user()->hasRole('manager')) {
             $managerBranchId = auth()->user()->branch_id;
             if (!$managerBranchId) {
@@ -396,18 +406,12 @@ class ServicesController extends Controller
                 ]);
             }
         } else {
-            $branchIds = $request->branch_id;
-            if ($branchIds) {
-                if (!is_array($branchIds)) {
-                    $branchIds = explode(',', $branchIds);
-                }
-            } else {
-                $branchIds = \App\Models\Branch::pluck('id')->toArray();
-            }
-            foreach ($branchIds as $bId) {
+            // Admin: assigner uniquement au salon sélectionné
+            $branchId = $request->branch_id;
+            if ($branchId) {
                 ServiceBranches::firstOrCreate([
                     'service_id' => $query->id,
-                    'branch_id' => $bId,
+                    'branch_id' => $branchId,
                 ], [
                     'service_price' => $query->default_price,
                     'duration_min' => $query->duration_min,
@@ -472,6 +476,9 @@ class ServicesController extends Controller
                     return $value !== null;
                 })
                 ->toArray();
+            // Retourner le branch_id du premier salon affecté (pour pré-remplir le select admin)
+            $firstBranch = $data->branchies()->first();
+            $data['branch_id'] = $firstBranch ? $firstBranch->id : null;
         }
 
         return response()->json(['data' => $data, 'status' => true]);

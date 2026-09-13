@@ -20,6 +20,22 @@
 
 
 
+        <!-- Salon selector — admin only -->
+        <div class="form-group col-md-12 mt-2" v-if="isAdmin">
+          <label class="form-label" for="branch_id">
+            Salon <span class="text-danger">*</span>
+          </label>
+          <select class="form-control" id="branch_id" v-model="branch_id"
+            :class="{ 'is-invalid': errorMessages['branch_id'] || errors['branch_id'] }">
+            <option :value="null" disabled>— Sélectionner un salon —</option>
+            <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }}</option>
+          </select>
+          <span v-if="errorMessages['branch_id']">
+            <ul class="text-danger"><li v-for="err in errorMessages['branch_id']" :key="err">{{ err }}</li></ul>
+          </span>
+          <span class="text-danger" v-if="errors['branch_id']">{{ errors['branch_id'] }}</span>
+        </div>
+
         <div v-for="field in customefield" :key="field.id">
           <FormElement v-model="custom_fields_data" :name="field.name" :label="field.label" :type="field.type" :required="field.required" :options="field.value" :field_id="field.id"></FormElement>
         </div>
@@ -50,8 +66,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { EDIT_URL, STORE_URL, UPDATE_URL } from '../constant/service'
+import { ref, onMounted, computed } from 'vue'
+import { EDIT_URL, STORE_URL, UPDATE_URL, BRANCH_LIST } from '../constant/service'
 import { useField, useForm } from 'vee-validate'
 import InputField from '@/vue/components/form-elements/InputField.vue'
 
@@ -67,10 +83,45 @@ const props = defineProps({
   createTitle: { type: String, default: '' },
   editTitle: { type: String, default: '' },
   customefield: { type: Array, default: () => [] },
-  defaultImage: { type: String, default: 'https://dummyimage.com/600x300/cfcfcf/000000.png' }
+  defaultImage: { type: String, default: 'https://dummyimage.com/600x300/cfcfcf/000000.png' },
+  isAdmin: { type: Boolean, default: false }
 })
 const CURRENCY_SYMBOL = ref(window.defaultCurrencySymbol)
+
+// Branches list for admin
+const branches = ref([])
 const { getRequest, storeRequest, updateRequest, listingRequest } = useRequest()
+
+// Load branches for admin
+const loadBranches = () => {
+  if (props.isAdmin) {
+    // Fetch direct via URL relative (branch/index_list retourne un tableau d'objets Branch)
+    fetch('branch/index_list', {
+      headers: {
+        'Accept': 'application/json',
+        'X-CSRF-Token': document.head.querySelector('[name~=csrf-token][content]').content
+      }
+    })
+    .then(r => r.json())
+    .then(res => {
+      if (Array.isArray(res)) {
+        branches.value = res
+      } else if (res && Array.isArray(res.data)) {
+        branches.value = res.data
+      }
+    })
+    .catch(() => {
+      // Fallback: essayer listingRequest
+      listingRequest({ url: BRANCH_LIST }).then((res) => {
+        if (Array.isArray(res)) {
+          branches.value = res
+        } else if (res && Array.isArray(res.data)) {
+          branches.value = res.data
+        }
+      })
+    })
+  }
+}
 
 // Edit Form Or Create Form
 const currentId = useModuleId(() => {
@@ -119,7 +170,8 @@ const defaultData = () => {
     default_price: '',
     status: 1,
     feature_image: null,
-    custom_fields_data: {}
+    custom_fields_data: {},
+    branch_id: null
   }
 }
 
@@ -134,7 +186,8 @@ const setFormData = (data) => {
       default_price: data.default_price,
       status: data.status,
       feature_image: data.feature_image,
-      custom_fields_data: data.custom_field_data
+      custom_fields_data: data.custom_field_data,
+      branch_id: data.branch_id || null
     }
   })
 }
@@ -177,6 +230,7 @@ const { value: default_price } = useField('default_price')
 const { value: status } = useField('status')
 const { value: feature_image } = useField('feature_image')
 const { value: custom_fields_data } = useField('custom_fields_data')
+const { value: branch_id } = useField('branch_id')
 
 const errorMessages = ref({})
 
@@ -184,6 +238,7 @@ onMounted(() => {
   if (currentId.value <= 0) {
     setFormData(defaultData())
   }
+  loadBranches()
 })
 
 // Form Submit

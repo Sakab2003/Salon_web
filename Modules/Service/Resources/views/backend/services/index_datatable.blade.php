@@ -75,7 +75,8 @@
     </div>
     <div data-render="app">
         <service-form-offcanvas create-title="{{ __('messages.create') }} {{ __($module_title) }}"
-            edit-title="{{ __('messages.edit') }} {{ __($module_title) }}" :customefield="{{ json_encode($customefield) }}">
+            edit-title="{{ __('messages.edit') }} {{ __($module_title) }}" :customefield="{{ json_encode($customefield) }}"
+            :is-admin="{{ auth()->user()->hasRole('admin') ? 'true' : 'false' }}">
         </service-form-offcanvas>
         <assign-employee-form-offcanvas></assign-employee-form-offcanvas>
         <assign-branch-form-offcanvas></assign-branch-form-offcanvas>
@@ -129,19 +130,17 @@
                 title: "{{ __('service.lbl_duration') }}"
             },
 
-
-            @if (!$is_single_branch)
-                {
-                    data: 'branches_count',
-                    name: 'branches_count',
-                    title: "{{ __('service.lbl_branches') }}",
-                    orderable: true,
-                    searchable: false,
-                },
-            @endif
             @if(auth()->user()->hasRole('admin'))
-            { data: 'employee_count', name: 'employee_count',  title: "{{ __('service.lbl_staffs') }}", orderable: true, searchable: false,  },
+            {
+                data: 'branch_name',
+                name: 'branch_name',
+                title: "Salon",
+                orderable: false,
+                searchable: false,
+            },
+            { data: 'employee_count', name: 'employee_count', title: "{{ __('service.lbl_staffs') }}", orderable: true, searchable: false },
             @endif
+
             {
                 data: 'status',
                 name: 'status',
@@ -179,26 +178,6 @@
             ...actionColumn
         ]
 
-        // document.addEventListener('DOMContentLoaded', (event) => {
-        //     initDatatable({
-        //         url: '{{ route("backend.$module_name.index_data") }}',
-        //         finalColumns,
-        //         advanceFilter: () => {
-        //             return {
-        //               category_id: $('#column_category').val(), // Add category filter value
-        //               sub_category_id: $('#column_subcategory').val(), // Add subcategory filter value
-        //             }
-        //         }
-        //     })
-
-        // })
-
-        // $('#reset-filter').on('click', function(e) {
-        //   $('#column_category').val('')
-        //   $('#column_subcategory').val('')
-        //   window.renderedDataTable.ajax.reload(null, false)
-        // })
-
         document.addEventListener('DOMContentLoaded', (event) => {
             initDatatable({
                 url: '{{ route("backend.$module_name.index_data") }}',
@@ -206,24 +185,20 @@
                 orderColumn: [[ 0, "desc" ]],
                 advanceFilter: () => {
                     return {
-                        category_id: $('#column_category').val(), // Add category filter value
-                        sub_category_id: $('#column_subcategory').val(), // Add subcategory filter value
+                        category_id: $('#column_category').val(),
+                        sub_category_id: $('#column_subcategory').val(),
                     }
                 }
             });
 
-            // Event listener for category selection change
             $('#column_category').on('change', function() {
                 var selectedCategoryId = $(this).val();
                 filterSubcategories(selectedCategoryId);
             });
 
-            // Function to filter subcategories based on the selected category
             function filterSubcategories(selectedCategoryId) {
                 var $subcategorySelect = $('#column_subcategory');
                 $subcategorySelect.empty();
-
-                // Add the default option
                 $subcategorySelect.append('<option value="">All Sub-Categories</option>');
 
                 if (selectedCategoryId) {
@@ -231,15 +206,12 @@
                     filteredSubcategories = filteredSubcategories.filter(function(subcategory) {
                         return subcategory.parent_id == selectedCategoryId;
                     });
-
                     filteredSubcategories.forEach(function(subcategory) {
-                        $subcategorySelect.append('<option value="' + subcategory.id + '">' + subcategory
-                            .name + '</option>');
+                        $subcategorySelect.append('<option value="' + subcategory.id + '">' + subcategory.name + '</option>');
                     });
                 } else {
                     @foreach ($subcategories as $subcategory)
-                        $subcategorySelect.append(
-                            '<option value="{{ $subcategory->id }}">{{ $subcategory->name }}</option>');
+                        $subcategorySelect.append('<option value="{{ $subcategory->id }}">{{ $subcategory->name }}</option>');
                     @endforeach
                 }
             }
@@ -251,7 +223,6 @@
                 window.renderedDataTable.ajax.reload(null, false);
             });
 
-            // Initialize subcategory options based on the initial selected category
             filterSubcategories($('#column_category').val());
         });
 
