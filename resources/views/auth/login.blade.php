@@ -8,6 +8,8 @@
       <a href="/">
         <x-application-logo />
       </a>
+      <h2 class="mt-4 mb-2">Bienvenue</h2>
+      <p class="text-gray-600 mb-0">Veuillez vous connecter à votre compte</p>
     </x-slot>
 
     <!-- Session Status -->
@@ -23,80 +25,83 @@
       @csrf
 
       <!-- Email Address -->
-      <div>
-        <x-label for="email" :value="__('Email')" />
-
-        <x-input id="email" type="email" name="email" :value="old('email')" required autofocus />
+      <div class="mb-4">
+        <x-label for="email" :value="__('Adresse Email')" class="mb-2 fw-semibold" />
+        <div class="position-relative">
+          <span class="position-absolute top-50 translate-middle-y ms-3 opacity-50" style="left: 0; z-index: 10;">
+            <i class="fas fa-envelope"></i>
+          </span>
+          <x-input id="email" type="email" name="email" :value="old('email')" required autofocus placeholder="exemple@salon.com" class="ps-5" style="padding-left: 2.5rem !important;" />
+        </div>
       </div>
 
       <!-- Password -->
-      <div class="mt-4">
-        <x-label for="password" :value="__('Mot de passe')" />
-
-        <x-input id="password" type="password" name="password" required autocomplete="current-password" />
+      <div class="mb-4">
+        <x-label for="password" :value="__('Mot de passe')" class="mb-2 fw-semibold" />
+        <div class="position-relative">
+          <span class="position-absolute top-50 translate-middle-y ms-3 opacity-50" style="left: 0; z-index: 10;">
+            <i class="fas fa-lock"></i>
+          </span>
+          <x-input id="password" type="password" name="password" required autocomplete="current-password" placeholder="••••••••" class="ps-5" style="padding-left: 2.5rem !important;" />
+        </div>
       </div>
 
       <!-- Remember Me -->
-      <div class="mt-4">
-        <label for="remember_me" class="d-inline-flex">
+      <div class="mb-4 d-flex align-items-center">
+        <div class="form-check">
           <input id="remember_me" type="checkbox" class="form-check-input" name="remember">
-          <span class="ms-2">{{ __('Se souvenir de moi') }}</span>
-        </label>
+          <label for="remember_me" class="form-check-label ms-2">
+            {{ __('Se souvenir de moi') }}
+          </label>
+        </div>
       </div>
 
-      <div class="d-flex align-items-center justify-content-between mt-4">
-        @if (Route::has('password.request'))
-        <a class="underline text-sm text-gray-600 hover:text-gray-900" href="{{ route('password.request') }}">
-          {{ __('Mot de passe oublié?') }}
-        </a>
-        @endif
-
-        <x-button>
+      <div class="d-grid mt-5">
+        <x-button class="w-100 py-3">
           {{ __('Connexion') }}
         </x-button>
       </div>
-
     </form>
+
     @if(env('IS_DEMO'))
-    <div>
-      <h6 class="text-center border-top py-3 mt-3">Demo Accounts</h6>
-      <div class="d-flex justify-content-between">
-        <div>
-          <p class="mb-0" id="admin_email">admin@salon.com</p>
-          <p id="admin_password">12345678</p>
+    <div class="mt-5 pt-4 border-top" style="border-color: rgba(0,0,0,0.1) !important;">
+      <h6 class="text-center mb-4 opacity-75">Comptes de Démo</h6>
+      <div class="row g-3">
+        <div class="col-6">
+          <div class="p-3 rounded text-center cursor-pointer demo-account-box" onclick="setLoginCredentials('admin')">
+            <p class="mb-1 fw-bold text-sm" id="admin_email">admin@salon.com</p>
+            <p class="mb-0 opacity-50 text-xs" id="admin_password">12345678</p>
+            <div class="mt-2 text-primary text-xs"><i class="fas fa-copy me-1"></i>Copier Admin</div>
+          </div>
         </div>
-        <div>
-          <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-title="Click To Copy" onclick="setLoginCredentials('admin')">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-              stroke="currentColor" width="18" height="18">
-              <path stroke-linecap="round" stroke-linejoin="round"
-                d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
-            </svg>
-          </a>
-        </div>
-      </div>
-      <div class="d-flex justify-content-between">
-        <div>
-          <p class="mb-0" id="employee_email">manager@salon.com</p>
-          <p id="employee_password">12345678</p>
-        </div>
-        <div>
-          <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-title="Click To Copy" onclick="setLoginCredentials('employee')">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-              stroke="currentColor" width="18" height="18">
-              <path stroke-linecap="round" stroke-linejoin="round"
-                d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
-            </svg>
-          </a>
+        <div class="col-6">
+          <div class="p-3 rounded text-center cursor-pointer demo-account-box" onclick="setLoginCredentials('employee')">
+            <p class="mb-1 fw-bold text-sm" id="employee_email">manager@salon.com</p>
+            <p class="mb-0 opacity-50 text-xs" id="employee_password">12345678</p>
+            <div class="mt-2 text-primary text-xs"><i class="fas fa-copy me-1"></i>Copier Manager</div>
+          </div>
         </div>
       </div>
     </div>
+    <style>
+      .demo-account-box {
+        background: rgba(0, 0, 0, 0.03);
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        transition: all 0.2s ease;
+      }
+      .demo-account-box:hover {
+        background: rgba(0, 0, 0, 0.06);
+        transform: translateY(-2px);
+      }
+      .cursor-pointer { cursor: pointer; }
+      .text-xs { font-size: 0.75rem; }
+    </style>
     @endif
 
     <x-slot name="extra">
       @if (Route::has('register'))
-      <p class="text-center text-gray-600 mt-4">
-        Do not have an account? <a href="{{ route('register') }}" class="underline hover:text-gray-900">Register</a>.
+      <p class="text-center text-gray-600 mb-0">
+        Vous n'avez pas de compte ? <a href="{{ route('register') }}" class="fw-bold">Inscrivez-vous</a>
       </p>
       @endif
     </x-slot>

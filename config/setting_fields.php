@@ -736,7 +736,7 @@ return [
                 'label' => 'From Name', // you know what label it is
                 'rules' => 'required', // validation rule of laravel
                 'class' => '', // any class for input
-                'value' => 'Frezka', // default value if you wantPassword
+                'value' => 'Salon', // default value if you wantPassword
             ],
         ],
 

@@ -318,7 +318,7 @@ class CategoryDatabaseSeeder extends Seeder
 
     private function attachFeatureImage($model, $publicPath)
     {
-        if (! env('IS_DUMMY_DATA_IMAGE')) {
+        if (!env('IS_DUMMY_DATA_IMAGE')) {
             return false;
         }
 

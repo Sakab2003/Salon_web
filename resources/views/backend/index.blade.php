@@ -99,7 +99,7 @@
   </div>
   <div class="col-xl-8">
     <div class="col-lg-12">
-      <div class="card card-block card-stretch card-height">
+      <div class="card premium-card card-block card-stretch card-height">
         <div class="card-body">
           <div id="chart-01"></div>
         </div>
@@ -112,7 +112,7 @@
       <h4 class="card-title">{{ __('dashboard.lbl_upcoming_appointment') }} </h4>
       <a href="{{ route('backend.bookings.index') }}">{{ __('messages.view_all') }}</a>
     </div>
-    <div class="card">
+    <div class="card premium-card">
 
       <div
         class="card-body py-0 upcoming-appointments {{ count($data['upcomming_appointments']) > 0 ? '' : 'iq-upcomming' }}">

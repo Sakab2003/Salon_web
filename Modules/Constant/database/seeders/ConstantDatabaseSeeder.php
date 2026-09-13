@@ -48,18 +48,13 @@ class ConstantDatabaseSeeder extends Seeder
             ],
             [
                 'type' => 'BRANCH_SERVICE_GENDER',
-                'name' => 'unisex',
-                'value' => 'Unisex',
-            ],
-            [
-                'type' => 'BRANCH_SERVICE_GENDER',
                 'name' => 'female',
-                'value' => 'Female',
+                'value' => 'Femme',
             ],
             [
                 'type' => 'BRANCH_SERVICE_GENDER',
                 'name' => 'male',
-                'value' => 'Male',
+                'value' => 'Homme',
             ],
 
             [

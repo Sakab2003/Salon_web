@@ -4,7 +4,7 @@ export const initialState = {
   "storeKey": "frekza-setting",
   "setting": {
     "app_name": {
-      "value": "Frezka"
+      "value": "Salon"
     },
     "theme_scheme_direction": {
       "value": "ltr"
@@ -78,7 +78,7 @@ export const defaultState = {
       target: '[data-setting="app_name"]',
       choices: [],
       type: "text",
-      value: "Frezka",
+      value: "Salon",
     },
     theme_scheme_direction: {
       target: "html",
