@@ -10,7 +10,6 @@
     "require": {
         "php": "^8.0.2",
         "alexusmai/laravel-file-manager": "^3.0",
-        "arcanedev/log-viewer": "^9.0",
         "dompdf/dompdf": "^2.0",
         "guzzlehttp/guzzle": "^7.4",
         "hashids/hashids": "^4.1",
@@ -119,7 +118,8 @@
         "preferred-install": "dist",
         "sort-packages": true,
         "allow-plugins": {
-            "dealerdirect/phpcodesniffer-composer-installer": true
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "wikimedia/composer-merge-plugin": true
         }
     },
     "minimum-stability": "dev",
