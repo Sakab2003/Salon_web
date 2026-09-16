@@ -16,9 +16,16 @@ class localization
     public function handle($request, Closure $next)
     {
         // Check header request and determine localizaton
-        $sessionLocal = session()->get('locale') ? session()->get('locale') : 'en';
+        $sessionLocal = session()->get('locale') ? session()->get('locale') : 'fr';
 
-        $local = ($request->hasHeader('frezka-localization')) ? $request->header('frezka-localization') : $sessionLocal;
+        // Accepter salon-localization (mobile) OU frezka-localization (web)
+        if ($request->hasHeader('salon-localization')) {
+            $local = $request->header('salon-localization');
+        } elseif ($request->hasHeader('frezka-localization')) {
+            $local = $request->header('frezka-localization');
+        } else {
+            $local = $sessionLocal;
+        }
         // set laravel localization
         app()->setLocale($local);
         // continue request

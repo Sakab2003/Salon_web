@@ -49,4 +49,14 @@ return [
         'redirect' => env('GOOGLE_REDIRECT'),
     ],
 
+
+    'pulse_kango' => [
+        'base_url'   => env('PULSE_KANGO_BASE_URL', 'https://sandbox.pulse-kango.com'),
+        'api_key'    => env('PULSE_KANGO_API_KEY'),
+        'username'   => env('PULSE_KANGO_USERNAME'),
+        'secret'     => env('PULSE_KANGO_SECRET'),
+        'notify_url' => env('PULSE_KANGO_NOTIFY_URL'),
+        'return_url' => env('PULSE_KANGO_RETURN_URL'),
+    ],
+
 ];

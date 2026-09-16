@@ -23,13 +23,23 @@ class LoginRequest extends FormRequest
 
     /**
      * Get the validation rules that apply to the request.
+     * On mobile, users log in with contact_number. On web, they use email.
      *
      * @return array
      */
     public function rules()
     {
+        // Si contact_number est fourni (connexion mobile), l'email devient optionnel
+        if ($this->has('contact_number') && ! empty($this->input('contact_number'))) {
+            return [
+                'contact_number' => ['required', 'string'],
+                'password'       => ['required', 'string'],
+            ];
+        }
+
+        // Sinon, connexion classique web par email
         return [
-            'email' => ['required', 'string', 'email'],
+            'email'    => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
         ];
     }
@@ -88,6 +98,9 @@ class LoginRequest extends FormRequest
      */
     public function throttleKey()
     {
-        return Str::lower($this->input('email')).'|'.$this->ip();
+        // Utiliser contact_number comme clé si email absent
+        $identifier = $this->input('email') ?? $this->input('contact_number') ?? 'unknown';
+
+        return Str::lower($identifier).'|'.$this->ip();
     }
 }

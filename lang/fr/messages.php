@@ -136,7 +136,7 @@ return [
     'module_added' => 'Module créé avec succès',
     'user_not_found' => 'Utilisateur non trouvé',
     'user' => 'utilisateur',
-    'register_before_login' => 'Veuillez enregistrer votre compte avant de vous connecter.',
+    'register_before_login' => 'Ce numéro n\'est pas enregistré. Créez votre compte gratuitement pour profiter de 3 jours d\'essai.',
     'permission_denied' => 'Permission refusée, vous êtes en mode démo.',
     'unauthorised' => 'Non autorisé',
     'verification_link' => 'lien-de-verification-envoye',

@@ -7,6 +7,7 @@ use App\Http\Controllers\Backend\API\DashboardController;
 use App\Http\Controllers\Backend\API\NotificationsController;
 use App\Http\Controllers\Backend\API\SettingController;
 use App\Http\Controllers\Backend\API\UserApiController;
+use App\Http\Controllers\API\PulseKangoController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -73,3 +74,18 @@ Route::get('commission-list', function() {
         'message' => 'Commission list'
     ]);
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PulseKango — Paiement Mobile Money
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Webhook public (PulseKango appelle cet endpoint sans token)
+Route::post('v1/payments/pulse-kango/webhook', [PulseKangoController::class, 'webhook'])
+    ->name('pulse-kango.webhook');
+
+// Routes authentifiées PulseKango
+Route::group(['middleware' => 'auth:sanctum', 'prefix' => 'v1/payments/pulse-kango'], function () {
+    Route::post('initiate', [PulseKangoController::class, 'initiate'])->name('pulse-kango.initiate');
+    Route::get('status/{reference}', [PulseKangoController::class, 'checkStatus'])->name('pulse-kango.status');
+});
+

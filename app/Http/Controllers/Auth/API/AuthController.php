@@ -13,174 +13,376 @@ use Auth;
 use Hash;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
     use AuthTrait;
 
-    public function register(Request $request)
-    {
-        return response()->json([
-            'status' => false,
-            'message' => 'Les comptes mobiles sont créés uniquement par un administrateur.',
-        ], 403);
-    }
+    // ─────────────────────────────────────────────────────────────────────────
+    // Helpers
+    // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * Login api
+     * Génère un email fictif valide à partir d'un numéro de téléphone.
+     * Ex : +22505531199 → u22505531199@salon.app
+     */
+    private function buildFakeEmail(string $phone): string
+    {
+        $digits = preg_replace('/[^0-9]/', '', $phone);
+        return 'u' . $digits . '@salon.app';
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Register (Mobile)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Crée un compte manager depuis l'application mobile.
+     * L'email est généré automatiquement à partir du numéro de téléphone.
+     * L'utilisateur reçoit son email en notification push après inscription.
+     */
+    public function register(Request $request)
+    {
+        $request->validate([
+            'first_name' => ['required', 'string', 'max:191'],
+            'last_name'  => ['required', 'string', 'max:191'],
+            'mobile'     => ['required', 'string', 'max:20'],
+            'password'   => ['required', 'string', 'min:6'],
+        ]);
+
+        $mobile = $request->input('mobile');
+
+        // Générer un email fictif unique basé sur le numéro de téléphone
+        $fakeEmail = $this->buildFakeEmail($mobile);
+
+        // Vérifier si le numéro est déjà utilisé
+        $existingByPhone = User::where('mobile', $mobile)->first();
+        if ($existingByPhone) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Ce numéro de téléphone est déjà associé à un compte.',
+            ], 422);
+        }
+
+        // Vérifier unicité de l'email fictif (sécurité)
+        $existingByEmail = User::where('email', $fakeEmail)->first();
+        if ($existingByEmail) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Un compte existe déjà pour ce numéro.',
+            ], 422);
+        }
+
+        $salonName = $request->input('salon_name', '');
+        $firstName = $request->input('first_name');
+        $lastName  = $request->input('last_name');
+
+        $user = User::create([
+            'first_name'   => $firstName,
+            'last_name'    => $lastName,
+            'name'         => $firstName . ' ' . $lastName,
+            'email'        => $fakeEmail,
+            'username'     => $mobile,
+            'mobile'       => $mobile,
+            'password'     => Hash::make($request->input('password')),
+            'login_type'   => 'mobile',
+            'status'       => 1,
+            'player_id'    => $request->input('player_id'),
+        ]);
+
+        // Assigner le rôle manager
+        $user->assignRole('manager');
+
+        // Démarrer la période d'essai mobile
+        $user->mobile_trial_started_at = now();
+        $user->save();
+
+        \Artisan::call('cache:clear');
+
+        // Sauvegarder le nom du salon si fourni
+        if (!empty($salonName)) {
+            // Mettre à jour la branche associée si le modèle Branch le supporte
+            try {
+                $branch = \App\Models\Branch::where('manager_id', $user->id)->first();
+                if (!$branch) {
+                    $branch = new \App\Models\Branch();
+                    $branch->manager_id = $user->id;
+                    $branch->status = 1;
+                }
+                $branch->name = $salonName;
+                $branch->contact_number = $mobile;
+                $branch->save();
+
+                // Lier la branche à l'utilisateur
+                $user->branch_id = $branch->id;
+                $user->save();
+            } catch (\Exception $e) {
+                \Log::warning('Could not create branch for new mobile user: ' . $e->getMessage());
+            }
+        }
+
+        $user['api_token'] = $user->createToken(setting('app_name', 'Salon'))->plainTextToken;
+
+        $loginResource = new LoginResource($user);
+
+        // Message informatif avec l'email généré (pour que l'utilisateur puisse se connecter sur le web)
+        $message = sprintf(
+            'Compte créé avec succès ! Votre email pour la connexion web est : %s — Conservez-le précieusement.',
+            $fakeEmail
+        );
+
+        return response()->json([
+            'status'          => true,
+            'data'            => $loginResource,
+            'message'         => $message,
+            'generated_email' => $fakeEmail,
+        ], 201);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Login (Mobile par téléphone, Web par email)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Login API
+     * - Mobile : accepte contact_number + password (email fictif généré automatiquement)
+     * - Web    : accepte email + password (comportement classique)
      *
      * @return \Illuminate\Http\Response
      */
     public function login(LoginRequest $request)
     {
-        $user = User::where('email', request('email'))->first();
-        if ($user == null) {
-            return response()->json(['status' => false, 'message' => __('messages.register_before_login')]);
-        }
-        if (Auth::attempt(['email' => request('email'), 'password' => request('password')])) {
-            $user = Auth::user();
+        $isMobileLogin = $request->has('contact_number') && ! empty($request->input('contact_number'));
 
-            if ($user->is_banned == 1 || $user->status == 0) {
-                return response()->json(['status' => false, 'message' => __('messages.login_error')]);
+        if ($isMobileLogin) {
+            // ── Connexion mobile par numéro de téléphone ──────────────────────
+            $contactNumber = $request->input('contact_number');
+            $password      = $request->input('password');
+
+            // Chercher l'utilisateur par mobile en priorité, puis par username
+            $user = User::where('mobile', $contactNumber)->first()
+                 ?? User::where('username', $contactNumber)->first();
+
+            if ($user === null) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => __('messages.register_before_login'),
+                ]);
             }
 
-            $user->player_id = $request->input('player_id'); // Store the player_id
-
-            // Save the user
-            $user->save();
-
-            if (! $user->hasAnyRole(['manager', 'employee'])) {
-                return $this->sendError(
-                    'Seuls les managers et les membres du staff peuvent utiliser l’application mobile.',
-                    ['error' => __('messages.unauthorised')],
-                    403
-                );
+            if (! Hash::check($password, $user->password)) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => __('messages.not_matched'),
+                ]);
             }
-
-            if ($user->mobile_trial_started_at === null) {
-                $user->mobile_trial_started_at = now();
-                $user->save();
-            }
-            $user['api_token'] = $user->createToken(setting('app_name'))->plainTextToken;
-
-            $loginResource = new LoginResource($user);
-            $message = __('messages.user_login');
-
-            return $this->sendResponse($loginResource, $message);
         } else {
-            return $this->sendError(__('messages.not_matched'), ['error' => __('messages.unauthorised')], 200);
+            // ── Connexion web par email ────────────────────────────────────────
+            $emailInput = $request->input('email');
+
+            $user = User::where('email', $emailInput)->first();
+
+            if ($user === null) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => __('messages.register_before_login'),
+                ]);
+            }
+
+            if (! Auth::attempt(['email' => $emailInput, 'password' => $request->input('password')])) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => __('messages.not_matched'),
+                ]);
+            }
+
+            $user = Auth::user();
         }
+
+        // ── Vérifications communes ────────────────────────────────────────────
+        if ($user->is_banned == 1 || $user->status == 0) {
+            return response()->json([
+                'status'  => false,
+                'message' => __('messages.login_error'),
+            ]);
+        }
+
+        // Enregistrer le player_id pour les notifications push
+        if ($request->input('player_id')) {
+            $user->player_id = $request->input('player_id');
+            $user->save();
+        }
+
+        // Vérifier que l'utilisateur a un rôle autorisé sur mobile
+        if ($isMobileLogin && ! $user->hasAnyRole(['manager', 'employee', 'admin', 'super-admin'])) {
+            return $this->sendError(
+                'Seuls les managers et les membres du staff peuvent utiliser l\'application mobile.',
+                ['error' => __('messages.unauthorised')],
+                403
+            );
+        }
+
+        // Démarrer la période d'essai si ce n'est pas encore fait
+        if ($user->mobile_trial_started_at === null) {
+            $user->mobile_trial_started_at = now();
+            $user->save();
+        }
+
+        $user['api_token'] = $user->createToken(setting('app_name', 'Salon'))->plainTextToken;
+
+        $loginResource = new LoginResource($user);
+        $message = __('messages.user_login');
+
+        return $this->sendResponse($loginResource, $message);
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Social Login / OTP Login (Mobile — inscription ou connexion par téléphone)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Gère l'inscription et la connexion mobile via OTP (numéro de téléphone).
+     *
+     * Flux :
+     * - Si l'utilisateur n'existe pas → création automatique du compte manager
+     *   avec email fictif généré depuis le numéro de téléphone.
+     * - Si l'utilisateur existe → connexion directe.
+     *
+     * Champs attendus : mobile, login_type, user_type, first_name?, last_name?,
+     *                   salon_name?, player_id?
+     */
     public function socialLogin(Request $request)
     {
-        return $this->sendError(
-            'Les comptes mobiles sont créés et activés uniquement par un administrateur.',
-            403
-        );
+        $mobile    = $request->input('mobile') ?? $request->input('contact_number');
+        $loginType = $request->input('login_type', 'mobile');
 
-        /*$input = $request->all();
-
-        if ($input['login_type'] === 'mobile') {
-            $user_data = User::where('username', $input['username'])->where('login_type', 'mobile')->first();
-        } else {
-            $user_data = User::where('email', $input['email'])->first();
+        if (empty($mobile)) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Le numéro de téléphone est requis.',
+            ], 422);
         }
 
-        if ($user_data != null) {
-            if (! isset($user_data->login_type) || $user_data->login_type == '') {
-                if ($request->login_type === 'google') {
-                    $message = __('validation.unique', ['attribute' => 'email']);
-                } else {
-                    $message = __('validation.unique', ['attribute' => 'username']);
+        // ── Chercher si l'utilisateur existe déjà ────────────────────────────
+        $user = User::where('mobile', $mobile)->first()
+             ?? User::where('username', $mobile)->first();
+
+        if ($user === null) {
+            // ── Création du compte manager ────────────────────────────────────
+            $fakeEmail = $this->buildFakeEmail($mobile);
+            $firstName = $request->input('first_name', 'Utilisateur');
+            $lastName  = $request->input('last_name', '');
+            $salonName = $request->input('salon_name', '');
+
+            // Vérifier unicité email fictif
+            if (User::where('email', $fakeEmail)->exists()) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'Un compte existe déjà pour ce numéro de téléphone.',
+                ], 422);
+            }
+
+            $user = User::create([
+                'first_name'  => $firstName,
+                'last_name'   => $lastName,
+                'name'        => trim($firstName . ' ' . $lastName),
+                'email'       => $fakeEmail,
+                'username'    => $mobile,
+                'mobile'      => $mobile,
+                'password'    => Hash::make($mobile), // mot de passe = téléphone par défaut
+                'login_type'  => $loginType,
+                'status'      => 1,
+                'player_id'   => $request->input('player_id'),
+            ]);
+
+            // Assigner le rôle manager
+            $user->assignRole('manager');
+
+            // Démarrer la période d'essai mobile (3 jours gratuits)
+            $user->mobile_trial_started_at = now();
+            $user->save();
+
+            // Créer la branche salon si nom fourni
+            if (!empty($salonName)) {
+                try {
+                    $branch = new \App\Models\Branch();
+                    $branch->manager_id     = $user->id;
+                    $branch->name           = $salonName;
+                    $branch->contact_number = $mobile;
+                    $branch->status         = 1;
+                    $branch->save();
+
+                    $user->branch_id = $branch->id;
+                    $user->save();
+                } catch (\Exception $e) {
+                    \Log::warning('[socialLogin] Branch creation failed: ' . $e->getMessage());
                 }
-
-                return $this->sendError($message, 400);
             }
-            $message = __('messages.login_success');
-        } else {
-            if ($request->login_type === 'google') {
-                $key = 'email';
-                $value = $request->email;
-            } else {
-                $key = 'username';
-                $value = $request->username;
-            }
-
-            $trashed_user_data = User::where($key, $value)->whereNotNull('login_type')->withTrashed()->first();
-
-            if ($trashed_user_data != null && $trashed_user_data->trashed()) {
-                if ($request->login_type === 'google') {
-                    $message = __('validation.unique', ['attribute' => 'email']);
-                } else {
-                    $message = __('validation.unique', ['attribute' => 'username']);
-                }
-
-                return $this->sendError($message, 400);
-            }
-
-            if ($request->login_type === 'mobile' && $user_data == null) {
-                $otp_response = [
-                    'status' => true,
-                    'is_user_exist' => false,
-                ];
-
-                return $this->sendError($otp_response);
-            }
-
-            if ($request->login_type === 'mobile' && $user_data != null) {
-                $otp_response = [
-                    'status' => true,
-                    'is_user_exist' => true,
-                ];
-
-                return $this->sendError($otp_response);
-            }
-
-            $password = ! empty($input['accessToken']) ? $input['accessToken'] : $input['email'];
-
-            $input['user_type'] = 'user';
-            $input['display_name'] = $input['first_name'].' '.$input['last_name'];
-            $input['password'] = Hash::make($password);
-            $input['user_type'] = isset($input['user_type']) ? $input['user_type'] : 'user';
-            if (request('player_id') != null) {
-                $input['player_id'] = request('player_id');
-            }
-            $user = User::create($input);
-            $user->assignRole('user');
 
             \Artisan::call('cache:clear');
 
-            if (! empty($input['profile_image'])) {
-                $media = $user->addMediaFromUrl($input['profile_image'])->toMediaCollection('profile_image');
-                $user->avatar = $media->getUrl();
-            }
-            $user_data = User::where('id', $user->id)->first();
-            $message = trans('messages.save_form', ['form' => $input['user_type']]);
+            $generatedEmail = $fakeEmail;
+        } else {
+            $generatedEmail = $user->email;
         }
 
-        if (request('player_id') != null) {
-            $user_data->player_id = request('player_id');
-            $user_data->save();
+        // ── Vérifications communes ────────────────────────────────────────────
+        if ($user->is_banned == 1 || $user->status == 0) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Votre compte est désactivé. Contactez l\'administrateur.',
+            ]);
         }
-        $user_data['api_token'] = $user_data->createToken('auth_token')->plainTextToken;
 
-        $socialLogin = new SocialLoginResource($user_data);
+        // Mettre à jour le player_id pour les notifications push
+        if ($request->input('player_id')) {
+            $user->player_id = $request->input('player_id');
+            $user->save();
+        }
 
-        return $this->sendResponse($socialLogin, $message);*/
+        // Démarrer l'essai gratuit si pas encore commencé
+        if ($user->mobile_trial_started_at === null) {
+            $user->mobile_trial_started_at = now();
+            $user->save();
+        }
+
+        $user['api_token'] = $user->createToken(setting('app_name', 'Salon'))->plainTextToken;
+
+        $loginResource = new LoginResource($user);
+
+        $message = __('messages.user_login');
+
+        return response()->json([
+            'status'          => true,
+            'data'            => $loginResource,
+            'message'         => $message,
+            'generated_email' => $generatedEmail,
+        ], 200);
     }
+
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Logout
+    // ─────────────────────────────────────────────────────────────────────────
 
     public function logout(Request $request)
     {
         $user = Auth::guard('sanctum')->user();
 
         if ($request->is('api*')) {
-            $user->player_id = null;
-            $user->save();
+            if ($user) {
+                $user->player_id = null;
+                $user->save();
+            }
 
             return response()->json(['status' => true, 'message' => __('messages.user_logout')]);
         }
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Forgot Password
+    // ─────────────────────────────────────────────────────────────────────────
 
     public function forgotPassword(Request $request)
     {
@@ -188,9 +390,6 @@ class AuthController extends Controller
             'email' => 'required|email',
         ]);
 
-        // We will send the password reset link to this user. Once we have attempted
-        // to send the link, we will examine the response then see the message we
-        // need to show to the user. Finally, we'll send out a proper response.
         $response = Password::sendResetLink(
             $request->only('email')
         );
@@ -206,6 +405,10 @@ class AuthController extends Controller
             : response()->json(['message' => __($response), 'status' => false], 400);
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Change Password
+    // ─────────────────────────────────────────────────────────────────────────
+
     public function changePassword(Request $request)
     {
         $user = \Auth::user();
@@ -213,7 +416,7 @@ class AuthController extends Controller
         $user = User::where('id', $user_id)->first();
         if ($user == '') {
             return response()->json([
-                'status' => false,
+                'status'  => false,
                 'message' => __('messages.user_notfound'),
             ], 400);
         }
@@ -226,10 +429,8 @@ class AuthController extends Controller
 
         if ($match) {
             if ($same_exits) {
-                $message = __('messages.old_new_pass_same');
-
                 return response()->json([
-                    'status' => false,
+                    'status'  => false,
                     'message' => __('messages.same_pass'),
                 ], 400);
             }
@@ -238,26 +439,25 @@ class AuthController extends Controller
                 'password' => Hash::make($request->new_password),
             ])->save();
 
-            $success['api_token'] = $user->createToken(setting('app_name'))->plainTextToken;
+            $success['api_token'] = $user->createToken(setting('app_name', 'Salon'))->plainTextToken;
             $success['name'] = $user->name;
 
             return response()->json([
-                'status' => true,
-                'data' => $success,
+                'status'  => true,
+                'data'    => $success,
                 'message' => __('messages.pass_successfull'),
             ], 200);
         } else {
-            $success['api_token'] = $user->createToken(setting('app_name'))->plainTextToken;
-            $success['name'] = $user->name;
-            $message = __('messages.valid_password');
-
             return response()->json([
-                'status' => true,
-                'data' => $success,
-                'message' => __('messages.pass_successfull'),
-            ], 200);
+                'status'  => false,
+                'message' => __('messages.valid_password'),
+            ], 400);
         }
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Update Profile
+    // ─────────────────────────────────────────────────────────────────────────
 
     public function updateProfile(Request $request)
     {
@@ -288,11 +488,15 @@ class AuthController extends Controller
         unset($user_data['media']);
 
         return response()->json([
-            'status' => true,
-            'data' => $user_data,
+            'status'  => true,
+            'data'    => $user_data,
             'message' => $message,
         ], 200);
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // User Details
+    // ─────────────────────────────────────────────────────────────────────────
 
     public function userDetails(Request $request)
     {
@@ -305,25 +509,26 @@ class AuthController extends Controller
         return response()->json(['status' => true, 'data' => new LoginResource($user), 'message' => __('messages.user_details_successfull')]);
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Delete Account
+    // ─────────────────────────────────────────────────────────────────────────
+
     public function deleteAccount(Request $request)
     {
         $user_id = \Auth::user()->id;
         $user = User::where('id', $user_id)->first();
         if ($user == null) {
-            $message = __('messages.user_not_found');
-
             return response()->json([
-                'status' => false,
-                'message' => $message,
+                'status'  => false,
+                'message' => __('messages.user_not_found'),
             ], 200);
         }
         $user->booking()->forceDelete();
         $user->forceDelete();
-        $message = __('messages.delete_account');
 
         return response()->json([
-            'status' => true,
-            'message' => $message,
+            'status'  => true,
+            'message' => __('messages.delete_account'),
         ], 200);
     }
 }

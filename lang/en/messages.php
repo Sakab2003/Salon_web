@@ -131,7 +131,7 @@ return [
     'module_added' => 'Module Create Successfully',
     'user_not_found' => 'User not found',
     'user' => 'user',
-    'register_before_login' => 'Please register your account before login.',
+    'register_before_login' => 'This number is not registered. Create your account for free to enjoy 3 days trial.',
     'permission_denied' => 'Permission denied you are in demo mode.',
     'unauthorised' => 'Unauthorised',
     'verification_link' => 'verification-link-sent',
