@@ -13,17 +13,30 @@ use Illuminate\Support\Facades\Log;
  */
 class PulseKangoService
 {
-    protected string $baseUrl;
-    protected string $apiKey;
-    protected string $username;
-    protected string $secret;
+    protected string $baseUrl   = 'https://sandbox.pulse-kango.com';
+    protected string $apiKey    = '';
+    protected string $username  = '';
+    protected string $secret    = '';
 
-    public function __construct()
+    /**
+     * Peut être instancié avec les credentials de la base (PaymentGateway)
+     * ou avec ceux du .env en fallback.
+     */
+    public function __construct(?array $credentials = null)
     {
-        $this->baseUrl  = rtrim(config('services.pulse_kango.base_url', 'https://sandbox.pulse-kango.com'), '/');
-        $this->apiKey   = config('services.pulse_kango.api_key', '');
-        $this->username = config('services.pulse_kango.username', '');
-        $this->secret   = config('services.pulse_kango.secret', '');
+        if ($credentials) {
+            // Credentials venant d'un PaymentGateway enregistré en BDD
+            $this->baseUrl  = rtrim($credentials['base_url'] ?? config('services.pulse_kango.base_url', 'https://sandbox.pulse-kango.com'), '/');
+            $this->apiKey   = $credentials['api_key']  ?? config('services.pulse_kango.api_key',  '') ?? '';
+            $this->username = $credentials['username'] ?? config('services.pulse_kango.username', '') ?? '';
+            $this->secret   = $credentials['secret']   ?? config('services.pulse_kango.secret',   '') ?? '';
+        } else {
+            // Fallback : credentials .env
+            $this->baseUrl  = rtrim(config('services.pulse_kango.base_url', 'https://sandbox.pulse-kango.com'), '/');
+            $this->apiKey   = config('services.pulse_kango.api_key',  '') ?? '';
+            $this->username = config('services.pulse_kango.username', '') ?? '';
+            $this->secret   = config('services.pulse_kango.secret',   '') ?? '';
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────

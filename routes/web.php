@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Backend\PaymentGatewayAdminController;
 use App\Http\Controllers\Backend\BackendController;
 use App\Http\Controllers\Backend\BackupController;
 use App\Http\Controllers\Backend\BranchController;
@@ -232,5 +233,15 @@ Route::group(['prefix' => 'app', 'middleware' => 'auth'], function () {
         Route::get('my-profile/{vue_capture?}', [UserController::class, 'myProfile'])->name('my-profile')->where('vue_capture', '^(?!storage).*$');
         Route::get('my-info', [UserController::class, 'authData'])->name('authData');
         Route::post('my-profile/change-password', [UserController::class, 'change_password'])->name('change_password');
+
+        // ── Passerelles de paiement (admin) ─────────────────────────────────────────────
+        Route::resource('payment-gateways', PaymentGatewayAdminController::class)
+            ->names('backend.payment-gateways')
+            ->parameters(['payment-gateways' => 'paymentGateway']);
+        Route::post('payment-gateways/{paymentGateway}/toggle', [PaymentGatewayAdminController::class, 'toggleStatus'])
+            ->name('backend.payment-gateways.toggle');
+        Route::post('payment-gateways/update-prices', [PaymentGatewayAdminController::class, 'updatePrices'])
+            ->name('backend.payment-gateways.update-prices');
+
     });
 });

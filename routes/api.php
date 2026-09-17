@@ -8,6 +8,7 @@ use App\Http\Controllers\Backend\API\NotificationsController;
 use App\Http\Controllers\Backend\API\SettingController;
 use App\Http\Controllers\Backend\API\UserApiController;
 use App\Http\Controllers\API\PulseKangoController;
+use App\Http\Controllers\API\PaymentGatewayController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -83,9 +84,21 @@ Route::get('commission-list', function() {
 Route::post('v1/payments/pulse-kango/webhook', [PulseKangoController::class, 'webhook'])
     ->name('pulse-kango.webhook');
 
-// Routes authentifiées PulseKango
+// Routes authentifiées PulseKango (legacy — conservé pour compatibilité)
 Route::group(['middleware' => 'auth:sanctum', 'prefix' => 'v1/payments/pulse-kango'], function () {
     Route::post('initiate', [PulseKangoController::class, 'initiate'])->name('pulse-kango.initiate');
     Route::get('status/{reference}', [PulseKangoController::class, 'checkStatus'])->name('pulse-kango.status');
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Passerelles de paiement unifiées — Mobile App
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Publique : liste des passerelles actives
+Route::get('v1/payment-gateways', [PaymentGatewayController::class, 'index'])->name('api.payment-gateways');
+
+// Authentifié : souscrire via n'importe quelle passerelle
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('v1/subscribe', [PaymentGatewayController::class, 'subscribe'])->name('api.subscribe');
 });
 
