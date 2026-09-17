@@ -113,6 +113,45 @@ class SubscriptionController extends Controller
         return $this->sendResponse(SubscriptionResource::collection(Subscription::where('user_id', $user_id)->get()), __('messages.user_subscribe_history'));
     }
 
+    /**
+     * GET /api/v1/subscription-status
+     * Retourne le statut d'abonnement de l'utilisateur connecté.
+     * Appelé par l'app mobile au démarrage du HomeFragment.
+     */
+    public function subscriptionStatus(Request $request)
+    {
+        $user    = auth()->user();
+        $user_id = $user->id;
+
+        $activePlan = $this->get_user_active_plan($user_id);
+
+        if (! $activePlan) {
+            return response()->json([
+                'status'          => true,
+                'is_subscribed'   => false,
+                'is_trial'        => false,
+                'plan_name'       => null,
+                'days_remaining'  => 0,
+                'end_date'        => null,
+                'message'         => 'Aucun abonnement actif.',
+            ]);
+        }
+
+        $daysRemaining = $this->check_days_left_plan($activePlan);
+        $isTrial       = strtolower($activePlan->status ?? '') === config('constant.SUBSCRIPTION_STATUS.PENDING', 'pending');
+
+        return response()->json([
+            'status'          => true,
+            'is_subscribed'   => true,
+            'is_trial'        => $isTrial,
+            'plan_name'       => $activePlan->name,
+            'plan_identifier' => $activePlan->identifier,
+            'days_remaining'  => (int) $daysRemaining,
+            'end_date'        => $activePlan->end_date,
+            'subscription_id' => $activePlan->id,
+        ]);
+    }
+
     public function cancelSubscription(Request $request)
     {
         $user_id = $request->user_id ? $request->user_id : auth()->id();
