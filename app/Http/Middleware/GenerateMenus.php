@@ -29,7 +29,8 @@ class GenerateMenus
                 || !MenuBuilder::where('title', 'sidebar.commissions')->exists()
                 || !MenuBuilder::where('title', 'sidebar.hairstyle_models')->whereNull('parent_id')->exists()
                 || !MenuBuilder::where('title', 'sidebar.pos_sale')->exists()
-                || !MenuBuilder::where('title', 'sidebar.financial_balance')->exists();
+                || !MenuBuilder::where('title', 'sidebar.financial_balance')->exists()
+                || !MenuBuilder::where('title', 'sidebar.payment_gateways')->exists();
 
             if ($needsRebuild) {
                 MenuBuilder::where('menu_type', $type)->delete();

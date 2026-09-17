@@ -231,6 +231,14 @@ return [
             'order' => 20,
         ],
         [
+            'start_icon' => 'fa-solid fa-credit-card',
+            'title' => 'sidebar.payment_gateways',
+            'route' => 'backend.payment-gateways.index',
+            'active' => ['app/payment-gateways*'],
+            'permission' => ['system_settings'],
+            'order' => 20.5,
+        ],
+        [
             'start_icon' => 'fa-solid fa-file',
             'title' => 'sidebar.pages',
             'route' => 'backend.pages.index',
