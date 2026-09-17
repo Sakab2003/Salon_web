@@ -120,36 +120,68 @@ class SubscriptionController extends Controller
      */
     public function subscriptionStatus(Request $request)
     {
-        $user    = auth()->user();
-        $user_id = $user->id;
+        try {
+            $user_id = auth()->id();
 
-        $activePlan = $this->get_user_active_plan($user_id);
+            // On cherche directement dans le modèle Eloquent (pas via le Trait qui retourne un Resource)
+            $activePlan = Subscription::where('user_id', $user_id)
+                ->where('status', config('constant.SUBSCRIPTION_STATUS.ACTIVE', 'active'))
+                ->first();
 
-        if (! $activePlan) {
+            // Si pas de plan actif, on cherche aussi un plan en attente (trial/mode test)
+            if (! $activePlan) {
+                $activePlan = Subscription::where('user_id', $user_id)
+                    ->where('status', config('constant.SUBSCRIPTION_STATUS.PENDING', 'pending'))
+                    ->latest()
+                    ->first();
+            }
+
+            if (! $activePlan) {
+                return response()->json([
+                    'status'         => true,
+                    'is_subscribed'  => false,
+                    'is_trial'       => false,
+                    'plan_name'      => null,
+                    'days_remaining' => 0,
+                    'end_date'       => null,
+                    'message'        => 'Aucun abonnement actif.',
+                ]);
+            }
+
+            // Calcul des jours restants
+            $daysRemaining = 0;
+            if ($activePlan->end_date) {
+                $endDate       = new \Carbon\Carbon($activePlan->end_date);
+                $now           = \Carbon\Carbon::now();
+                $daysRemaining = $endDate->gt($now) ? (int) $now->diffInDays($endDate) : 0;
+            }
+
+            $planStatus = strtolower($activePlan->status ?? '');
+            $isTrial    = $planStatus === strtolower(config('constant.SUBSCRIPTION_STATUS.PENDING', 'pending'));
+
             return response()->json([
                 'status'          => true,
-                'is_subscribed'   => false,
-                'is_trial'        => false,
-                'plan_name'       => null,
-                'days_remaining'  => 0,
-                'end_date'        => null,
-                'message'         => 'Aucun abonnement actif.',
+                'is_subscribed'   => true,
+                'is_trial'        => $isTrial,
+                'plan_name'       => $activePlan->name,
+                'plan_identifier' => $activePlan->identifier,
+                'days_remaining'  => $daysRemaining,
+                'end_date'        => $activePlan->end_date,
+                'subscription_id' => $activePlan->id,
+            ]);
+        } catch (\Exception $e) {
+            // Ne jamais retourner 500 à l'app mobile — on log et on renvoie un statut neutre
+            \Log::error('[subscription-status] Erreur: ' . $e->getMessage());
+            return response()->json([
+                'status'         => true,
+                'is_subscribed'  => false,
+                'is_trial'       => false,
+                'plan_name'      => null,
+                'days_remaining' => 0,
+                'end_date'       => null,
+                'message'        => 'Statut indisponible temporairement.',
             ]);
         }
-
-        $daysRemaining = $this->check_days_left_plan($activePlan);
-        $isTrial       = strtolower($activePlan->status ?? '') === config('constant.SUBSCRIPTION_STATUS.PENDING', 'pending');
-
-        return response()->json([
-            'status'          => true,
-            'is_subscribed'   => true,
-            'is_trial'        => $isTrial,
-            'plan_name'       => $activePlan->name,
-            'plan_identifier' => $activePlan->identifier,
-            'days_remaining'  => (int) $daysRemaining,
-            'end_date'        => $activePlan->end_date,
-            'subscription_id' => $activePlan->id,
-        ]);
     }
 
     public function cancelSubscription(Request $request)
