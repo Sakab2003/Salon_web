@@ -235,13 +235,15 @@ Route::group(['prefix' => 'app', 'middleware' => 'auth'], function () {
         Route::post('my-profile/change-password', [UserController::class, 'change_password'])->name('change_password');
 
         // ── Passerelles de paiement (admin) ─────────────────────────────────────────────
+        // Important: update-prices AVANT {paymentGateway} pour éviter un conflit de route
+        Route::post('payment-gateways/update-prices', [PaymentGatewayAdminController::class, 'updatePrices'])
+            ->name('payment-gateways.update-prices');
         Route::resource('payment-gateways', PaymentGatewayAdminController::class)
-            ->names('backend.payment-gateways')
+            ->names('payment-gateways')
             ->parameters(['payment-gateways' => 'paymentGateway']);
         Route::post('payment-gateways/{paymentGateway}/toggle', [PaymentGatewayAdminController::class, 'toggleStatus'])
-            ->name('backend.payment-gateways.toggle');
-        Route::post('payment-gateways/update-prices', [PaymentGatewayAdminController::class, 'updatePrices'])
-            ->name('backend.payment-gateways.update-prices');
+            ->name('payment-gateways.toggle');
+
 
     });
 });

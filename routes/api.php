@@ -99,6 +99,7 @@ Route::get('v1/payment-gateways', [PaymentGatewayController::class, 'index'])->n
 
 // Authentifié : souscrire via n'importe quelle passerelle
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('v1/plans', [PaymentGatewayController::class, 'plans'])->name('api.plans');
     Route::post('v1/subscribe', [PaymentGatewayController::class, 'subscribe'])->name('api.subscribe');
 });
 
