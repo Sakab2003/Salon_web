@@ -5,109 +5,115 @@ namespace App\Services;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-/**
- * Service d'intégration PulseKango — Unified Mobile Money Gateway
- * Production : https://sandbox.pulse-kango.com (mode sandbox/prod selon config)
- *
- * Documentation API : https://sandbox.pulse-kango.com/
- */
 class PulseKangoService
 {
     protected string $baseUrl   = 'https://sandbox.pulse-kango.com';
     protected string $apiKey    = '';
-    protected string $username  = '';
-    protected string $secret    = '';
 
-    /**
-     * Peut être instancié avec les credentials de la base (PaymentGateway)
-     * ou avec ceux du .env en fallback.
-     */
     public function __construct(?array $credentials = null)
     {
         if ($credentials) {
-            // Credentials venant d'un PaymentGateway enregistré en BDD
-            $this->baseUrl  = rtrim($credentials['base_url'] ?? config('services.pulse_kango.base_url', 'https://sandbox.pulse-kango.com'), '/');
-            $this->apiKey   = $credentials['api_key']  ?? config('services.pulse_kango.api_key',  '') ?? '';
-            $this->username = $credentials['username'] ?? config('services.pulse_kango.username', '') ?? '';
-            $this->secret   = $credentials['secret']   ?? config('services.pulse_kango.secret',   '') ?? '';
+            $this->baseUrl = rtrim($credentials['base_url'] ?? config('services.pulse_kango.base_url', 'https://sandbox.pulse-kango.com'), '/');
+            $this->apiKey  = $credentials['api_key'] ?? config('services.pulse_kango.api_key', '') ?? '';
         } else {
-            // Fallback : credentials .env
-            $this->baseUrl  = rtrim(config('services.pulse_kango.base_url', 'https://sandbox.pulse-kango.com'), '/');
-            $this->apiKey   = config('services.pulse_kango.api_key',  '') ?? '';
-            $this->username = config('services.pulse_kango.username', '') ?? '';
-            $this->secret   = config('services.pulse_kango.secret',   '') ?? '';
+            $this->baseUrl = rtrim(config('services.pulse_kango.base_url', 'https://sandbox.pulse-kango.com'), '/');
+            $this->apiKey  = config('services.pulse_kango.api_key', '') ?? '';
+        }
+
+        if (!str_ends_with($this->baseUrl, '/api')) {
+            $this->baseUrl .= '/api';
         }
     }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Headers communs
-    // ─────────────────────────────────────────────────────────────────────────
 
     private function headers(): array
     {
         return [
-            'Authorization' => 'Bearer ' . $this->apiKey,
+            'x-api-key'     => $this->apiKey,
             'Content-Type'  => 'application/json',
             'Accept'        => 'application/json',
-            'X-Username'    => $this->username,
-            'X-Secret'      => $this->secret,
         ];
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Initier un paiement (Mobile Money / Carte)
-    // ─────────────────────────────────────────────────────────────────────────
-
     /**
-     * Initie une transaction de paiement PulseKango.
-     *
-     * @param array $data {
-     *   amount        : float   — Montant en FCFA
-     *   currency      : string  — Devise (ex: XOF)
-     *   phone         : string  — Numéro de téléphone du payeur
-     *   description   : string  — Description de la transaction
-     *   reference     : string  — Référence interne unique
-     *   return_url    : string  — URL de retour après paiement
-     *   notify_url    : string  — URL de webhook
-     * }
-     * @return array
+     * @param array $data { amount, phone, operator, otp, reference }
      */
     public function initiatePayment(array $data): array
     {
         try {
+            $operator = strtoupper($data['operator']); // OMBF, TELBF, MOOVBF
             $payload = [
-                'amount'      => (float) $data['amount'],
-                'currency'    => $data['currency'] ?? 'XOF',
-                'phone'       => $data['phone'] ?? '',
-                'description' => $data['description'] ?? 'Abonnement Salon',
-                'reference'   => $data['reference'] ?? uniqid('salon_'),
-                'return_url'  => $data['return_url'] ?? config('services.pulse_kango.return_url'),
-                'notify_url'  => $data['notify_url'] ?? config('services.pulse_kango.notify_url'),
+                'amount'     => (float) $data['amount'],
+                'otp'        => $data['otp'] ?? '',
+                'ftxn_id'    => $data['reference'],
+                'operator'   => $operator,
+                'transactor' => $data['phone'],
             ];
+
+            // Pour Moov, si l'utilisateur n'a pas fourni d'OTP, on génère.
+            // S'il a fourni un OTP (ex: généré via USSD manuel), on tente directement l'initiation.
+            if ($operator === 'MOOVBF' && empty($payload['otp']) && empty($data['external_id'])) {
+                return $this->generateMoovOtp($payload['amount'], $payload['transactor']);
+            }
+
+            if ($operator === 'MOOVBF') {
+                $payload['external_id'] = $data['external_id'];
+            }
 
             Log::info('[PulseKango] Initiate payment', ['payload' => $payload]);
 
-            $response = Http::withHeaders($this->headers())
+            $response = Http::withoutVerifying()
+                ->withHeaders($this->headers())
                 ->timeout(30)
-                ->post($this->baseUrl . '/api/v1/payment/initiate', $payload);
+                ->post($this->baseUrl . '/v1/payment/init', $payload);
 
             $body = $response->json();
-
             Log::info('[PulseKango] Payment response', ['status' => $response->status(), 'body' => $body]);
 
-            if ($response->successful()) {
-                return [
-                    'success'        => true,
-                    'transaction_id' => $body['transaction_id'] ?? $body['id'] ?? null,
-                    'payment_url'    => $body['payment_url'] ?? $body['checkout_url'] ?? null,
-                    'reference'      => $body['reference'] ?? $payload['reference'],
-                    'raw'            => $body,
-                ];
+            // La doc dit: { "code": 200, "status": "success", "data": { "message": "...", "data": { "status": "TS", ... } } }
+            if ($response->successful() && isset($body['status']) && $body['status'] === 'success') {
+                $txnStatus = $body['data']['data']['status'] ?? '';
+                
+                if ($txnStatus === 'TS' || $txnStatus === 'TP') {
+                    return [
+                        'success'        => true,
+                        'transaction_id' => $body['data']['data']['ref'] ?? null,
+                        'reference'      => $body['data']['data']['ftxn_id'] ?? $payload['ftxn_id'],
+                        'status'         => $txnStatus,
+                        'raw'            => $body,
+                    ];
+                }
+            }
+
+            // Gestion des erreurs
+            $errorMessage = 'Erreur lors du paiement';
+
+            if (!empty($body['data']['data']['external_message'])) {
+                $extMsg = $body['data']['data']['external_message'];
+                if (stripos($extMsg, 'OTP does not exist') !== false) {
+                    $errorMessage = "Le code OTP est incorrect ou a expiré. Veuillez composer *144*4*6# pour en générer un nouveau.";
+                } elseif (stripos($extMsg, 'insufficient') !== false) {
+                    $errorMessage = "Solde insuffisant sur votre compte Mobile Money.";
+                } else {
+                    $errorMessage = $extMsg;
+                }
+            } elseif (isset($body['data']['data']) && is_array($body['data']['data'])) {
+                $firstVal = collect($body['data']['data'])->flatten()->first();
+                if ($firstVal) {
+                    if (stripos($firstVal, 'amount must be at least 100') !== false) {
+                        $errorMessage = "Le montant minimum pour le paiement Mobile Money est de 100 FCFA.";
+                    } else {
+                        $errorMessage = $firstVal;
+                    }
+                }
+            } elseif (!empty($body['data']['message'])) {
+                $errorMessage = $body['data']['message'];
+            } elseif (!empty($body['message'])) {
+                $errorMessage = $body['message'];
             }
 
             return [
                 'success' => false,
-                'message' => $body['message'] ?? 'Erreur lors de l\'initiation du paiement.',
+                'message' => $errorMessage,
                 'raw'     => $body,
             ];
         } catch (\Exception $e) {
@@ -119,34 +125,77 @@ class PulseKangoService
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Vérifier le statut d'une transaction
-    // ─────────────────────────────────────────────────────────────────────────
-
-    /**
-     * Vérifie le statut d'une transaction par référence.
-     *
-     * @param string $reference Référence de la transaction
-     * @return array
-     */
-    public function checkTransactionStatus(string $reference): array
+    public function generateMoovOtp($amount, $phone)
     {
         try {
-            Log::info('[PulseKango] Check transaction status', ['reference' => $reference]);
+            $payload = [
+                'amount'     => (float) $amount,
+                'operator'   => 'MOOVBF',
+                'transactor' => $phone,
+            ];
 
-            $response = Http::withHeaders($this->headers())
+            Log::info('[PulseKango] Generate Moov OTP', ['payload' => $payload]);
+
+            $response = Http::withoutVerifying()
+                ->withHeaders($this->headers())
                 ->timeout(30)
-                ->get($this->baseUrl . '/api/v1/payment/status/' . $reference);
+                ->post($this->baseUrl . '/v1/payment/otp-generate', $payload);
 
             $body = $response->json();
+            Log::info('[PulseKango] Moov OTP response', ['status' => $response->status(), 'body' => $body]);
 
-            Log::info('[PulseKango] Status response', ['body' => $body]);
+            // Supposons que l'API renvoie un success avec l'external_id
+            if ($response->successful() && isset($body['status']) && $body['status'] === 'success') {
+                return [
+                    'success'      => false,
+                    'is_otp_step'  => true,
+                    'external_id'  => $body['data']['external_id'] ?? $body['external_id'] ?? null,
+                    'message'      => 'Un code OTP a été envoyé sur votre numéro Moov. Veuillez le saisir et valider.',
+                ];
+            }
 
             return [
-                'success' => $response->successful(),
-                'status'  => $body['status'] ?? 'unknown',
-                'paid'    => in_array(strtolower($body['status'] ?? ''), ['success', 'paid', 'completed']),
-                'raw'     => $body,
+                'success' => false,
+                'message' => $body['data']['message'] ?? $body['message'] ?? 'Erreur de génération OTP Moov',
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Erreur de connexion : ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    public function checkTransactionStatus(string $ftxn_id): array
+    {
+        try {
+            Log::info('[PulseKango] Check transaction status', ['ftxn_id' => $ftxn_id]);
+
+            $response = Http::withoutVerifying()
+                ->withHeaders($this->headers())
+                ->timeout(30)
+                ->post($this->baseUrl . '/v1/payment/status', [
+                    'ftxn_id' => $ftxn_id
+                ]);
+
+            $body = $response->json();
+            Log::info('[PulseKango] Status response', ['body' => $body]);
+
+            if ($response->successful() && isset($body['status']) && $body['status'] === 'success') {
+                $txnStatus = $body['data']['data']['status'] ?? '';
+                return [
+                    'success' => true,
+                    'status'  => $txnStatus,
+                    'paid'    => ($txnStatus === 'TS'),
+                    'raw'     => $body,
+                ];
+            }
+
+            return [
+                'success' => false,
+                'status'  => 'error',
+                'paid'    => false,
+                'message' => $body['data']['message'] ?? 'Transaction introuvable',
             ];
         } catch (\Exception $e) {
             Log::error('[PulseKango] Exception checking status', ['error' => $e->getMessage()]);
@@ -157,22 +206,5 @@ class PulseKangoService
                 'message' => $e->getMessage(),
             ];
         }
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Valider la signature du webhook
-    // ─────────────────────────────────────────────────────────────────────────
-
-    /**
-     * Valide la signature du webhook PulseKango pour sécuriser les callbacks.
-     *
-     * @param string $payload   Corps brut de la requête
-     * @param string $signature Signature reçue dans le header
-     * @return bool
-     */
-    public function validateWebhookSignature(string $payload, string $signature): bool
-    {
-        $expected = hash_hmac('sha256', $payload, $this->secret);
-        return hash_equals($expected, $signature);
     }
 }

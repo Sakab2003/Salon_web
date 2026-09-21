@@ -116,20 +116,45 @@
 
         <form method="POST" action="{{ route('backend.payment-gateways.update-prices') }}">
             @csrf
+            @php
+                $monthlyPlan = \Modules\Subscriptions\Models\Plan::where('identifier', 'monthly')->first();
+                $yearlyPlan = \Modules\Subscriptions\Models\Plan::where('identifier', 'yearly')->first();
+            @endphp
             <div class="row g-3">
-                @foreach(\Modules\Subscriptions\Models\Plan::whereIn('identifier', ['monthly','yearly'])->get() as $plan)
+                @if($monthlyPlan)
                 <div class="col-md-6">
-                    <div class="gateway-card p-3">
-                        <label class="form-label fw-semibold">{{ $plan->name }}</label>
-                        <div class="input-group">
-                            <input type="number" class="form-control" name="prices[{{ $plan->id }}]"
-                                   value="{{ $plan->amount }}" min="1">
+                    <div class="gateway-card p-3 h-100">
+                        <label class="form-label fw-semibold">{{ $monthlyPlan->name }}</label>
+                        <div class="input-group mb-2">
+                            <input type="number" class="form-control" name="prices[{{ $monthlyPlan->id }}]" id="monthly_price"
+                                   value="{{ $monthlyPlan->amount }}" min="1">
                             <span class="input-group-text">FCFA</span>
                         </div>
-                        <small class="text-muted">{{ $plan->duration }} jours</small>
+                        <small class="text-muted">{{ $monthlyPlan->duration }} jours (Base de calcul)</small>
                     </div>
                 </div>
-                @endforeach
+                @endif
+                
+                @if($yearlyPlan)
+                <div class="col-md-6">
+                    <div class="gateway-card p-3 h-100 border-primary bg-primary bg-opacity-10">
+                        <label class="form-label fw-semibold text-primary">{{ $yearlyPlan->name }}</label>
+                        <div class="input-group mb-2">
+                            <span class="input-group-text bg-white">Prix</span>
+                            <input type="number" class="form-control" name="prices[{{ $yearlyPlan->id }}]" id="yearly_price"
+                                   value="{{ $yearlyPlan->amount }}" min="1">
+                            <span class="input-group-text">FCFA</span>
+                        </div>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white">Réduction</span>
+                            <input type="number" step="0.1" class="form-control text-success fw-bold" name="discounts[{{ $yearlyPlan->id }}]" id="yearly_discount"
+                                   value="{{ $yearlyPlan->discount_percentage ?? 20 }}" min="0" max="100">
+                            <span class="input-group-text">%</span>
+                        </div>
+                        <small class="text-muted mt-2 d-block">Le prix annuel peut être calculé automatiquement avec la réduction, ou défini manuellement.</small>
+                    </div>
+                </div>
+                @endif
             </div>
             <div class="mt-3">
                 <button type="submit" class="btn btn-success">
@@ -137,6 +162,29 @@
                 </button>
             </div>
         </form>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const monthlyInput = document.getElementById('monthly_price');
+                const yearlyInput = document.getElementById('yearly_price');
+                const discountInput = document.getElementById('yearly_discount');
+
+                function calculateYearly() {
+                    if (!monthlyInput || !yearlyInput || !discountInput) return;
+                    const monthly = parseFloat(monthlyInput.value) || 0;
+                    const discount = parseFloat(discountInput.value) || 0;
+                    
+                    // Calcul : Prix mensuel * 12 mois * (1 - reduction)
+                    const yearly = monthly * 12 * (1 - (discount / 100));
+                    yearlyInput.value = Math.round(yearly);
+                }
+
+                if (monthlyInput && discountInput) {
+                    monthlyInput.addEventListener('input', calculateYearly);
+                    discountInput.addEventListener('input', calculateYearly);
+                }
+            });
+        </script>
 
     </div>
 </div>

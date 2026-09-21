@@ -128,14 +128,6 @@ class SubscriptionController extends Controller
                 ->where('status', config('constant.SUBSCRIPTION_STATUS.ACTIVE', 'active'))
                 ->first();
 
-            // Si pas de plan actif, on cherche aussi un plan en attente (trial/mode test)
-            if (! $activePlan) {
-                $activePlan = Subscription::where('user_id', $user_id)
-                    ->where('status', config('constant.SUBSCRIPTION_STATUS.PENDING', 'pending'))
-                    ->latest()
-                    ->first();
-            }
-
             if (! $activePlan) {
                 return response()->json([
                     'status'         => true,
@@ -157,7 +149,7 @@ class SubscriptionController extends Controller
             }
 
             $planStatus = strtolower($activePlan->status ?? '');
-            $isTrial    = $planStatus === strtolower(config('constant.SUBSCRIPTION_STATUS.PENDING', 'pending'));
+            $isTrial    = false;
 
             return response()->json([
                 'status'          => true,

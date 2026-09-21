@@ -65,11 +65,18 @@ class PaymentGatewayAdminController extends Controller
 
     public function updatePrices(Request $request)
     {
-        $request->validate(['prices' => 'required|array']);
+        $request->validate([
+            'prices' => 'required|array',
+            'discounts' => 'nullable|array'
+        ]);
 
         foreach ($request->prices as $planId => $amount) {
+            $discount = $request->input("discounts.{$planId}");
             \Modules\Subscriptions\Models\Plan::where('id', $planId)
-                ->update(['amount' => max(1, (int) $amount)]);
+                ->update([
+                    'amount' => max(1, (int) $amount),
+                    'discount_percentage' => $discount !== null ? max(0, (float) $discount) : null
+                ]);
         }
 
         return redirect()->route('backend.payment-gateways.index')

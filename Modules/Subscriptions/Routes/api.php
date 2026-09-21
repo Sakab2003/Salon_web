@@ -15,6 +15,8 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
 
     Route::apiResource('planlimitation', PlanLimitationController::class);
     Route::apiResource('plans', PlanController::class);
+    Route::match(['get', 'post'], 'v1/subscribe', [\App\Http\Controllers\API\PaymentGatewayController::class, 'subscribe']);
+    Route::match(['get', 'post'], 'subscribe', [\App\Http\Controllers\API\PaymentGatewayController::class, 'subscribe']);
 });
 ?>
 

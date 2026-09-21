@@ -7,27 +7,13 @@ use App\Models\PaymentGateway;
 use App\Services\PulseKangoService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use Modules\Subscriptions\Models\Plan;
 use Modules\Subscriptions\Models\Subscription;
 use Modules\Subscriptions\Models\SubscriptionTransactions;
 
-/**
- * Contrôleur unifié de paiement Mobile Money
- * Gère tous les moyens de paiement (Orange, Moov, Telecel, Yennegapay, etc.)
- * via le driver configuré pour chaque gateway en base de données.
- *
- * Flux de paiement mobile money :
- * - Orange Money  : L'utilisateur compose *144*4*6# → reçoit OTP → saisit dans l'app
- * - Moov Money    : USSD Push automatique sur le téléphone (pas d'OTP côté app)
- * - Telecel Money : USSD Push automatique (pas d'OTP côté app)
- */
 class PaymentGatewayController extends Controller
 {
-    // ─────────────────────────────────────────────────────────────────────────
-    // GET /api/v1/payment-gateways (public)
-    // Liste les passerelles actives pour l'app mobile
-    // ─────────────────────────────────────────────────────────────────────────
-
     public function index()
     {
         $gateways = PaymentGateway::active()->get()->map(function ($gw) {
@@ -38,7 +24,6 @@ class PaymentGatewayController extends Controller
                 'logo_url'        => $gw->logo_url ? url($gw->logo_url) : null,
                 'description'     => $gw->description,
                 'phone_prefixes'  => $gw->getPrefixesArray(),
-                // Infos pour le flux UX côté mobile :
                 'requires_otp'    => $this->gatewayRequiresOtp($gw->code),
                 'otp_instruction' => $this->getOtpInstruction($gw->code),
                 'ussd_push'       => $this->isUssdPush($gw->code),
@@ -52,21 +37,17 @@ class PaymentGatewayController extends Controller
         ]);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // GET /api/v1/plans (authentifié)
-    // Retourne les plans actifs avec leurs prix depuis la base de données
-    // ─────────────────────────────────────────────────────────────────────────
-
     public function plans()
     {
-        $plans = Plan::where('status', 1)->orderBy('amount')->get()->map(function ($plan) {
+        $plans = Plan::where('status', 1)->orderBy('duration', 'asc')->get()->map(function ($plan) {
             return [
-                'id'         => $plan->id,
-                'name'       => $plan->name,
-                'identifier' => $plan->identifier ?? strtolower($plan->type ?? 'monthly'),
-                'amount'     => $plan->amount,
-                'duration'   => $plan->duration ?? 30,
-                'type'       => $plan->type ?? 'Monthly',
+                'id'                  => $plan->id,
+                'name'                => $plan->name,
+                'identifier'          => $plan->identifier ?? strtolower($plan->type ?? 'monthly'),
+                'amount'              => $plan->amount,
+                'duration'            => $plan->duration ?? 30,
+                'type'                => $plan->type ?? 'Monthly',
+                'discount_percentage' => $plan->discount_percentage,
             ];
         });
 
@@ -76,18 +57,6 @@ class PaymentGatewayController extends Controller
             'message' => 'Plans d\'abonnement',
         ]);
     }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // POST /api/v1/subscribe (authentifié)
-    // Initie un paiement pour un plan donné via la passerelle choisie
-    //
-    // Body: {
-    //   plan_id:      int     — ID du plan
-    //   gateway_code: string  — Code du gateway (ex: orange_money_bf)
-    //   phone:        string  — Numéro du payeur (+226XXXXXXXX)
-    //   otp:          string? — OTP (requis pour Orange Money uniquement)
-    // }
-    // ─────────────────────────────────────────────────────────────────────────
 
     public function subscribe(Request $request)
     {
@@ -117,11 +86,10 @@ class PaymentGatewayController extends Controller
                 ], 404);
             }
 
-            // Vérification OTP pour Orange Money
             if ($this->gatewayRequiresOtp($gateway->code) && empty($request->otp)) {
                 return response()->json([
                     'status'  => false,
-                    'message' => 'Veuillez générer et saisir votre OTP Orange Money en composant *144*4*6# sur votre téléphone.',
+                    'message' => 'Veuillez saisir le code OTP pour continuer le paiement.',
                     'requires_otp' => true,
                 ], 422);
             }
@@ -129,7 +97,6 @@ class PaymentGatewayController extends Controller
             $reference = 'salon_' . $user->id . '_' . time();
             $phone     = $this->normalizePhone($request->phone);
 
-            // ─ Router vers le bon driver ──────────────────────────────────────
             $result = match ($gateway->driver) {
                 'pulse_kango' => $this->payWithPulseKango(
                     $gateway, $plan, $user, $phone, $reference, $request->otp
@@ -148,14 +115,17 @@ class PaymentGatewayController extends Controller
                 ], 400);
             }
 
-            // ─ Créer ou mettre à jour l'abonnement ───────────────────────────
+            $isPaid = ($result['status'] ?? '') === 'TS';
+            $subStatus = $isPaid ? 'active' : 'pending';
+            $txStatus  = $isPaid ? 'paid' : 'pending';
+
             $subscription = Subscription::updateOrCreate(
-                ['user_id' => $user->id, 'status' => 'pending'],
+                ['user_id' => $user->id],
                 [
                     'plan_id'    => $plan->id,
                     'start_date' => now(),
                     'end_date'   => now()->addDays($plan->duration ?? 30),
-                    'status'     => 'pending',
+                    'status'     => $subStatus,
                     'amount'     => $plan->amount,
                     'name'       => $plan->name ?? 'Abonnement',
                     'identifier' => $plan->identifier ?? $reference,
@@ -168,7 +138,7 @@ class PaymentGatewayController extends Controller
                 'subscriptions_id' => $subscription->id,
                 'user_id'          => $user->id,
                 'amount'           => $plan->amount,
-                'payment_status'   => 'pending',
+                'payment_status'   => $txStatus,
                 'payment_type'     => $gateway->code,
                 'transaction_id'   => $result['transaction_id'] ?? $reference,
             ]);
@@ -180,9 +150,13 @@ class PaymentGatewayController extends Controller
                 'reference' => $reference,
             ]);
 
+            $successMsg = $isPaid
+                ? 'Paiement effectué avec succès ! Votre abonnement est maintenant actif.'
+                : 'Paiement initié. Veuillez confirmer la transaction sur votre téléphone.';
+
             return response()->json([
                 'status'          => true,
-                'message'         => $this->getSuccessMessage($gateway->code),
+                'message'         => $successMsg,
                 'payment_url'     => $result['payment_url'] ?? null,
                 'transaction_id'  => $result['transaction_id'] ?? null,
                 'reference'       => $reference,
@@ -191,17 +165,13 @@ class PaymentGatewayController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('[Subscribe] Exception', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            Log::error('[Subscribe] Exception', ['error' => $e->getMessage()]);
             return response()->json([
                 'status'  => false,
                 'message' => 'Une erreur est survenue : ' . $e->getMessage(),
             ], 500);
         }
     }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Driver PulseKango
-    // ─────────────────────────────────────────────────────────────────────────
 
     private function payWithPulseKango(PaymentGateway $gateway, Plan $plan, $user, string $phone, string $reference, ?string $otp): array
     {
@@ -218,73 +188,80 @@ class PaymentGatewayController extends Controller
             'operator'    => $this->getOperatorCode($gateway->code),
         ];
 
-        // OTP pour Orange Money
+        if ($payload['operator'] === 'MOOVBF') {
+            $externalId = Cache::get('moov_otp_' . $phone);
+            if ($externalId) {
+                $payload['external_id'] = $externalId;
+            }
+        }
+
         if ($otp) {
             $payload['otp'] = $otp;
         }
 
-        return $service->initiatePayment($payload);
+        $result = $service->initiatePayment($payload);
+
+        if (isset($result['is_otp_step']) && $result['is_otp_step']) {
+            if (isset($result['external_id'])) {
+                Cache::put('moov_otp_' . $phone, $result['external_id'], now()->addMinutes(5));
+            }
+            
+            return [
+                'success' => false,
+                'message' => $result['message'] ?? "Un SMS avec l'OTP a été envoyé. Veuillez le saisir pour valider.",
+                'raw'     => $result,
+            ];
+        }
+
+        if (($result['success'] ?? false) && $payload['operator'] === 'MOOVBF') {
+            Cache::forget('moov_otp_' . $phone);
+        }
+
+        return $result;
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Helpers — Logique par opérateur
-    // ─────────────────────────────────────────────────────────────────────────
-
-    /** Orange Money nécessite un OTP que l'utilisateur génère en composant *144*4*6# */
     private function gatewayRequiresOtp(string $code): bool
     {
         return str_contains($code, 'orange');
     }
 
-    /** Moov et Telecel envoient un USSD Push direct sur le téléphone */
     private function isUssdPush(string $code): bool
     {
-        return str_contains($code, 'moov') || str_contains($code, 'telecel');
+        return false;
     }
 
-    /** Instruction OTP affichée dans l'app mobile */
     private function getOtpInstruction(string $code): ?string
     {
         if (str_contains($code, 'orange')) {
-            return "Composez *144*4*6# sur votre téléphone pour générer votre OTP Orange Money, puis saisissez-le ci-dessous.";
+            return "Composez *144*4*6# sur votre téléphone pour générer votre OTP, puis saisissez-le.";
         }
         if (str_contains($code, 'moov')) {
-            return "Vous recevrez une notification USSD sur votre téléphone Moov pour confirmer le paiement.";
+            return "Saisissez votre code OTP Moov.";
         }
         if (str_contains($code, 'telecel')) {
-            return "Vous recevrez une notification USSD sur votre téléphone Telecel pour confirmer le paiement.";
+            return "Saisissez votre code OTP Telecel.";
         }
-        return null;
+        return "Saisissez votre code OTP.";
     }
 
-    /** Code opérateur pour PulseKango */
     private function getOperatorCode(string $gatewayCode): string
     {
-        if (str_contains($gatewayCode, 'orange'))  return 'orange';
-        if (str_contains($gatewayCode, 'moov'))    return 'moov';
-        if (str_contains($gatewayCode, 'telecel')) return 'telecel';
-        return 'mobile_money';
+        if (str_contains($gatewayCode, 'orange'))  return 'OMBF';
+        if (str_contains($gatewayCode, 'moov'))    return 'MOOVBF';
+        if (str_contains($gatewayCode, 'telecel')) return 'TELBF';
+        return 'OMBF'; 
     }
 
-    /** Message de succès adapté à l'opérateur */
     private function getSuccessMessage(string $code): string
     {
-        if (str_contains($code, 'orange')) {
-            return 'OTP validé. Votre abonnement est en cours de traitement.';
-        }
-        if (str_contains($code, 'moov') || str_contains($code, 'telecel')) {
-            return 'Veuillez confirmer le paiement sur la notification USSD envoyée sur votre téléphone.';
-        }
         return 'Paiement initié avec succès.';
     }
 
-    /** Normalise le numéro de téléphone au format international */
     private function normalizePhone(string $phone): string
     {
-        $phone = preg_replace('/\s+/', '', $phone);
-        if (! str_starts_with($phone, '+')) {
-            // Ajouter indicatif Burkina Faso par défaut
-            $phone = str_starts_with($phone, '00') ? '+' . substr($phone, 2) : '+226' . ltrim($phone, '0');
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+        if (str_starts_with($phone, '226') && strlen($phone) > 8) {
+            $phone = substr($phone, 3);
         }
         return $phone;
     }

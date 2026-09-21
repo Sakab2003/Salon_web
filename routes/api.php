@@ -94,12 +94,13 @@ Route::group(['middleware' => 'auth:sanctum', 'prefix' => 'v1/payments/pulse-kan
 // Passerelles de paiement unifiées — Mobile App
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Publique : liste des passerelles actives
+// Publique : liste des passerelles actives et plans
 Route::get('v1/payment-gateways', [PaymentGatewayController::class, 'index'])->name('api.payment-gateways');
+Route::get('v1/plans', [PaymentGatewayController::class, 'plans'])->name('api.plans');
 
 // Authentifié : souscrire via n'importe quelle passerelle
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('v1/plans', [PaymentGatewayController::class, 'plans'])->name('api.plans');
-    Route::post('v1/subscribe', [PaymentGatewayController::class, 'subscribe'])->name('api.subscribe');
+    Route::match(['get', 'post'], 'v1/subscribe', [PaymentGatewayController::class, 'subscribe'])->name('api.subscribe');
+    Route::match(['get', 'post'], 'subscribe', [PaymentGatewayController::class, 'subscribe']);
 });
 
