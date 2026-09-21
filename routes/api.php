@@ -98,9 +98,11 @@ Route::group(['middleware' => 'auth:sanctum', 'prefix' => 'v1/payments/pulse-kan
 Route::get('v1/payment-gateways', [PaymentGatewayController::class, 'index'])->name('api.payment-gateways');
 Route::get('v1/plans', [PaymentGatewayController::class, 'plans'])->name('api.plans');
 
-// Authentifié : souscrire via n'importe quelle passerelle
+// Authentifié : souscrire via n'importe quelle passerelle & statut de l'abonnement
 Route::middleware('auth:sanctum')->group(function () {
     Route::match(['get', 'post'], 'v1/subscribe', [PaymentGatewayController::class, 'subscribe'])->name('api.subscribe');
     Route::match(['get', 'post'], 'subscribe', [PaymentGatewayController::class, 'subscribe']);
+    Route::get('v1/subscription-status', [PaymentGatewayController::class, 'subscriptionStatus'])->name('api.subscription-status');
+    Route::get('subscription-status', [PaymentGatewayController::class, 'subscriptionStatus']);
 });
 

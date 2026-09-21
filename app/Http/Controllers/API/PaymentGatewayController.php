@@ -58,6 +58,70 @@ class PaymentGatewayController extends Controller
         ]);
     }
 
+    public function subscriptionStatus(Request $request)
+    {
+        $user = $request->user();
+        if (! $user) {
+            return response()->json([
+                'status'        => false,
+                'is_subscribed' => false,
+                'message'       => 'Utilisateur non authentifié.',
+            ], 401);
+        }
+
+        $subscription = Subscription::where('user_id', $user->id)
+            ->where('status', 'active')
+            ->where('end_date', '>', now())
+            ->first();
+
+        $trialDaysRemaining = method_exists($user, 'mobileTrialDaysRemaining') ? $user->mobileTrialDaysRemaining() : 0;
+        $isTrialExpired = $user->mobile_trial_started_at !== null && now()->greaterThan($user->mobile_trial_started_at->copy()->addDays(\App\Models\User::MOBILE_TRIAL_DAYS));
+
+        if ($subscription) {
+            $daysRemaining = (int) max(1, ceil(now()->diffInDays($subscription->end_date, false)));
+            $planType = (stripos($subscription->name, 'annuel') !== false || stripos($subscription->name, 'an') !== false) ? 'Annuel' : 'Mensuel';
+            return response()->json([
+                'status'                 => true,
+                'is_subscribed'          => true,
+                'days_remaining'         => $daysRemaining,
+                'plan_name'              => $subscription->name ?? 'Abonnement',
+                'plan_type'              => $planType,
+                'trial_days_remaining'   => 0,
+                'is_trial_expired'       => false,
+                'data'                   => [
+                    'is_subscribed'        => true,
+                    'days_remaining'       => $daysRemaining,
+                    'plan_name'            => $subscription->name ?? 'Abonnement',
+                    'plan_type'            => $planType,
+                    'trial_days_remaining' => 0,
+                    'is_trial_expired'     => false,
+                    'start_date'           => $subscription->start_date,
+                    'end_date'             => $subscription->end_date,
+                ],
+                'message'                => "Abonnement {$planType} actif : {$subscription->name} ({$daysRemaining} jours restants)",
+            ]);
+        }
+
+        return response()->json([
+            'status'                 => true,
+            'is_subscribed'          => false,
+            'days_remaining'         => 0,
+            'plan_name'              => '',
+            'plan_type'              => '',
+            'trial_days_remaining'   => $trialDaysRemaining,
+            'is_trial_expired'       => $isTrialExpired,
+            'data'                   => [
+                'is_subscribed'        => false,
+                'days_remaining'       => 0,
+                'plan_name'            => '',
+                'plan_type'            => '',
+                'trial_days_remaining' => $trialDaysRemaining,
+                'is_trial_expired'     => $isTrialExpired,
+            ],
+            'message'                => 'Aucun abonnement actif.',
+        ]);
+    }
+
     public function subscribe(Request $request)
     {
         $request->validate([
@@ -68,7 +132,14 @@ class PaymentGatewayController extends Controller
         ]);
 
         try {
-            $user    = $request->user();
+            $user = $request->user();
+
+            // Vérifier s'il y a déjà un abonnement actif en cours pour cumuler la durée
+            $existingSub = Subscription::where('user_id', $user->id)
+                ->where('status', 'active')
+                ->where('end_date', '>', now())
+                ->first();
+
             $plan    = Plan::find($request->plan_id);
 
             if (! $plan) {
@@ -119,12 +190,21 @@ class PaymentGatewayController extends Controller
             $subStatus = $isPaid ? 'active' : 'pending';
             $txStatus  = $isPaid ? 'paid' : 'pending';
 
+            // Si un abonnement actif existe déjà, on prolonge la durée à partir de sa date d'échéance
+            $baseEndDate = ($existingSub && \Carbon\Carbon::parse($existingSub->end_date)->isFuture())
+                ? \Carbon\Carbon::parse($existingSub->end_date)
+                : now();
+            $newEndDate = $baseEndDate->copy()->addDays($plan->duration ?? 30);
+            $startDate  = ($existingSub && \Carbon\Carbon::parse($existingSub->end_date)->isFuture())
+                ? $existingSub->start_date
+                : now();
+
             $subscription = Subscription::updateOrCreate(
                 ['user_id' => $user->id],
                 [
                     'plan_id'    => $plan->id,
-                    'start_date' => now(),
-                    'end_date'   => now()->addDays($plan->duration ?? 30),
+                    'start_date' => $startDate,
+                    'end_date'   => $newEndDate,
                     'status'     => $subStatus,
                     'amount'     => $plan->amount,
                     'name'       => $plan->name ?? 'Abonnement',

@@ -52,6 +52,9 @@ class LoginResource extends JsonResource
             'permissions' => $this->getAllPermissions()->pluck('name')->values()->all(),
             'subscription' => $this->subscriptionPackage ? [
                 'status' => $this->subscriptionPackage->status,
+                'name' => $this->subscriptionPackage->name,
+                'plan_type' => stripos($this->subscriptionPackage->name, 'annuel') !== false ? 'Annuel' : 'Mensuel',
+                'days_remaining' => (int) max(1, ceil(now()->diffInDays($this->subscriptionPackage->end_date, false))),
                 'start_date' => $this->subscriptionPackage->start_date,
                 'end_date' => $this->subscriptionPackage->end_date,
             ] : null,

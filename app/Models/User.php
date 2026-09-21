@@ -109,7 +109,9 @@ class User extends Authenticatable implements HasMedia, MustVerifyEmail
      */
     public function subscriptionPackage()
     {
-        return $this->hasOne(Subscription::class, 'user_id', 'id')->where('status', config('constant.SUBSCRIPTION_STATUS.ACTIVE'));
+        return $this->hasOne(Subscription::class, 'user_id', 'id')
+            ->where('status', config('constant.SUBSCRIPTION_STATUS.ACTIVE', 'active'))
+            ->where('end_date', '>', now());
     }
 
     public const MOBILE_TRIAL_DAYS = 3;
