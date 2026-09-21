@@ -52,6 +52,7 @@ jobs:
 
             echo "── seeders ──"
             php artisan db:seed --class=PaymentGatewaySeeder --force || true
+            php artisan db:seed --class=TestPlanSeeder --force || true
 
             echo "── cache clear ──"
             php artisan config:clear

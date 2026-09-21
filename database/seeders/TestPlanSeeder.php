@@ -15,7 +15,7 @@ class TestPlanSeeder extends Seeder
                 'identifier' => 'monthly',
                 'type'       => 'Monthly',
                 'duration'   => 30,
-                'amount'     => 10,       // 10 FCFA — test réel
+                'amount'     => 100,      // 100 FCFA/mois
                 'status'     => 1,
             ],
             [
@@ -23,7 +23,8 @@ class TestPlanSeeder extends Seeder
                 'identifier' => 'yearly',
                 'type'       => 'Yearly',
                 'duration'   => 365,
-                'amount'     => 100,      // 100 FCFA — test réel
+                'amount'     => 960,      // 960 FCFA/an (20% de réduction)
+                'discount_percentage' => '20.00',
                 'status'     => 1,
             ],
         ];
