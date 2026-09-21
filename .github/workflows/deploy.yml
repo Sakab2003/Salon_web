@@ -2,12 +2,15 @@ name: 🚀 Deploy to salon.kuilinga.tech (MANUEL)
 
 # Déclenchement MANUEL uniquement — va sur GitHub > Actions > Run workflow
 on:
+  push:
+    branches:
+      - master
   workflow_dispatch:
     inputs:
       confirm:
         description: 'Taper "deployer" pour confirmer'
-        required: true
-        default: ''
+        required: false
+        default: 'deployer'
 
 jobs:
   deploy:
@@ -46,6 +49,9 @@ jobs:
 
             echo "── migrations ──"
             php artisan migrate --force
+
+            echo "── seeders ──"
+            php artisan db:seed --class=PaymentGatewaySeeder --force || true
 
             echo "── cache clear ──"
             php artisan config:clear
