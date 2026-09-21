@@ -20,50 +20,97 @@ if ($key !== DEPLOY_SECRET) {
     die("❌ Accès refusé. Clé invalide.\n");
 }
 
+ini_set('display_errors', '1');
+error_reporting(E_ALL);
+
 echo "🚀 Déploiement Kuilinga — " . date('Y-m-d H:i:s') . "\n";
 echo str_repeat('─', 60) . "\n\n";
 
-// ─── Détection du répertoire racine de l'application ─────────────────────────
-// Ce fichier est dans /public/, la racine est un niveau au-dessus
 $appRoot = dirname(__DIR__);
 chdir($appRoot);
 
 echo "📁 Répertoire : $appRoot\n\n";
 
-// ─── Fonctions utilitaires ────────────────────────────────────────────────────
+// ─── Fonctions utilitaires sécurisées ────────────────────────────────────────
 function run(string $cmd): void {
     echo "▶ $cmd\n";
+    if (!function_exists('exec')) {
+        echo "  ℹ️  exec() désactivé par l'hébergeur (normal sur mutualisé)\n\n";
+        return;
+    }
     $output = [];
     $return = 0;
-    exec($cmd . ' 2>&1', $output, $return);
-    foreach ($output as $line) {
-        echo "  $line\n";
+    try {
+        @exec($cmd . ' 2>&1', $output, $return);
+        foreach ($output as $line) {
+            echo "  $line\n";
+        }
+        echo ($return === 0 ? "  ✅ OK\n" : "  ⚠️  Code retour : $return\n") . "\n";
+    } catch (\Throwable $e) {
+        echo "  ⚠️  Erreur exec: " . $e->getMessage() . "\n\n";
     }
-    echo ($return === 0 ? "  ✅ OK\n" : "  ⚠️  Code retour : $return\n") . "\n";
 }
 
-// ─── Étape 1 : Git Pull ───────────────────────────────────────────────────────
+// ─── Étape 1 : Git Pull (si possible via exec) ────────────────────────────────
 echo "ÉTAPE 1 — Récupération du code depuis GitHub\n";
 echo str_repeat('─', 40) . "\n";
 run('git pull origin master');
 
-// ─── Étape 2 : Composer (si composer.json a changé) ──────────────────────────
-echo "ÉTAPE 2 — Dépendances Composer\n";
+// ─── Étape 2 : Initialisation de Laravel en mémoire ──────────────────────────
+echo "ÉTAPE 2 — Bootstrap Laravel\n";
 echo str_repeat('─', 40) . "\n";
-run('composer install --no-dev --optimize-autoloader --no-interaction');
+try {
+    require_once $appRoot . '/vendor/autoload.php';
+    $app = require_once $appRoot . '/bootstrap/app.php';
+    $kernel = $app->make(\Illuminate\Contracts\Console\Kernel::class);
+    $kernel->bootstrap();
+    echo "  ✅ Laravel initialisé avec succès\n\n";
+} catch (\Throwable $e) {
+    echo "  ⚠️ Erreur bootstrap: " . $e->getMessage() . "\n\n";
+}
 
-// ─── Étape 3 : Migrations ─────────────────────────────────────────────────────
+// ─── Étape 3 : Migrations de base de données ──────────────────────────────────
 echo "ÉTAPE 3 — Migrations base de données\n";
 echo str_repeat('─', 40) . "\n";
-run('php artisan migrate --force');
+try {
+    \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+    $migrationOutput = \Illuminate\Support\Facades\Artisan::output();
+    echo $migrationOutput ?: "  ✅ Migrations terminées\n";
+} catch (\Throwable $e) {
+    echo "  ❌ Erreur migration: " . $e->getMessage() . "\n";
+}
+echo "\n";
 
-// ─── Étape 4 : Vider tous les caches ─────────────────────────────────────────
-echo "ÉTAPE 4 — Nettoyage des caches\n";
+// ─── Étape 4 : Seeders (Passerelles & Plans) ─────────────────────────────────
+echo "ÉTAPE 4 — Seeders (Passerelles de paiement et Plans)\n";
 echo str_repeat('─', 40) . "\n";
-run('php artisan config:clear');
-run('php artisan route:clear');
-run('php artisan cache:clear');
-run('php artisan view:clear');
+try {
+    \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'PaymentGatewaySeeder', '--force' => true]);
+    echo \Illuminate\Support\Facades\Artisan::output();
+} catch (\Throwable $e) {
+    echo "  ⚠️ PaymentGatewaySeeder: " . $e->getMessage() . "\n";
+}
+
+try {
+    \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'TestPlanSeeder', '--force' => true]);
+    echo \Illuminate\Support\Facades\Artisan::output();
+} catch (\Throwable $e) {
+    echo "  ⚠️ TestPlanSeeder: " . $e->getMessage() . "\n";
+}
+echo "  ✅ Seeders terminés\n\n";
+
+// ─── Étape 5 : Nettoyage des caches ──────────────────────────────────────────
+echo "ÉTAPE 5 — Nettoyage des caches\n";
+echo str_repeat('─', 40) . "\n";
+try {
+    \Illuminate\Support\Facades\Artisan::call('config:clear');
+    \Illuminate\Support\Facades\Artisan::call('route:clear');
+    \Illuminate\Support\Facades\Artisan::call('cache:clear');
+    \Illuminate\Support\Facades\Artisan::call('view:clear');
+    echo "  ✅ Caches vidés avec succès\n\n";
+} catch (\Throwable $e) {
+    echo "  ⚠️ Caches: " . $e->getMessage() . "\n\n";
+}
 
 // ─── Fin ──────────────────────────────────────────────────────────────────────
 echo str_repeat('═', 60) . "\n";

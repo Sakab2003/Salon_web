@@ -36,6 +36,8 @@ class TestPlanSeeder extends Seeder
             );
         }
 
-        $this->command->info('✅ Plans test créés : 10 FCFA/mois, 100 FCFA/an');
+        if ($this->command) {
+            $this->command->info('✅ Plans test créés : 100 FCFA/mois, 960 FCFA/an');
+        }
     }
 }

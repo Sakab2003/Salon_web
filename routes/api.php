@@ -106,3 +106,33 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('subscription-status', [PaymentGatewayController::class, 'subscriptionStatus']);
 });
 
+// Endpoint de maintenance / migration à distance protégé
+Route::get('v1/system/migrate', function (Request $request) {
+    if ($request->query('key') !== 'kuilinga_deploy_2026_$4m') {
+        return response()->json(['status' => false, 'message' => 'Accès refusé'], 403);
+    }
+
+    $results = [];
+
+    \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+    $results['migrate'] = trim(\Illuminate\Support\Facades\Artisan::output());
+
+    \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'PaymentGatewaySeeder', '--force' => true]);
+    $results['seed_gateways'] = trim(\Illuminate\Support\Facades\Artisan::output());
+
+    \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'TestPlanSeeder', '--force' => true]);
+    $results['seed_plans'] = trim(\Illuminate\Support\Facades\Artisan::output());
+
+    \Illuminate\Support\Facades\Artisan::call('config:clear');
+    \Illuminate\Support\Facades\Artisan::call('route:clear');
+    \Illuminate\Support\Facades\Artisan::call('cache:clear');
+    \Illuminate\Support\Facades\Artisan::call('view:clear');
+    $results['cache'] = 'cleared';
+
+    return response()->json([
+        'status'  => true,
+        'message' => 'Migrations, seeders et caches exécutés avec succès',
+        'results' => $results,
+    ]);
+});
+

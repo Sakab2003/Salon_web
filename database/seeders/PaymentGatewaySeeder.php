@@ -52,6 +52,8 @@ class PaymentGatewaySeeder extends Seeder
             );
         }
 
-        $this->command->info('✅ ' . count($gateways) . ' passerelles de paiement créées (Orange, Moov, Telecel — Burkina Faso)');
+        if ($this->command) {
+            $this->command->info('✅ ' . count($gateways) . ' passerelles de paiement créées (Orange, Moov, Telecel — Burkina Faso)');
+        }
     }
 }

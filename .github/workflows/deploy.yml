@@ -16,6 +16,7 @@ jobs:
   deploy:
     name: Déploiement automatique
     runs-on: ubuntu-latest
+    if: ${{ secrets.SSH_HOST != '' }}
 
     steps:
       # ─────────────────────────────────────────────────────────────
