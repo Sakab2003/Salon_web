@@ -14,7 +14,26 @@ class PaymentGatewayAdminController extends Controller
 {
     public function index()
     {
-        $gateways = PaymentGateway::orderBy('sort_order')->get();
+        try {
+            if (!\Illuminate\Support\Facades\Schema::hasTable('payment_gateways')) {
+                \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+            }
+            if (\Illuminate\Support\Facades\Schema::hasTable('payment_gateways') && PaymentGateway::count() === 0) {
+                \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'PaymentGatewaySeeder', '--force' => true]);
+            }
+            if (\Illuminate\Support\Facades\Schema::hasTable('plans') && \Modules\Subscriptions\Models\Plan::where('status', 1)->count() === 0) {
+                \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'TestPlanSeeder', '--force' => true]);
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("Auto-migrate in PaymentGatewayAdminController: " . $e->getMessage());
+        }
+
+        try {
+            $gateways = PaymentGateway::orderBy('sort_order')->get();
+        } catch (\Throwable $e) {
+            $gateways = collect();
+        }
+
         return view('backend.payment_gateways.index', compact('gateways'));
     }
 
