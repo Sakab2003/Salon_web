@@ -227,6 +227,16 @@ class AuthController extends Controller
             );
         }
 
+        // Lier le code SALON de l'appareil à l'utilisateur connecté si présent
+        if ($request->filled('salon_code')) {
+            $code = trim($request->input('salon_code'));
+            $sub = \App\Models\SalonSubscription::bySalonCode($code)->first();
+            if ($sub && empty($sub->user_id)) {
+                $sub->user_id = $user->id;
+                $sub->save();
+            }
+        }
+
         // Démarrer la période d'essai si ce n'est pas encore fait
         if ($user->mobile_trial_started_at === null) {
             $user->mobile_trial_started_at = now();
@@ -263,8 +273,9 @@ class AuthController extends Controller
             $more = User::where(function ($q) use ($clean, $last8) {
                 $q->where('mobile', $clean)
                     ->orWhere('username', $clean)
-                    ->orWhere('mobile', 'like', "%{$last8}")
-                    ->orWhere('username', 'like', "%{$last8}");
+                    ->orWhere('mobile', 'like', "%{$last8}%")
+                    ->orWhere('username', 'like', "%{$last8}%")
+                    ->orWhereRaw("REPLACE(REPLACE(REPLACE(mobile, ' ', ''), '-', ''), '+', '') LIKE ?", ["%{$last8}%"]);
             })->get();
 
             $candidates = $candidates->merge($more)->unique('id');

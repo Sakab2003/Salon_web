@@ -58,4 +58,6 @@ return [
     'all_product' => 'Tous les produits',
     'orders_report' => 'Rapport de commande',
     'payment_gateways' => 'Passerelles de paiement',
+    'subscriptions' => 'Abonnements',
 ];
+

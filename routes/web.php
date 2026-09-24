@@ -244,6 +244,14 @@ Route::group(['prefix' => 'app', 'middleware' => 'auth'], function () {
         Route::post('payment-gateways/{paymentGateway}/toggle', [PaymentGatewayAdminController::class, 'toggleStatus'])
             ->name('payment-gateways.toggle');
 
+        // ── Gestion des Abonnements (Super Admin uniquement : admin@salon.com) ───────────
+        Route::get('abonnements', [\App\Http\Controllers\Backend\SalonSubscriptionAdminController::class, 'index'])
+            ->name('subscriptions.hub');
+        Route::post('abonnements/update-prices', [\App\Http\Controllers\Backend\SalonSubscriptionAdminController::class, 'updatePrices'])
+            ->name('subscriptions.update-prices');
+        Route::get('subscriptions-hub', function() { return redirect()->route('backend.subscriptions.hub'); });
+
+
 
     });
 });

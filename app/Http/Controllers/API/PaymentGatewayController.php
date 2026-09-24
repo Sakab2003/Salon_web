@@ -25,7 +25,8 @@ class PaymentGatewayController extends Controller
             if (\Illuminate\Support\Facades\Schema::hasTable('payment_gateways') && PaymentGateway::count() === 0) {
                 \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'PaymentGatewaySeeder', '--force' => true]);
             }
-            if (\Illuminate\Support\Facades\Schema::hasTable('plans') && Plan::where('status', 1)->count() === 0) {
+            $hasPlanTable = \Illuminate\Support\Facades\Schema::hasTable('plan') || \Illuminate\Support\Facades\Schema::hasTable('plans');
+            if ($hasPlanTable && Plan::where('status', 1)->count() === 0) {
                 \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'TestPlanSeeder', '--force' => true]);
             }
             if ($migrated) {
@@ -114,16 +115,17 @@ class PaymentGatewayController extends Controller
         $this->autoMigrateAndSeedIfNeeded();
 
         try {
-            if (\Illuminate\Support\Facades\Schema::hasTable('plans')) {
+            $planTable = \Illuminate\Support\Facades\Schema::hasTable('plan') ? 'plan' : 'plans';
+            if (\Illuminate\Support\Facades\Schema::hasTable($planTable)) {
                 $plans = Plan::where('status', 1)->orderBy('duration', 'asc')->get()->map(function ($plan) {
                     return [
                         'id'                  => $plan->id,
                         'name'                => $plan->name,
                         'identifier'          => $plan->identifier ?? strtolower($plan->type ?? 'monthly'),
-                        'amount'              => $plan->amount,
+                        'amount'              => (int) $plan->amount,
                         'duration'            => $plan->duration ?? 30,
                         'type'                => $plan->type ?? 'Monthly',
-                        'discount_percentage' => $plan->discount_percentage,
+                        'discount_percentage' => $plan->discount_percentage !== null ? (float) $plan->discount_percentage : null,
                     ];
                 });
 
@@ -180,6 +182,43 @@ class PaymentGatewayController extends Controller
             ->where('status', 'active')
             ->where('end_date', '>', now())
             ->first();
+
+        // Vérifier également si l'appareil ou l'utilisateur a un abonnement par Code SALON actif
+        $salonCode = $request->query('salon_code') ?? $request->input('salon_code') ?? $request->header('X-Salon-Code');
+        $salonSub = null;
+        if (!empty($salonCode)) {
+            $salonSub = \App\Models\SalonSubscription::bySalonCode($salonCode)->first();
+        }
+        if (!$salonSub && $user) {
+            $salonSub = \App\Models\SalonSubscription::where('user_id', $user->id)->first();
+        }
+
+        if ($salonSub && $salonSub->isActive()) {
+            $daysRemaining = $salonSub->getRemainingDays();
+            $planType = ucfirst($salonSub->subscription_type ?? 'Mensuel');
+            return response()->json([
+                'status'                 => true,
+                'is_subscribed'          => true,
+                'days_remaining'         => $daysRemaining,
+                'plan_name'              => "Abonnement {$planType}",
+                'plan_type'              => $planType,
+                'trial_days_remaining'   => 0,
+                'is_trial_expired'       => false,
+                'salon_code'             => $salonSub->salon_code,
+                'data'                   => [
+                    'is_subscribed'        => true,
+                    'days_remaining'       => $daysRemaining,
+                    'plan_name'            => "Abonnement {$planType}",
+                    'plan_type'            => $planType,
+                    'trial_days_remaining' => 0,
+                    'is_trial_expired'     => false,
+                    'start_date'           => $salonSub->subscription_start_date,
+                    'end_date'             => $salonSub->subscription_end_date,
+                    'salon_code'           => $salonSub->salon_code,
+                ],
+                'message'                => "Abonnement {$planType} actif ({$daysRemaining} jours restants)",
+            ]);
+        }
 
         $trialDaysRemaining = method_exists($user, 'mobileTrialDaysRemaining') ? $user->mobileTrialDaysRemaining() : 0;
         $isTrialExpired = $user->mobile_trial_started_at !== null && now()->greaterThan($user->mobile_trial_started_at->copy()->addDays(\App\Models\User::MOBILE_TRIAL_DAYS));
@@ -329,14 +368,31 @@ class PaymentGatewayController extends Controller
             $subStatus = $isPaid ? 'active' : 'pending';
             $txStatus  = $isPaid ? 'paid' : 'pending';
 
-            // Si un abonnement actif existe déjà, on prolonge la durée à partir de sa date d'échéance
-            $baseEndDate = ($existingSub && \Carbon\Carbon::parse($existingSub->end_date)->isFuture())
-                ? \Carbon\Carbon::parse($existingSub->end_date)
-                : now();
-            $newEndDate = $baseEndDate->copy()->addDays($plan->duration ?? 30);
-            $startDate  = ($existingSub && \Carbon\Carbon::parse($existingSub->end_date)->isFuture())
-                ? $existingSub->start_date
-                : now();
+            // Récupérer le code salon de l'appareil
+            $salonCode = $request->input('salon_code') ?? $request->header('X-Salon-Code');
+            $salonSub = null;
+            if (!empty($salonCode)) {
+                $salonSub = \App\Models\SalonSubscription::bySalonCode($salonCode)->first();
+            }
+            if (!$salonSub) {
+                $salonSub = \App\Models\SalonSubscription::where('user_id', $user->id)->first();
+            }
+
+            // Calculer baseEndDate en prenant la plus éloignée des dates futures existantes
+            $currentEndDate = null;
+            if ($existingSub && \Carbon\Carbon::parse($existingSub->end_date)->isFuture()) {
+                $currentEndDate = \Carbon\Carbon::parse($existingSub->end_date);
+            }
+            if ($salonSub && $salonSub->isActive() && $salonSub->subscription_end_date && \Carbon\Carbon::parse($salonSub->subscription_end_date)->isFuture()) {
+                $salonEnd = \Carbon\Carbon::parse($salonSub->subscription_end_date);
+                if ($currentEndDate === null || $salonEnd->gt($currentEndDate)) {
+                    $currentEndDate = $salonEnd;
+                }
+            }
+
+            $baseEndDate = $currentEndDate ?: now();
+            $newEndDate  = $baseEndDate->copy()->addDays($plan->duration ?? 30);
+            $startDate   = ($currentEndDate && $existingSub) ? $existingSub->start_date : now();
 
             $subscription = Subscription::updateOrCreate(
                 ['user_id' => $user->id],
@@ -369,6 +425,20 @@ class PaymentGatewayController extends Controller
                 'reference' => $reference,
             ]);
 
+            if ($isPaid) {
+                if ($salonSub) {
+                    $salonSub->user_id = $user->id;
+                    $salonSub->subscription_end_date = $newEndDate;
+                    $salonSub->status = 'active';
+                    $salonSub->is_active = 1;
+                    $salonSub->amount_paid = ($salonSub->amount_paid ?? 0) + $plan->amount;
+                    $salonSub->payment_method = $gateway->code;
+                    $salonSub->payment_reference = $result['transaction_id'] ?? $reference;
+                    $salonSub->notes = "Paiement Mobile Money {$gateway->name}";
+                    $salonSub->save();
+                }
+            }
+
             $successMsg = $isPaid
                 ? 'Paiement effectué avec succès ! Votre abonnement est maintenant actif.'
                 : 'Paiement initié. Veuillez confirmer la transaction sur votre téléphone.';
@@ -380,6 +450,8 @@ class PaymentGatewayController extends Controller
                 'transaction_id'  => $result['transaction_id'] ?? null,
                 'reference'       => $reference,
                 'subscription_id' => $subscription->id,
+                'days_remaining'  => (int) max(1, ceil(now()->diffInDays($newEndDate, false))),
+                'end_date'        => $newEndDate,
                 'ussd_push'       => $this->isUssdPush($gateway->code),
             ]);
 

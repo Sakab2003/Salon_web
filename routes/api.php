@@ -106,6 +106,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('subscription-status', [PaymentGatewayController::class, 'subscriptionStatus']);
 });
 
+// Routes pour la gestion des abonnements (Web Dashboard & Mobile App)
+Route::prefix('subscriptions')->group(function () {
+    Route::post('/check', [\App\Http\Controllers\API\SalonSubscriptionApiController::class, 'checkSubscription']);
+    Route::post('/register', [\App\Http\Controllers\API\SalonSubscriptionApiController::class, 'registerDevice']);
+    Route::post('/extend-by-code', [\App\Http\Controllers\API\SalonSubscriptionApiController::class, 'extendSubscriptionByCode']);
+    Route::post('/extend', [\App\Http\Controllers\API\SalonSubscriptionApiController::class, 'extendSubscriptionByCode']);
+    Route::post('/cancel', [\App\Http\Controllers\API\SalonSubscriptionApiController::class, 'cancelSubscription']);
+    Route::get('/list', [\App\Http\Controllers\API\SalonSubscriptionApiController::class, 'listSubscriptions']);
+    Route::get('/stats', [\App\Http\Controllers\API\SalonSubscriptionApiController::class, 'getStats']);
+});
+
+
 // Endpoint de maintenance / migration à distance protégé
 Route::get('v1/system/migrate', function (Request $request) {
     if ($request->query('key') !== 'kuilinga_deploy_2026_$4m') {

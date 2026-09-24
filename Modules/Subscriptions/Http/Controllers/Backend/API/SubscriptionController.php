@@ -122,44 +122,102 @@ class SubscriptionController extends Controller
     {
         try {
             $user_id = auth()->id();
+            $salonCode = $request->query('salon_code') ?? $request->input('salon_code') ?? $request->header('X-Salon-Code');
 
-            // On cherche directement dans le modèle Eloquent (pas via le Trait qui retourne un Resource)
+            // 1. Chercher dans SalonSubscription et Subscription classique
+            $salonSub = null;
+            if (!empty($salonCode)) {
+                $salonSub = \App\Models\SalonSubscription::bySalonCode($salonCode)->first();
+            }
+            if (!$salonSub && $user_id) {
+                $salonSub = \App\Models\SalonSubscription::where('user_id', $user_id)->first();
+            }
+
             $activePlan = Subscription::where('user_id', $user_id)
                 ->where('status', config('constant.SUBSCRIPTION_STATUS.ACTIVE', 'active'))
+                ->where('end_date', '>', now())
                 ->first();
 
-            if (! $activePlan) {
+            $salonActive = ($salonSub && $salonSub->isActive());
+            $planActive  = ($activePlan !== null);
+
+            if ($salonActive || $planActive) {
+                $salonDays = $salonActive ? $salonSub->getRemainingDays() : 0;
+                $planDays  = 0;
+                if ($planActive && $activePlan->end_date) {
+                    $endDate = \Carbon\Carbon::parse($activePlan->end_date);
+                    $planDays = $endDate->isFuture() ? (int) ceil(now()->diffInDays($endDate, false)) : 0;
+                }
+
+                $maxDays = max($salonDays, $planDays);
+                $maxEndDate = $salonActive && $salonSub->subscription_end_date 
+                    ? \Carbon\Carbon::parse($salonSub->subscription_end_date)
+                    : ($planActive ? \Carbon\Carbon::parse($activePlan->end_date) : now()->addDays($maxDays));
+
+                if ($planActive && $activePlan->end_date && \Carbon\Carbon::parse($activePlan->end_date)->gt($maxEndDate)) {
+                    $maxEndDate = \Carbon\Carbon::parse($activePlan->end_date);
+                }
+
+                // Synchroniser les deux si l'un est en avance sur l'autre
+                if ($salonSub && $salonSub->subscription_end_date != $maxEndDate->toDateTimeString()) {
+                    $salonSub->subscription_end_date = $maxEndDate;
+                    $salonSub->status = 'active';
+                    $salonSub->is_active = 1;
+                    $salonSub->save();
+                }
+
+                $planName = $activePlan ? $activePlan->name : "Abonnement " . ucfirst($salonSub->subscription_type ?? 'Mensuel');
+                $planType = ($activePlan && (stripos($activePlan->name, 'annuel') !== false || stripos($activePlan->name, 'an') !== false))
+                    ? 'Annuel'
+                    : ucfirst($salonSub->subscription_type ?? 'Mensuel');
+
                 return response()->json([
-                    'status'         => true,
-                    'is_subscribed'  => false,
-                    'is_trial'       => false,
-                    'plan_name'      => null,
-                    'days_remaining' => 0,
-                    'end_date'       => null,
-                    'message'        => 'Aucun abonnement actif.',
+                    'status'                 => true,
+                    'is_subscribed'          => true,
+                    'is_trial'               => false,
+                    'plan_name'              => $planName,
+                    'plan_type'              => $planType,
+                    'days_remaining'         => $maxDays,
+                    'trial_days_remaining'   => 0,
+                    'is_trial_expired'       => false,
+                    'end_date'               => $maxEndDate->toDateTimeString(),
+                    'salon_code'             => $salonSub ? $salonSub->salon_code : null,
+                    'message'                => "Abonnement actif ({$maxDays} jours restants)",
+                    'data'                   => [
+                        'is_subscribed'        => true,
+                        'days_remaining'       => $maxDays,
+                        'plan_name'            => $planName,
+                        'plan_type'            => $planType,
+                        'trial_days_remaining' => 0,
+                        'is_trial_expired'     => false,
+                        'end_date'             => $maxEndDate->toDateTimeString(),
+                        'salon_code'           => $salonSub ? $salonSub->salon_code : null,
+                    ]
                 ]);
             }
 
-            // Calcul des jours restants
-            $daysRemaining = 0;
-            if ($activePlan->end_date) {
-                $endDate       = new \Carbon\Carbon($activePlan->end_date);
-                $now           = \Carbon\Carbon::now();
-                $daysRemaining = $endDate->gt($now) ? (int) $now->diffInDays($endDate) : 0;
-            }
-
-            $planStatus = strtolower($activePlan->status ?? '');
-            $isTrial    = false;
+            $user = auth()->user();
+            $trialDays = $user && method_exists($user, 'mobileTrialDaysRemaining') ? $user->mobileTrialDaysRemaining() : 0;
+            $isTrialExp = $user && $user->mobile_trial_started_at !== null && now()->greaterThan($user->mobile_trial_started_at->copy()->addDays(\App\Models\User::MOBILE_TRIAL_DAYS));
 
             return response()->json([
-                'status'          => true,
-                'is_subscribed'   => true,
-                'is_trial'        => $isTrial,
-                'plan_name'       => $activePlan->name,
-                'plan_identifier' => $activePlan->identifier,
-                'days_remaining'  => $daysRemaining,
-                'end_date'        => $activePlan->end_date,
-                'subscription_id' => $activePlan->id,
+                'status'                 => true,
+                'is_subscribed'          => false,
+                'is_trial'               => false,
+                'plan_name'              => null,
+                'days_remaining'         => 0,
+                'trial_days_remaining'   => $trialDays,
+                'is_trial_expired'       => $isTrialExp,
+                'end_date'               => null,
+                'message'                => 'Aucun abonnement actif.',
+                'data'                   => [
+                    'is_subscribed'        => false,
+                    'days_remaining'       => 0,
+                    'plan_name'            => '',
+                    'plan_type'            => '',
+                    'trial_days_remaining' => $trialDays,
+                    'is_trial_expired'     => $isTrialExp,
+                ]
             ]);
         } catch (\Exception $e) {
             // Ne jamais retourner 500 à l'app mobile — on log et on renvoie un statut neutre

@@ -116,6 +116,14 @@ class User extends Authenticatable implements HasMedia, MustVerifyEmail
 
     public const MOBILE_TRIAL_DAYS = 3;
 
+    public function hasActiveSalonSubscription(): bool
+    {
+        return \App\Models\SalonSubscription::where('user_id', $this->id)
+            ->where('status', 'active')
+            ->where('subscription_end_date', '>', now())
+            ->exists();
+    }
+
     public function hasMobileAccess(): bool
     {
         if (! $this->hasAnyRole(['admin', 'manager', 'employee'])) {
@@ -127,7 +135,7 @@ class User extends Authenticatable implements HasMedia, MustVerifyEmail
 
     public function mobileTrialDaysRemaining(): int
     {
-        if ($this->subscriptionPackage()->exists() || $this->mobile_trial_started_at === null) {
+        if ($this->hasActiveSalonSubscription() || $this->subscriptionPackage()->exists() || $this->mobile_trial_started_at === null) {
             return 0;
         }
 

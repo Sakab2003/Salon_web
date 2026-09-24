@@ -30,7 +30,8 @@ class GenerateMenus
                 || !MenuBuilder::where('title', 'sidebar.hairstyle_models')->whereNull('parent_id')->exists()
                 || !MenuBuilder::where('title', 'sidebar.pos_sale')->exists()
                 || !MenuBuilder::where('title', 'sidebar.financial_balance')->exists()
-                || !MenuBuilder::where('title', 'sidebar.payment_gateways')->exists();
+                || !MenuBuilder::where('title', 'sidebar.payment_gateways')->exists()
+                || !MenuBuilder::where('title', 'sidebar.subscriptions')->exists();
 
             if ($needsRebuild) {
                 MenuBuilder::where('menu_type', $type)->delete();
@@ -79,6 +80,21 @@ class GenerateMenus
 
             // Access Permission Check
             $menu->filter(function ($item) {
+                // Section Abonnements réservée exclusivement au super-administrateur admin@salon.com
+                $isSubMenu = ($item->title == __('sidebar.subscriptions'))
+                    || ($item->title == 'sidebar.subscriptions')
+                    || ($item->title == 'Abonnements')
+                    || ($item->title == 'Subscriptions')
+                    || (isset($item->nickname) && in_array($item->nickname, ['subscriptions', 'abonnements']))
+                    || ($item->url() && (str_contains($item->url(), 'abonnements') || str_contains($item->url(), 'subscriptions-hub')));
+
+                if ($isSubMenu) {
+                    if (auth()->check() && auth()->user()->email === 'admin@salon.com') {
+                        return true;
+                    }
+                    return false;
+                }
+
                 if (auth()->check() && auth()->user()->hasRole('manager')) {
                     $isBranchMenu = ($item->title == __('sidebar.branches'))
                         || (isset($item->nickname) && $item->nickname == 'branch')
@@ -143,6 +159,10 @@ class GenerateMenus
                 if (!$isActive) {
                     if (request()->routeIs('backend.employees.review') || request()->is('app/avis-clients*') || request()->is('app/employees-review*')) {
                         if ($item->title == __('sidebar.reviews') || str_contains($item->url() ?? '', 'avis-clients') || str_contains($item->url() ?? '', 'employees-review')) {
+                            $isActive = true;
+                        }
+                    } elseif (request()->routeIs('backend.subscriptions.hub') || request()->is('app/abonnements*') || request()->is('app/subscriptions-hub*')) {
+                        if ($item->title == __('sidebar.subscriptions') || str_contains($item->url() ?? '', 'abonnements') || str_contains($item->url() ?? '', 'subscriptions-hub')) {
                             $isActive = true;
                         }
                     }

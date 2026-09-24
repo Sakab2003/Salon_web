@@ -239,6 +239,14 @@ return [
             'order' => 20.5,
         ],
         [
+            'start_icon' => 'fa-solid fa-id-card',
+            'title' => 'sidebar.subscriptions',
+            'route' => 'backend.subscriptions.hub',
+            'active' => ['app/abonnements*', 'app/subscriptions-hub*'],
+            'permission' => ['system_settings'],
+            'order' => 20.6,
+        ],
+        [
             'start_icon' => 'fa-solid fa-file',
             'title' => 'sidebar.pages',
             'route' => 'backend.pages.index',
@@ -744,6 +752,10 @@ return [
         [
             'route' => 'backend.permission-role.list',
             'title' => 'Access Control',
+        ],
+        [
+            'route' => 'backend.subscriptions.hub',
+            'title' => 'Abonnements',
         ],
     ],
 ];

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 return [
     'main' => 'Main',
@@ -50,5 +50,7 @@ return [
     'all_product' => 'All Product',
     'orders_report' => 'Order Report',
     'payment_gateways' => 'Payment Gateways',
+    'subscriptions' => 'Subscriptions',
 ];
+
 
