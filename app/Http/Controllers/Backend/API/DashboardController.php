@@ -22,10 +22,16 @@ class DashboardController extends Controller
 {
     public function dashboardDetail(Request $request)
     {
-        $perPage = $request->input('per_page', 10);
-        $branchId = $request->input('branch_id'); // Assuming the branch ID is passed in the request
+        $branchId = $request->input('branch_id');
         $user_id = $request->input('user_id');
-        $branch = Branch::find($branchId);
+        $branch = $branchId ? Branch::find($branchId) : null;
+
+        if (! $branch) {
+            $branch = Branch::where('status', 1)->first() ?? Branch::first();
+            if ($branch) {
+                $branchId = $branch->id;
+            }
+        }
 
         if (! $branch) {
             return response()->json(['status' => false, 'message' => __('branch.branch_notfound')], 404);

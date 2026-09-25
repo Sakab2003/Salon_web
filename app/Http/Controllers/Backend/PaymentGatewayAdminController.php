@@ -21,20 +21,60 @@ class PaymentGatewayAdminController extends Controller
             if (\Illuminate\Support\Facades\Schema::hasTable('payment_gateways') && PaymentGateway::count() === 0) {
                 \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'PaymentGatewaySeeder', '--force' => true]);
             }
-            if (\Illuminate\Support\Facades\Schema::hasTable('plans') && \Modules\Subscriptions\Models\Plan::where('status', 1)->count() === 0) {
-                \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'TestPlanSeeder', '--force' => true]);
-            }
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning("Auto-migrate in PaymentGatewayAdminController: " . $e->getMessage());
+        $hasPlanTable = \Illuminate\Support\Facades\Schema::hasTable('plan') || \Illuminate\Support\Facades\Schema::hasTable('plans');
+        if ($hasPlanTable && \Modules\Subscriptions\Models\Plan::where('status', 1)->count() === 0) {
+            \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'TestPlanSeeder', '--force' => true]);
         }
+    } catch (\Throwable $e) {
+        \Illuminate\Support\Facades\Log::warning("Auto-migrate in PaymentGatewayAdminController: " . $e->getMessage());
+    }
 
-        try {
-            $gateways = PaymentGateway::orderBy('sort_order')->get();
-        } catch (\Throwable $e) {
-            $gateways = collect();
+    try {
+        $gateways = PaymentGateway::orderBy('sort_order')->get();
+    } catch (\Throwable $e) {
+        $gateways = collect();
+    }
+
+    // Récupération des plans avec fallbacks multiples
+    $monthlyPlan = null;
+    $yearlyPlan = null;
+
+    try {
+        $monthlyPlan = \Modules\Subscriptions\Models\Plan::where('identifier', 'monthly')->first()
+            ?? \Modules\Subscriptions\Models\Plan::where('type', 'Monthly')->first()
+            ?? \Modules\Subscriptions\Models\Plan::where('duration', '<=', 31)->orderBy('duration', 'desc')->first();
+
+        $yearlyPlan = \Modules\Subscriptions\Models\Plan::where('identifier', 'yearly')->first()
+            ?? \Modules\Subscriptions\Models\Plan::where('type', 'Yearly')->first()
+            ?? \Modules\Subscriptions\Models\Plan::where('duration', '>=', 360)->orderBy('duration', 'desc')->first();
+
+        // Si manquant, auto-création pour garantir l'affichage dans l'interface
+        if (!$monthlyPlan) {
+            $monthlyPlan = \Modules\Subscriptions\Models\Plan::create([
+                'name'       => 'Mensuel (30 jours)',
+                'identifier' => 'monthly',
+                'type'       => 'Monthly',
+                'duration'   => 30,
+                'amount'     => 100,
+                'status'     => 1,
+            ]);
         }
+        if (!$yearlyPlan) {
+            $yearlyPlan = \Modules\Subscriptions\Models\Plan::create([
+                'name'                => 'Annuel (365 jours)',
+                'identifier'          => 'yearly',
+                'type'                => 'Yearly',
+                'duration'            => 365,
+                'amount'              => 960,
+                'discount_percentage' => 20,
+                'status'              => 1,
+            ]);
+        }
+    } catch (\Throwable $e) {
+        \Illuminate\Support\Facades\Log::warning("Could not load/create plans: " . $e->getMessage());
+    }
 
-        return view('backend.payment_gateways.index', compact('gateways'));
+    return view('backend.payment_gateways.index', compact('gateways', 'monthlyPlan', 'yearlyPlan'));
     }
 
     public function create()
@@ -97,6 +137,10 @@ class PaymentGatewayAdminController extends Controller
                     'discount_percentage' => $discount !== null ? max(0, (float) $discount) : null
                 ]);
         }
+
+        try {
+            \Illuminate\Support\Facades\Cache::flush();
+        } catch (\Throwable $e) {}
 
         return redirect()->route('backend.payment-gateways.index')
             ->with('success', '✅ Prix mis à jour avec succès. L\'application mobile utilisera ces nouveaux prix.');

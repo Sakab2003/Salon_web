@@ -117,38 +117,38 @@
         <form method="POST" action="{{ route('backend.payment-gateways.update-prices') }}">
             @csrf
             @php
-                $monthlyPlan = \Modules\Subscriptions\Models\Plan::where('identifier', 'monthly')->first();
-                $yearlyPlan = \Modules\Subscriptions\Models\Plan::where('identifier', 'yearly')->first();
+                $mPlan = $monthlyPlan ?? \Modules\Subscriptions\Models\Plan::where('identifier', 'monthly')->first() ?? \Modules\Subscriptions\Models\Plan::where('duration', '<=', 31)->first();
+                $yPlan = $yearlyPlan ?? \Modules\Subscriptions\Models\Plan::where('identifier', 'yearly')->first() ?? \Modules\Subscriptions\Models\Plan::where('duration', '>', 31)->first();
             @endphp
             <div class="row g-3">
-                @if($monthlyPlan)
+                @if($mPlan)
                 <div class="col-md-6">
                     <div class="gateway-card p-3 h-100">
-                        <label class="form-label fw-semibold">{{ $monthlyPlan->name }}</label>
+                        <label class="form-label fw-semibold">{{ $mPlan->name }}</label>
                         <div class="input-group mb-2">
-                            <input type="number" class="form-control" name="prices[{{ $monthlyPlan->id }}]" id="monthly_price"
-                                   value="{{ $monthlyPlan->amount }}" min="1">
+                            <input type="number" class="form-control" name="prices[{{ $mPlan->id }}]" id="monthly_price"
+                                   value="{{ $mPlan->amount }}" min="1">
                             <span class="input-group-text">FCFA</span>
                         </div>
-                        <small class="text-muted">{{ $monthlyPlan->duration }} jours (Base de calcul)</small>
+                        <small class="text-muted">{{ $mPlan->duration }} jours (Base de calcul)</small>
                     </div>
                 </div>
                 @endif
                 
-                @if($yearlyPlan)
+                @if($yPlan)
                 <div class="col-md-6">
                     <div class="gateway-card p-3 h-100 border-primary bg-primary bg-opacity-10">
-                        <label class="form-label fw-semibold text-primary">{{ $yearlyPlan->name }}</label>
+                        <label class="form-label fw-semibold text-primary">{{ $yPlan->name }}</label>
                         <div class="input-group mb-2">
                             <span class="input-group-text bg-white">Prix</span>
-                            <input type="number" class="form-control" name="prices[{{ $yearlyPlan->id }}]" id="yearly_price"
-                                   value="{{ $yearlyPlan->amount }}" min="1">
+                            <input type="number" class="form-control" name="prices[{{ $yPlan->id }}]" id="yearly_price"
+                                   value="{{ $yPlan->amount }}" min="1">
                             <span class="input-group-text">FCFA</span>
                         </div>
                         <div class="input-group">
                             <span class="input-group-text bg-white">Réduction</span>
-                            <input type="number" step="0.1" class="form-control text-success fw-bold" name="discounts[{{ $yearlyPlan->id }}]" id="yearly_discount"
-                                   value="{{ $yearlyPlan->discount_percentage ?? 20 }}" min="0" max="100">
+                            <input type="number" step="0.1" class="form-control text-success fw-bold" name="discounts[{{ $yPlan->id }}]" id="yearly_discount"
+                                   value="{{ $yPlan->discount_percentage ?? 20 }}" min="0" max="100">
                             <span class="input-group-text">%</span>
                         </div>
                         <small class="text-muted mt-2 d-block">Le prix annuel peut être calculé automatiquement avec la réduction, ou défini manuellement.</small>

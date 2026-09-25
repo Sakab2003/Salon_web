@@ -73,8 +73,9 @@ class SalonSubscriptionApiController extends Controller
                     return response()->json([
                         'success'            => false,
                         'message'            => 'Abonnement non trouvé',
-                        'needs_registration' => !empty($deviceId) || !empty($code)
-                    ], 404);
+                        'needs_registration' => !empty($deviceId) || !empty($code),
+                        'subscription'       => null,
+                    ], 200);
                 }
             }
 
